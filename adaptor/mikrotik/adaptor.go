@@ -6,7 +6,10 @@ import (
 )
 
 var (
-	DeviceResourcePath = "/system/resource"
+	DeviceInfoPath     = "/system/resource"
+	DeviceIdentityPath = "/system/identity"
+	DeviceDnsPath      = "/ip/dns"
+	DeviceIPv4Path     = "/ip/address"
 	WGPeerPath         = "/interface/wireguard/peers"
 	WGInterfacePath    = "/interface/wireguard"
 	QueuePath          = "/queue/simple"

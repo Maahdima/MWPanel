@@ -9,7 +9,9 @@ import (
 	"mikrotik-wg-go/dataservice/db"
 	"mikrotik-wg-go/utils/timehelper"
 	"mikrotik-wg-go/utils/wireguard"
+	"sort"
 	"strconv"
+	"time"
 )
 
 var (
@@ -51,7 +53,7 @@ func NewWGPeer(db *db.Queries, mikrotikAdaptor *mikrotik.Adaptor, configGenerato
 func (w *WgPeer) GetPeers() (*[]schema.WgPeerResponse, error) {
 	peers, err := w.db.ListPeers(context.Background())
 	if err != nil {
-		w.logger.Error("failed to list WireGuard peers from database", zap.Error(err))
+		w.logger.Error("failed to list wireguard peers from database", zap.Error(err))
 		return nil, err
 	}
 
@@ -147,6 +149,52 @@ func (w *WgPeer) CreatePeer(req *schema.WgPeerRequest) (*schema.WgPeerResponse, 
 
 func (w *WgPeer) DeletePeer(id string) error {
 	return nil
+}
+
+func (w *WgPeer) GetPeersData() (recentOnlinePeers *[]schema.RecentOnlinePeers, totalPeers int, onlinePeers int, err error) {
+	peers, err := w.mikrotikAdaptor.FetchWgPeers(context.Background())
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var peerList []struct {
+		peer     mikrotik.WireGuardPeer
+		duration time.Duration
+	}
+	var wgPeers []schema.RecentOnlinePeers
+
+	for _, peer := range *peers {
+		if peer.LastHandshake != nil {
+			duration, err := time.ParseDuration(*peer.LastHandshake)
+			if err != nil {
+				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
+				return nil, 0, 0, err
+			}
+			peerList = append(peerList, struct {
+				peer     mikrotik.WireGuardPeer
+				duration time.Duration
+			}{peer, duration})
+		}
+	}
+
+	sort.Slice(peerList, func(i, j int) bool {
+		return peerList[i].duration < peerList[j].duration
+	})
+
+	count := 0
+	for _, item := range peerList {
+		if item.duration < 150*time.Second {
+			wgPeers = append(wgPeers, schema.RecentOnlinePeers{
+				Name:     item.peer.Name,
+				LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05")})
+			count++
+			if count == 5 {
+				break
+			}
+		}
+	}
+
+	return &wgPeers, len(*peers), len(peerList), nil
 }
 
 func (w *WgPeer) GenerateKeys() (privateKey, publicKey string, err error) {

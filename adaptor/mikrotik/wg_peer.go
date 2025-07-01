@@ -17,7 +17,7 @@ type WireGuardPeer struct {
 	ClientEndpoint         string  `json:"client-endpoint,omitempty"`
 	CurrentEndpointAddress string  `json:"current-endpoint-address,omitempty"`
 	CurrentEndpointPort    string  `json:"current-endpoint-port,omitempty"`
-	LastHandshake          string  `json:"last-handshake,omitempty"`
+	LastHandshake          *string `json:"last-handshake,omitempty"`
 }
 
 func (a *Adaptor) FetchWgPeers(c context.Context) (*[]WireGuardPeer, error) {

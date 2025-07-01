@@ -28,7 +28,7 @@ func NewWgPeerController(PeerService *service.WgPeer, peerConfigService *service
 func (c *WgPeerController) GetPeers(ctx echo.Context) error {
 	peers, err := c.peerService.GetPeers()
 	if err != nil {
-		c.logger.Error("failed to get WireGuard peers", zap.Error(err))
+		c.logger.Error("failed to get wireguard peers", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -39,6 +39,27 @@ func (c *WgPeerController) GetPeers(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]schema.WgPeerResponse]{
 		BasicResponse: schema.OkBasicResponse,
 		Data:          *peers,
+	})
+}
+
+func (c *WgPeerController) GetPeersData(ctx echo.Context) error {
+	recentOnlinePeers, totalPeers, onlinePeers, err := c.peerService.GetPeersData()
+	if err != nil {
+		c.logger.Error("failed to get recent online peers", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve recent online peers: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeersDataResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data: schema.PeersDataResponse{
+			RecentOnlinePeers: recentOnlinePeers,
+			TotalPeers:        totalPeers,
+			OnlinePeers:       onlinePeers,
+		},
 	})
 }
 

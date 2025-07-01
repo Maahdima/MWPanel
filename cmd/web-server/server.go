@@ -8,24 +8,18 @@ import (
 	"mikrotik-wg-go/adaptor/mikrotik"
 	"mikrotik-wg-go/api"
 	"mikrotik-wg-go/api/schema"
-	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice/db"
 	"mikrotik-wg-go/service"
 	"mikrotik-wg-go/utils/httphelper"
-	"mikrotik-wg-go/utils/log"
 	"mikrotik-wg-go/utils/validate"
 	"net/http"
 )
-
-func init() {
-	log.InitLogger(config.GetAppConfig())
-}
 
 func StartHttpServer(db *db.Queries) error {
 	logger := zap.L()
 
 	client, err := httphelper.NewClient(httphelper.Config{
-		BaseURL:            "http://192.168.88.237/rest",
+		BaseURL:            "http://192.168.88.1/rest",
 		Username:           "maahdima",
 		Password:           "M@hdima7731$$",
 		InsecureSkipVerify: true,
@@ -39,16 +33,18 @@ func StartHttpServer(db *db.Queries) error {
 	configGenerator := service.NewConfigGenerator(db)
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, configGenerator)
+	deviceDataService := service.NewDeviceData(mikrotikAdaptor)
 
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	api.SetupMwpAPI(e, peerService, configGenerator, qrCodeGenerator)
+	api.SetupMwpAPI(e, peerService, configGenerator, qrCodeGenerator, deviceDataService)
 
 	// TODO : move all these into controllers and api package
 	e.GET("/device-info", func(c echo.Context) error {
-		info, err := mikrotikAdaptor.FetchDeviceResource(c.Request().Context())
+		info, err := mikrotikAdaptor.FetchDeviceInfo(c.Request().Context())
 		if err != nil {
 			logger.Error("Failed to fetch device info", zap.Error(err))
 			return c.JSON(http.StatusInternalServerError, schema.ErrorResponse{
