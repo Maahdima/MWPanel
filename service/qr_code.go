@@ -1,31 +1,31 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
 	"go.uber.org/zap"
-	"mikrotik-wg-go/dataservice/db"
+	"gorm.io/gorm"
+	"mikrotik-wg-go/dataservice/model"
 	"os"
 )
 
 type QRCodeGenerator struct {
-	db     *db.Queries
+	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewQRCodeGenerator(db *db.Queries) *QRCodeGenerator {
+func NewQRCodeGenerator(db *gorm.DB) *QRCodeGenerator {
 	return &QRCodeGenerator{
 		db:     db,
 		logger: zap.L().Named("QRCodeGenerator"),
 	}
 }
 
-func (q *QRCodeGenerator) GetPeerQRCode(id int64) (qrcodePath string, err error) {
-	peer, err := q.db.GetPeer(context.Background(), id)
-	if err != nil {
-		q.logger.Error("failed to get peer from database", zap.Int64("id", id), zap.Error(err))
+func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) {
+	var peer model.Peer
+	if err = q.db.First(&peer, "id = ?", id).Error; err != nil {
+		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
 		return
 	}
 

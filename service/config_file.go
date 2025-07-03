@@ -1,10 +1,10 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"go.uber.org/zap"
-	"mikrotik-wg-go/dataservice/db"
+	"gorm.io/gorm"
+	"mikrotik-wg-go/dataservice/model"
 	"os"
 )
 
@@ -16,21 +16,21 @@ var (
 )
 
 type ConfigGenerator struct {
-	db     *db.Queries
+	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewConfigGenerator(db *db.Queries) *ConfigGenerator {
+func NewConfigGenerator(db *gorm.DB) *ConfigGenerator {
 	return &ConfigGenerator{
 		db:     db,
 		logger: zap.L().Named("ConfigGenerator"),
 	}
 }
 
-func (c *ConfigGenerator) GetPeerConfig(id int64) (configPath string, err error) {
-	peer, err := c.db.GetPeer(context.Background(), id)
-	if err != nil {
-		c.logger.Error("failed to get peer from database", zap.Int64("id", id), zap.Error(err))
+func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) {
+	var peer model.Peer
+	if err = c.db.First(&peer, "id = ?", id).Error; err != nil {
+		c.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
 		return
 	}
 

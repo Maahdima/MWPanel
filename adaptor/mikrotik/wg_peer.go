@@ -6,17 +6,18 @@ import (
 )
 
 type WireGuardPeer struct {
-	ID                     string  `json:".id,omitempty"`
-	Disabled               string  `json:"disabled,omitempty"`
+	ID                     *string `json:".id,omitempty"`
+	Disabled               *string `json:"disabled,omitempty"`
 	Comment                *string `json:"comment,omitempty"`
-	AllowedAddress         string  `json:"allowed-address"`
-	Interface              string  `json:"interface"`
-	Name                   string  `json:"name"`
+	AllowedAddress         *string `json:"allowed-address,omitempty"`
+	PersistentKeepAlive    *string `json:"persistent-keepalive,omitempty"`
+	Interface              *string `json:"interface,omitempty"`
+	Name                   *string `json:"name,omitempty"`
 	PresharedKey           *string `json:"preshared-key,omitempty"`
-	PublicKey              string  `json:"public-key"`
-	ClientEndpoint         string  `json:"client-endpoint,omitempty"`
-	CurrentEndpointAddress string  `json:"current-endpoint-address,omitempty"`
-	CurrentEndpointPort    string  `json:"current-endpoint-port,omitempty"`
+	PublicKey              *string `json:"public-key,omitempty"`
+	ClientEndpoint         *string `json:"client-endpoint,omitempty"`
+	CurrentEndpointAddress *string `json:"current-endpoint-address,omitempty"`
+	CurrentEndpointPort    *string `json:"current-endpoint-port,omitempty"`
 	LastHandshake          *string `json:"last-handshake,omitempty"`
 }
 
@@ -66,4 +67,20 @@ func (a *Adaptor) CreateWgPeer(c context.Context, peer WireGuardPeer) (*WireGuar
 	}
 
 	return &createdPeer, nil
+}
+
+func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, peer WireGuardPeer) (*WireGuardPeer, error) {
+	var updatedPeer WireGuardPeer
+
+	err := a.httpClient.Patch(
+		c,
+		WGPeerPath+"/"+peerID,
+		peer,
+		&updatedPeer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedPeer, nil
 }

@@ -15,9 +15,13 @@ func init() {
 func main() {
 	logger := zap.L()
 
-	db, err := dataservice.ConnectDB()
+	db, err := dataservice.ConnectDB(config.GetDBConfig())
 	if err != nil {
 		logger.Panic("Failed to connect to database", zap.Error(err))
+	}
+
+	if err := dataservice.AutoMigrate(db); err != nil {
+		logger.Panic("Failed to auto-migrate database", zap.Error(err))
 	}
 
 	if err := webserver.StartHttpServer(db); err != nil {

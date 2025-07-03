@@ -32,6 +32,7 @@ type DeviceIdentity struct {
 
 type DeviceIPv4Address struct {
 	IPv4 string `json:"ipv4,omitempty"`
+	ISP  string `json:"isp,omitempty"`
 }
 
 type DNSConfig struct {

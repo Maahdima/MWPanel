@@ -93,6 +93,8 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 		if ipv4.Interface == ipv4DefaultInterface {
 			return &schema.DeviceIPv4Address{
 				IPv4: ipv4.Address,
+				// TODO : implement ISP fetching
+				ISP: "Iran telecommunication company",
 			}, nil
 		}
 	}
@@ -108,6 +110,7 @@ func (d *DeviceData) getDNSConfig() (*schema.DNSConfig, error) {
 	}
 
 	return &schema.DNSConfig{
-		DnsServer: dns.Servers,
+		// TODO : check this
+		DnsServer: dns.Servers + dns.DynamicServers,
 	}, nil
 }
