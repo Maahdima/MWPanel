@@ -20,6 +20,23 @@ func NewWgInterfaceController(interfaceService *service.WgInterface) *WgInterfac
 	}
 }
 
+func (c *WgInterfaceController) GetInterfaces(ctx echo.Context) error {
+	interfaces, err := c.interfaceService.GetInterfaces()
+	if err != nil {
+		c.logger.Error("failed to get wireguard interfaces", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve wireguard interfaces: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]schema.InterfaceResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          *interfaces,
+	})
+}
+
 func (c *WgInterfaceController) GetInterfacesData(ctx echo.Context) error {
 	data, err := c.interfaceService.GetInterfacesData()
 	if err != nil {

@@ -39,6 +39,11 @@ type UpdatePeerRequest struct {
 	UploadBandwidth     *string `json:"upload_bandwidth"`
 }
 
+type PeerKeyResponse struct {
+	PublicKey  string `json:"public_key"`
+	PrivateKey string `json:"private_key"`
+}
+
 type PeerResponse struct {
 	Id                uint         `json:"id"`
 	Disabled          bool         `json:"disabled"`

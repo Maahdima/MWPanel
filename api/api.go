@@ -16,7 +16,7 @@ func SetupMwpAPI(app *echo.Echo, peerService *service.WgPeer, peerConfigService 
 func setupWgInterfaceRoutes(router *echo.Group, interfaceService *service.WgInterface) {
 	wgInterfaceController := NewWgInterfaceController(interfaceService)
 
-	//router.GET("/wg-interfaces", wgInterfaceController.GetInterfaces)
+	router.GET("/wg-interfaces", wgInterfaceController.GetInterfaces)
 	//router.POST("/wg-interfaces", wgInterfaceController.CreateInterface)
 	//router.DELETE("/wg-interfaces/:name", wgInterfaceController.DeleteInterface)
 	router.GET("/interfaces-data", wgInterfaceController.GetInterfacesData)
@@ -27,6 +27,7 @@ func setupWgInterfaceRoutes(router *echo.Group, interfaceService *service.WgInte
 func setupWgPeerRoutes(router *echo.Group, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator) {
 	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService)
 
+	router.GET("/peer-keys", wgPeerController.GetPeerKeys)
 	router.GET("/wg-peer", wgPeerController.GetPeers)
 	router.POST("/wg-peer", wgPeerController.CreatePeer)
 	router.PATCH("/wg-peer/:id", wgPeerController.UpdatePeer)

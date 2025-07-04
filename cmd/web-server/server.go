@@ -11,16 +11,16 @@ import (
 	"mikrotik-wg-go/service"
 	"mikrotik-wg-go/utils/httphelper"
 	"mikrotik-wg-go/utils/validate"
-	"net/http"
 )
 
 func StartHttpServer(db *gorm.DB) error {
 	logger := zap.L()
 
+	// TODO : initial check for connection to Mikrotik device
 	client, err := httphelper.NewClient(httphelper.Config{
 		BaseURL:            "http://192.168.64.2/rest",
-		Username:           "maahdima",
-		Password:           "M@hdima7731$$",
+		Username:           "admin",
+		Password:           "admin1234$",
 		InsecureSkipVerify: true,
 	})
 	if err != nil {
@@ -41,19 +41,6 @@ func StartHttpServer(db *gorm.DB) error {
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
 	api.SetupMwpAPI(e, peerService, configGenerator, qrCodeGenerator, deviceDataService, interfaceService)
-
-	e.GET("/generate-key", func(c echo.Context) error {
-		privateKey, publicKey, err := peerService.GenerateKeys()
-		if err != nil {
-			logger.Error("Failed to generate keys", zap.Error(err))
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{
-			"private_key": privateKey,
-			"public_key":  publicKey,
-		})
-	})
 
 	e.Logger.Fatal(e.Start(":1323"))
 

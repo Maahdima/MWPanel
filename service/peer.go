@@ -51,6 +51,19 @@ func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, configGenerator *
 	}
 }
 
+func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
+	privateKey, publicKey, err := w.GenerateKeys()
+	if err != nil {
+		w.logger.Error("failed to generate peer keys", zap.Error(err))
+		return nil, err
+	}
+
+	return &schema.PeerKeyResponse{
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+	}, nil
+}
+
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 	var peers []model.Peer
 	if err := w.db.Find(&peers).Error; err != nil {

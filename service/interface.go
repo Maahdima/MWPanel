@@ -19,8 +19,23 @@ func NewWgInterface(mikrotikAdaptor *mikrotik.Adaptor) *WgInterface {
 	}
 }
 
-func (w *WgInterface) GetInterfaces() (*[]mikrotik.WireGuardInterface, error) {
-	return nil, nil
+func (w *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
+	interfaces, err := w.mikrotikAdaptor.FetchWgInterfaces(context.Background())
+	if err != nil {
+		w.logger.Error("failed to get wireguard interfaces", zap.Error(err))
+		return nil, err
+	}
+
+	var interfaceResponses []schema.InterfaceResponse
+	for _, iface := range *interfaces {
+		interfaceResponses = append(interfaceResponses, schema.InterfaceResponse{
+			InterfaceID: iface.ID,
+			Name:        iface.Name,
+			ListenPort:  iface.ListenPort,
+		})
+	}
+
+	return &interfaceResponses, nil
 }
 
 func (w *WgInterface) CreateInterface(name string, listenPort int) (*mikrotik.WireGuardInterface, error) {
