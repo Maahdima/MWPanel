@@ -16,7 +16,7 @@ type CreatePeerRequest struct {
 	Interface           string  `json:"interface_name" validate:"required"`
 	PrivateKey          string  `json:"private_key" validate:"required"`
 	PublicKey           string  `json:"public_key" validate:"required"`
-	AllowedAddress      *string `json:"allowed_address"`
+	AllowedAddress      string  `json:"allowed_address" validate:"required"`
 	PresharedKey        *string `json:"preshared_key"`
 	PersistentKeepAlive *string `json:"persistent_keepalive"`
 	Endpoint            string  `json:"endpoint" validate:"required"`

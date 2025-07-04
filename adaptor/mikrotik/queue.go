@@ -2,7 +2,6 @@ package mikrotik
 
 import (
 	"context"
-	"github.com/labstack/echo/v4"
 )
 
 type Queue struct {
@@ -30,9 +29,9 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 	return &createdQueue, nil
 }
 
-func (a *Adaptor) DeleteSimpleQueue(c echo.Context, queueID string) error {
+func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 	err := a.httpClient.Delete(
-		c.Request().Context(),
+		c,
 		QueuePath+"/"+queueID,
 		nil,
 	)

@@ -30,8 +30,9 @@ var (
 )
 
 var (
-	queueComment = "Wg Bandwidth Queue: "
-	queueName    = "Bandwidth Limit: "
+	queueComment     = "Wg Bandwidth Queue: "
+	queueName        = "Bandwidth Limit: "
+	defaultKeepalive = "25"
 )
 
 type WgPeer struct {
@@ -66,7 +67,7 @@ func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
 
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 	var peers []model.Peer
-	if err := w.db.Find(&peers).Error; err != nil {
+	if err := w.db.Order("created_at ASC").Find(&peers).Error; err != nil {
 		w.logger.Error("failed to get peers from database", zap.Error(err))
 		return nil, err
 	}
@@ -81,23 +82,16 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 }
 
 func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse, error) {
-	var allowedAddress string
 
 	wgInterface, err := w.mikrotikAdaptor.FetchWgInterface(context.Background(), req.InterfaceId)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.AllowedAddress == nil {
-		allowedAddress = "0.0.0.0/0"
-	} else {
-		allowedAddress = *req.AllowedAddress
-	}
-
 	wgPeer := &mikrotik.WireGuardPeer{
 		Comment:        req.Comment,
 		Name:           &req.Name,
-		AllowedAddress: &allowedAddress,
+		AllowedAddress: &req.AllowedAddress,
 		Interface:      &req.Interface,
 		PresharedKey:   req.PresharedKey,
 		PublicKey:      &req.PublicKey,
@@ -118,8 +112,15 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	parsedTime, err := timehelper.ParseTime(*req.PersistentKeepAlive)
-	timeString := strconv.Itoa(parsedTime)
+	var timeString = defaultKeepalive
+	if req.PersistentKeepAlive != nil {
+		parsedTime, err := timehelper.ParseTime(*req.PersistentKeepAlive)
+		if err != nil {
+			w.logger.Error("failed to parse persistent keepalive time", zap.Error(err))
+			return nil, err
+		}
+		timeString = strconv.Itoa(parsedTime)
+	}
 
 	disabled, err := strconv.ParseBool(*mtPeer.Disabled)
 	if err != nil {
@@ -211,7 +212,37 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	return &transformed, nil
 }
 
-func (w *WgPeer) DeletePeer(id string) error {
+func (w *WgPeer) DeletePeer(id uint) error {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return fmt.Errorf("peer not found: %w", err)
+	}
+
+	if peer.QueueID != nil {
+		if err := w.mikrotikAdaptor.DeleteSimpleQueue(context.Background(), *peer.QueueID); err != nil {
+			w.logger.Error("failed to delete simple queue from Mikrotik", zap.Error(err))
+			return fmt.Errorf("failed to delete simple queue: %w", err)
+		}
+	}
+
+	if peer.SchedulerID != nil {
+		if err := w.mikrotikAdaptor.DeleteScheduler(context.Background(), *peer.SchedulerID); err != nil {
+			w.logger.Error("failed to delete scheduler from Mikrotik", zap.Error(err))
+			return fmt.Errorf("failed to delete scheduler: %w", err)
+		}
+	}
+
+	if err := w.mikrotikAdaptor.DeleteWgPeer(context.Background(), peer.PeerID); err != nil {
+		w.logger.Error("failed to delete wireguard peer from Mikrotik", zap.Error(err))
+		return fmt.Errorf("failed to delete wireguard peer: %w", err)
+	}
+
+	if err := w.db.Delete(&peer).Error; err != nil {
+		w.logger.Error("failed to delete peer from database", zap.Error(err))
+		return fmt.Errorf("failed to delete peer from database: %w", err)
+	}
+
 	return nil
 }
 

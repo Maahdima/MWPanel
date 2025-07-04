@@ -100,7 +100,7 @@ func (c *WgPeerController) CreatePeer(ctx echo.Context) error {
 
 	peer, err := c.peerService.CreatePeer(&req)
 	if err != nil {
-		c.logger.Error("failed to create WireGuard peer", zap.Error(err))
+		c.logger.Error("failed to create wireguard peer", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -140,7 +140,7 @@ func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 
 	peer, err := c.peerService.UpdatePeer(uint(peerId), &req)
 	if err != nil {
-		c.logger.Error("failed to update WireGuard peer", zap.Error(err))
+		c.logger.Error("failed to update wireguard peer", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -154,9 +154,33 @@ func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 	})
 }
 
-// TODO: implement
 func (c *WgPeerController) DeletePeer(ctx echo.Context) error {
-	return nil
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	err = c.peerService.DeletePeer(uint(peerId))
+	if err != nil {
+		c.logger.Error("failed to delete wireguard peer", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to delete wireguard peer: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusNoContent, schema.BasicResponse{
+		StatusCode: http.StatusNoContent,
+		Status:     "success",
+	})
 }
 
 func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
