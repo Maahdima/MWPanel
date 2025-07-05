@@ -114,6 +114,32 @@ func (c *WgPeerController) CreatePeer(ctx echo.Context) error {
 	})
 }
 
+func (c *WgPeerController) UpdatePeerStatus(ctx echo.Context) error {
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	err = c.peerService.TogglePeerStatus(uint(peerId))
+	if err != nil {
+		c.logger.Error("failed to update wireguard peer status", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to update wireguard peer status: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}
+
 func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 	id := ctx.Param("id")
 	if id == "" {

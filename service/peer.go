@@ -9,6 +9,7 @@ import (
 	"mikrotik-wg-go/adaptor/mikrotik"
 	"mikrotik-wg-go/api/schema"
 	"mikrotik-wg-go/dataservice/model"
+	"mikrotik-wg-go/utils"
 	"mikrotik-wg-go/utils/timehelper"
 	"mikrotik-wg-go/utils/wireguard"
 	"sort"
@@ -55,6 +56,51 @@ func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Schedu
 		configGenerator: configGenerator,
 		logger:          zap.L().Named("WgPeerService"),
 	}
+}
+
+func (w *WgPeer) TogglePeerStatus(id uint) error {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return fmt.Errorf("peer not found: %w", err)
+	}
+
+	disabled := utils.Ptr(strconv.FormatBool(!peer.Disabled))
+
+	wgPeer := mikrotik.WireGuardPeer{
+		Disabled: disabled,
+	}
+	wgScheduler := mikrotik.Scheduler{
+		Disabled: disabled,
+	}
+	wgQueue := mikrotik.Queue{
+		Disabled: disabled,
+	}
+
+	if _, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, wgPeer); err != nil {
+		w.logger.Error("failed to update wireguard peer in Mikrotik", zap.Error(err))
+		return fmt.Errorf("failed to update wireguard peer: %w", err)
+	}
+
+	if peer.SchedulerID != nil {
+		if _, err := w.mikrotikAdaptor.UpdateScheduler(context.Background(), *peer.SchedulerID, wgScheduler); err != nil {
+			w.logger.Error("failed to update scheduler for wireguard peer", zap.Error(err))
+			return fmt.Errorf("failed to update scheduler: %w", err)
+		}
+	}
+	if peer.QueueID != nil {
+		if _, err := w.mikrotikAdaptor.UpdateSimpleQueue(context.Background(), *peer.QueueID, wgQueue); err != nil {
+			w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
+			return fmt.Errorf("failed to update queue: %w", err)
+		}
+	}
+
+	if err := w.db.Model(&peer).Update("disabled", disabled).Error; err != nil {
+		w.logger.Error("failed to update peer status in database", zap.Error(err))
+		return fmt.Errorf("failed to update peer status in database: %w", err)
+	}
+
+	return nil
 }
 
 func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {

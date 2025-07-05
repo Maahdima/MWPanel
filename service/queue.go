@@ -31,9 +31,9 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 
 	maxLimit := *normalizedDownload + "/" + *normalizedUpload
 	wgQueue := mikrotik.Queue{
-		Comment:  queueComment + peerName,
-		Name:     queueName + peerName,
-		Target:   peerAllowedAddress,
+		Comment:  utils.Ptr(queueComment + peerName),
+		Name:     utils.Ptr(queueName + peerName),
+		Target:   utils.Ptr(peerAllowedAddress),
 		MaxLimit: &maxLimit,
 	}
 
@@ -43,7 +43,7 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 		return nil, err
 	}
 
-	return &createdQueue.ID, nil
+	return createdQueue.ID, nil
 }
 
 func (q *Queue) updateQueue(queueID, downloadBandwidth, uploadBandwidth *string) error {

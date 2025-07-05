@@ -30,11 +30,12 @@ func setupWgPeerRoutes(router *echo.Group, peerService *service.WgPeer, peerConf
 	router.GET("/peer-keys", wgPeerController.GetPeerKeys)
 	router.GET("/wg-peer", wgPeerController.GetPeers)
 	router.POST("/wg-peer", wgPeerController.CreatePeer)
+	router.POST("/wg-peer/:id/status", wgPeerController.UpdatePeerStatus)
 	router.PATCH("/wg-peer/:id", wgPeerController.UpdatePeer)
 	router.DELETE("/wg-peer/:id", wgPeerController.DeletePeer)
 	//router.GET("/wg-peer/:id", wgPeerController.GetPeerByID)
-	router.GET("/wg-config/:id", wgPeerController.GetPeerConfig)
-	router.GET("/wg-qrcode/:id", wgPeerController.GetPeerQRCode)
+	router.GET("/wg-peer/:id/config", wgPeerController.GetPeerConfig)
+	router.GET("/wg-peer/:id/qrcode", wgPeerController.GetPeerQRCode)
 	router.GET("/peers-data", wgPeerController.GetPeersData)
 }
 
