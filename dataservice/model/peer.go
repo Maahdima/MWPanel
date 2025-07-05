@@ -7,10 +7,10 @@ type Peer struct {
 	PeerID              string  `gorm:"uniqueIndex;not null"`
 	Disabled            bool    `gorm:"column:disabled"`
 	Comment             *string `gorm:""`
-	PeerName            string  `gorm:""`
+	PeerName            string  `gorm:"not null"`
 	PublicKey           string  `gorm:"not null"`
 	Interface           string  `gorm:"not null"`
-	AllowedAddress      string  `gorm:""`
+	AllowedAddress      string  `gorm:"uniqueIndex;not null"`
 	Endpoint            string  `gorm:"not null"`
 	EndpointPort        string  `gorm:"not null"`
 	PersistentKeepalive string  `gorm:""`

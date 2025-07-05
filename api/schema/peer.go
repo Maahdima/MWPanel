@@ -10,33 +10,33 @@ var (
 )
 
 type CreatePeerRequest struct {
-	Comment             *string `json:"comment"`
+	Comment             *string `json:"comment,omitempty"`
 	Name                string  `json:"name" validate:"required"`
 	InterfaceId         string  `json:"interface_id" validate:"required"`
 	Interface           string  `json:"interface_name" validate:"required"`
 	PrivateKey          string  `json:"private_key" validate:"required"`
 	PublicKey           string  `json:"public_key" validate:"required"`
 	AllowedAddress      string  `json:"allowed_address" validate:"required"`
-	PresharedKey        *string `json:"preshared_key"`
+	PresharedKey        *string `json:"preshared_key,omitempty"`
 	PersistentKeepAlive *string `json:"persistent_keepalive"`
 	Endpoint            string  `json:"endpoint" validate:"required"`
-	ExpireTime          *string `json:"expire_time"`
-	TrafficLimit        *string `json:"traffic_limit"`
-	DownloadBandwidth   *string `json:"download_bandwidth"`
-	UploadBandwidth     *string `json:"upload_bandwidth"`
+	ExpireTime          *string `json:"expire_time,omitempty"`
+	TrafficLimit        *string `json:"traffic_limit,omitempty"`
+	DownloadBandwidth   *string `json:"download_bandwidth,omitempty"`
+	UploadBandwidth     *string `json:"upload_bandwidth,omitempty"`
 }
 
 type UpdatePeerRequest struct {
-	Disabled            *bool   `json:"disabled"`
-	Comment             *string `json:"comment"`
-	Name                *string `json:"name"`
-	AllowedAddress      *string `json:"allowed_address"`
-	PresharedKey        *string `json:"preshared_key"`
-	PersistentKeepAlive *string `json:"persistent_keepalive"`
-	ExpireTime          *string `json:"expire_time"`
-	TrafficLimit        *string `json:"traffic_limit"`
-	DownloadBandwidth   *string `json:"download_bandwidth"`
-	UploadBandwidth     *string `json:"upload_bandwidth"`
+	Disabled            *bool   `json:"disabled,omitempty"`
+	Comment             *string `json:"comment,omitempty"`
+	Name                *string `json:"name,omitempty"`
+	AllowedAddress      *string `json:"allowed_address,omitempty"`
+	PresharedKey        *string `json:"preshared_key,omitempty"`
+	PersistentKeepAlive *string `json:"persistent_keepalive,omitempty"`
+	ExpireTime          *string `json:"expire_time,omitempty"`
+	TrafficLimit        *string `json:"traffic_limit,omitempty"`
+	DownloadBandwidth   *string `json:"download_bandwidth,omitempty"`
+	UploadBandwidth     *string `json:"upload_bandwidth,omitempty"`
 }
 
 type PeerKeyResponse struct {

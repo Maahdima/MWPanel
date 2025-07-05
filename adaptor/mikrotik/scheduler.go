@@ -5,15 +5,15 @@ import (
 )
 
 type Scheduler struct {
-	ID        string `json:".id,omitempty"`
-	Disabled  string `json:"disabled,omitempty"`
-	Comment   string `json:"comment,omitempty"`
-	Name      string `json:"name"`
-	StartDate string `json:"start-date"`
-	StartTime string `json:"start-time"`
-	Interval  string `json:"interval"`
-	Policy    string `json:"policy"`
-	OnEvent   string `json:"on-event"`
+	ID        *string `json:".id,omitempty"`
+	Disabled  *string `json:"disabled,omitempty"`
+	Comment   *string `json:"comment,omitempty"`
+	Name      *string `json:"name,omitempty"`
+	StartDate *string `json:"start-date,omitempty"`
+	StartTime *string `json:"start-time,omitempty"`
+	Interval  *string `json:"interval,omitempty"`
+	Policy    *string `json:"policy,omitempty"`
+	OnEvent   *string `json:"on-event,omitempty"`
 }
 
 func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Scheduler, error) {
@@ -30,6 +30,22 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 	}
 
 	return &createdScheduler, nil
+}
+
+func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, scheduler Scheduler) (*Scheduler, error) {
+	var updatedScheduler Scheduler
+
+	err := a.httpClient.Patch(
+		c,
+		SchedulerPath+"/"+schedulerID,
+		scheduler,
+		&updatedScheduler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedScheduler, nil
 }
 
 func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {

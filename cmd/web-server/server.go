@@ -29,9 +29,11 @@ func StartHttpServer(db *gorm.DB) error {
 	}
 
 	mikrotikAdaptor := mikrotik.NewAdaptor(client)
+	schedulerService := service.NewScheduler(mikrotikAdaptor)
+	queueService := service.NewQueue(mikrotikAdaptor)
 	configGenerator := service.NewConfigGenerator(db)
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
-	peerService := service.NewWGPeer(db, mikrotikAdaptor, configGenerator)
+	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator)
 	interfaceService := service.NewWgInterface(mikrotikAdaptor)
 	deviceDataService := service.NewDeviceData(mikrotikAdaptor)
 

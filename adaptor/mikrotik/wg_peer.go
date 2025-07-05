@@ -69,20 +69,6 @@ func (a *Adaptor) CreateWgPeer(c context.Context, peer WireGuardPeer) (*WireGuar
 	return &createdPeer, nil
 }
 
-func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
-	err := a.httpClient.Delete(
-		c,
-		WGPeerPath+"/"+peerID,
-		nil,
-	)
-	if err != nil {
-		a.logger.Error("failed to delete wireguard peer", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
-
 func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, peer WireGuardPeer) (*WireGuardPeer, error) {
 	var updatedPeer WireGuardPeer
 
@@ -97,4 +83,18 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, peer WireGuardP
 	}
 
 	return &updatedPeer, nil
+}
+
+func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
+	err := a.httpClient.Delete(
+		c,
+		WGPeerPath+"/"+peerID,
+		nil,
+	)
+	if err != nil {
+		a.logger.Error("failed to delete wireguard peer", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

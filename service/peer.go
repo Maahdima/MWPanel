@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -38,15 +39,19 @@ var (
 type WgPeer struct {
 	db              *gorm.DB
 	mikrotikAdaptor *mikrotik.Adaptor
+	scheduler       *Scheduler
+	queue           *Queue
 	configGenerator *ConfigGenerator
 	qrCodeGenerator *QRCodeGenerator
 	logger          *zap.Logger
 }
 
-func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, configGenerator *ConfigGenerator) *WgPeer {
+func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Scheduler, queue *Queue, configGenerator *ConfigGenerator) *WgPeer {
 	return &WgPeer{
 		db:              db,
 		mikrotikAdaptor: mikrotikAdaptor,
+		scheduler:       scheduler,
+		queue:           queue,
 		configGenerator: configGenerator,
 		logger:          zap.L().Named("WgPeerService"),
 	}
@@ -82,9 +87,16 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 }
 
 func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse, error) {
-
 	wgInterface, err := w.mikrotikAdaptor.FetchWgInterface(context.Background(), req.InterfaceId)
 	if err != nil {
+		return nil, err
+	}
+
+	var existingPeer model.Peer
+	if err := w.db.Where("allowed_address = ?", req.AllowedAddress).First(&existingPeer).Error; err == nil {
+		return nil, fmt.Errorf("allowed address %s is already in use by peer %s", req.AllowedAddress, existingPeer.PeerName)
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		w.logger.Error("failed to check allowed address uniqueness", zap.Error(err))
 		return nil, err
 	}
 
@@ -102,12 +114,12 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	schedulerId, err := w.createPeerScheduler(mtPeer, req.ExpireTime)
+	schedulerId, err := w.scheduler.createScheduler(*mtPeer.Name, *mtPeer.ID, req.ExpireTime)
 	if err != nil {
 		return nil, err
 	}
 
-	queueId, err := w.createPeerQueue(mtPeer, req.DownloadBandwidth, req.UploadBandwidth)
+	queueId, err := w.queue.createQueue(*mtPeer.Name, *mtPeer.AllowedAddress, req.DownloadBandwidth, req.UploadBandwidth)
 	if err != nil {
 		return nil, err
 	}
@@ -177,34 +189,22 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 		return nil, err
 	}
 
-	wgPeer := mikrotik.WireGuardPeer{}
-	if req.Disabled != nil {
-		disabledStr := strconv.FormatBool(*req.Disabled)
-		wgPeer.Disabled = &disabledStr
-	}
-	if req.Comment != nil {
-		wgPeer.Comment = req.Comment
-	}
-	if req.Name != nil {
-		wgPeer.Name = req.Name
-	}
-	if req.AllowedAddress != nil {
-		wgPeer.AllowedAddress = req.AllowedAddress
-	}
-	if req.PersistentKeepAlive != nil {
-		wgPeer.PersistentKeepAlive = req.PersistentKeepAlive
-	}
-	if req.PresharedKey != nil {
-		wgPeer.PresharedKey = req.PresharedKey
-	}
-
-	_, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, wgPeer)
-	if err != nil {
-		w.logger.Error("failed to update wireguard peer in Mikrotik", zap.Error(err))
+	if err := w.updateMikrotikPeer(peer.PeerID, req); err != nil {
 		return nil, err
 	}
 
-	if err := w.db.Model(&peer).Updates(req).Error; err != nil {
+	schedulerID, err := w.handleScheduler(&peer, req)
+	if err != nil {
+		return nil, err
+	}
+
+	queueID, err := w.handleQueue(&peer, req)
+	if err != nil {
+		return nil, err
+	}
+
+	updateData := w.preparePeerUpdate(req, schedulerID, queueID)
+	if err := w.db.Model(&peer).Updates(updateData).Error; err != nil {
 		return nil, err
 	}
 
@@ -219,18 +219,12 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
-	if peer.QueueID != nil {
-		if err := w.mikrotikAdaptor.DeleteSimpleQueue(context.Background(), *peer.QueueID); err != nil {
-			w.logger.Error("failed to delete simple queue from Mikrotik", zap.Error(err))
-			return fmt.Errorf("failed to delete simple queue: %w", err)
-		}
+	if err := w.scheduler.deleteScheduler(peer.SchedulerID); err != nil {
+		return fmt.Errorf("failed to delete scheduler: %w", err)
 	}
 
-	if peer.SchedulerID != nil {
-		if err := w.mikrotikAdaptor.DeleteScheduler(context.Background(), *peer.SchedulerID); err != nil {
-			w.logger.Error("failed to delete scheduler from Mikrotik", zap.Error(err))
-			return fmt.Errorf("failed to delete scheduler: %w", err)
-		}
+	if err := w.queue.deleteQueue(peer.QueueID); err != nil {
+		return fmt.Errorf("failed to delete simple queue: %w", err)
 	}
 
 	if err := w.mikrotikAdaptor.DeleteWgPeer(context.Background(), peer.PeerID); err != nil {
@@ -238,7 +232,9 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("failed to delete wireguard peer: %w", err)
 	}
 
-	if err := w.db.Delete(&peer).Error; err != nil {
+	// TODO : delete peer config and QR code files
+
+	if err := w.db.Unscoped().Delete(&peer).Error; err != nil {
 		w.logger.Error("failed to delete peer from database", zap.Error(err))
 		return fmt.Errorf("failed to delete peer from database: %w", err)
 	}
@@ -308,49 +304,112 @@ func (w *WgPeer) GenerateKeys() (privateKey, publicKey string, err error) {
 	return
 }
 
-func (w *WgPeer) createPeerScheduler(peer *mikrotik.WireGuardPeer, expireTime *string) (*string, error) {
-	if expireTime == nil {
-		return nil, nil
+func (w *WgPeer) updateMikrotikPeer(peerID string, req *schema.UpdatePeerRequest) error {
+	wgPeer := mikrotik.WireGuardPeer{}
+
+	if req.Disabled != nil {
+		disabledStr := strconv.FormatBool(*req.Disabled)
+		wgPeer.Disabled = &disabledStr
+	}
+	if req.Comment != nil {
+		wgPeer.Comment = req.Comment
+	}
+	if req.Name != nil {
+		wgPeer.Name = req.Name
+	}
+	if req.AllowedAddress != nil {
+		wgPeer.AllowedAddress = req.AllowedAddress
+	}
+	if req.PersistentKeepAlive != nil {
+		wgPeer.PersistentKeepAlive = req.PersistentKeepAlive
+	}
+	if req.PresharedKey != nil {
+		wgPeer.PresharedKey = req.PresharedKey
 	}
 
-	scheduler := mikrotik.Scheduler{
-		Comment:   schedulerComment + *peer.Name,
-		Name:      schedulerName + *peer.Name,
-		StartDate: *expireTime,
-		StartTime: schedulerStartTime,
-		Interval:  schedulerInterval,
-		Policy:    schedulerPolicy,
-		OnEvent:   schedulerEvent + *peer.ID,
-	}
-
-	createdScheduler, err := w.mikrotikAdaptor.CreateScheduler(context.Background(), scheduler)
+	_, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peerID, wgPeer)
 	if err != nil {
-		w.logger.Error("failed to create scheduler for WireGuard peer", zap.Error(err))
-		return nil, err
+		w.logger.Error("failed to update wireguard peer in Mikrotik", zap.Error(err))
 	}
 
-	return &createdScheduler.ID, nil
+	return err
 }
 
-func (w *WgPeer) createPeerQueue(peer *mikrotik.WireGuardPeer, downloadLimit, uploadLimit *string) (*string, error) {
-	if downloadLimit == nil || uploadLimit == nil {
+func (w *WgPeer) handleScheduler(peer *model.Peer, req *schema.UpdatePeerRequest) (*string, error) {
+	if req.ExpireTime == nil && peer.SchedulerID != nil {
+		err := w.scheduler.deleteScheduler(peer.SchedulerID)
+		if err != nil {
+			w.logger.Error("failed to delete scheduler for wireguard peer", zap.Error(err))
+			return peer.SchedulerID, err
+		}
 		return nil, nil
 	}
 
-	wgQueue := mikrotik.Queue{
-		Comment:  queueComment + *peer.Name,
-		Name:     queueName + *peer.Name,
-		Target:   *peer.AllowedAddress,
-		MaxLimit: *downloadLimit + "/" + *uploadLimit,
+	if req.ExpireTime != nil && peer.SchedulerID == nil {
+		return w.scheduler.createScheduler(peer.PeerName, peer.PeerID, req.ExpireTime)
 	}
 
-	createdQueue, err := w.mikrotikAdaptor.CreateSimpleQueue(context.Background(), wgQueue)
+	if req.ExpireTime != nil {
+		err := w.scheduler.updateScheduler(peer.SchedulerID, req.ExpireTime)
+		if err != nil {
+			w.logger.Error("failed to update scheduler for WireGuard peer", zap.Error(err))
+			return peer.SchedulerID, err
+		}
+	}
+
+	return peer.SchedulerID, nil
+}
+
+func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*string, error) {
+	download := req.DownloadBandwidth
+	upload := req.UploadBandwidth
+	queueID := peer.QueueID
+
+	if download == nil && upload == nil {
+		if queueID != nil {
+			err := w.queue.deleteQueue(queueID)
+			if err != nil {
+				w.logger.Error("failed to delete queue for wireguard peer", zap.Error(err))
+				return queueID, err
+			}
+		}
+		return nil, nil
+	}
+
+	if queueID == nil {
+		newQueueID, err := w.queue.createQueue(peer.PeerName, peer.AllowedAddress, download, upload)
+		if err != nil {
+			w.logger.Error("failed to create queue for wireguard peer", zap.Error(err))
+			return nil, err
+		}
+		return newQueueID, nil
+	}
+
+	err := w.queue.updateQueue(queueID, download, upload)
 	if err != nil {
-		w.logger.Error("failed to create simple queue for WireGuard peer", zap.Error(err))
-		return nil, err
+		w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
+		return queueID, err
 	}
 
-	return &createdQueue.ID, nil
+	return queueID, nil
+}
+
+func (w *WgPeer) preparePeerUpdate(req *schema.UpdatePeerRequest, schedulerID, queueID *string) map[string]interface{} {
+	updateData := map[string]interface{}{}
+
+	updateData["disabled"] = req.Disabled
+	updateData["comment"] = req.Comment
+	updateData["peer_name"] = req.Name
+	updateData["allowed_address"] = req.AllowedAddress
+	updateData["persistent_keepalive"] = req.PersistentKeepAlive
+	updateData["expire_time"] = req.ExpireTime
+	updateData["traffic_limit"] = req.TrafficLimit
+	updateData["download_bandwidth"] = req.DownloadBandwidth
+	updateData["upload_bandwidth"] = req.UploadBandwidth
+	updateData["scheduler_id"] = schedulerID
+	updateData["queue_id"] = queueID
+
+	return updateData
 }
 
 func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
