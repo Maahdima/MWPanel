@@ -29,6 +29,7 @@ func StartHttpServer(db *gorm.DB) error {
 	}
 
 	mikrotikAdaptor := mikrotik.NewAdaptor(client)
+	authenticationServce := service.NewAuthentication(db)
 	schedulerService := service.NewScheduler(mikrotikAdaptor)
 	queueService := service.NewQueue(mikrotikAdaptor)
 	configGenerator := service.NewConfigGenerator(db)
@@ -42,7 +43,7 @@ func StartHttpServer(db *gorm.DB) error {
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	api.SetupMwpAPI(e, peerService, configGenerator, qrCodeGenerator, deviceDataService, interfaceService)
+	api.SetupMwpAPI(e, authenticationServce, peerService, configGenerator, qrCodeGenerator, deviceDataService, interfaceService)
 
 	e.Logger.Fatal(e.Start(":1323"))
 

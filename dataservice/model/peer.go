@@ -4,22 +4,22 @@ import "gorm.io/gorm"
 
 type Peer struct {
 	gorm.Model
-	PeerID              string  `gorm:"uniqueIndex;not null"`
-	Disabled            bool    `gorm:"column:disabled"`
-	Comment             *string `gorm:""`
-	PeerName            string  `gorm:"not null"`
-	PublicKey           string  `gorm:"not null"`
-	Interface           string  `gorm:"not null"`
-	AllowedAddress      string  `gorm:"uniqueIndex;not null"`
-	Endpoint            string  `gorm:"not null"`
-	EndpointPort        string  `gorm:"not null"`
-	PersistentKeepalive string  `gorm:""`
-	SchedulerID         *string `gorm:""`
-	QueueID             *string `gorm:""`
-	ExpireTime          *string `gorm:""`
-	TrafficLimit        *string `gorm:""`
-	DownloadBandwidth   *string `gorm:""`
-	UploadBandwidth     *string `gorm:""`
-	DownloadUsage       string  `gorm:"default:0"`
-	UploadUsage         string  `gorm:"default:0"`
+	PeerID              string  `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Disabled            bool    `gorm:"type:boolean;not null;default:false"`
+	Comment             *string `gorm:"type:text"`
+	PeerName            string  `gorm:"type:varchar(255);not null"`
+	PublicKey           string  `gorm:"type:varchar(255);not null"`
+	Interface           string  `gorm:"type:varchar(255);not null"`
+	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Endpoint            string  `gorm:"type:varchar(255);not null"`
+	EndpointPort        string  `gorm:"type:varchar(10);not null"`
+	PersistentKeepalive string  `gorm:"type:varchar(10)"`
+	SchedulerID         *string `gorm:"type:varchar(255)"`
+	QueueID             *string `gorm:"type:varchar(255)"`
+	ExpireTime          *string `gorm:"type:varchar(255)"`
+	TrafficLimit        *string `gorm:"type:varchar(255)"`
+	DownloadBandwidth   *string `gorm:"type:varchar(255)"`
+	UploadBandwidth     *string `gorm:"type:varchar(255)"`
+	DownloadUsage       string  `gorm:"type:varchar(255);not null;default:'0'"`
+	UploadUsage         string  `gorm:"type:varchar(255);not null;default:'0'"`
 }
