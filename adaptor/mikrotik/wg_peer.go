@@ -53,13 +53,13 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 	return &wgPeer, nil
 }
 
-func (a *Adaptor) CreateWgPeer(c context.Context, peer WireGuardPeer) (*WireGuardPeer, error) {
+func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var createdPeer WireGuardPeer
 
 	err := a.httpClient.Put(
 		c,
 		WGPeerPath,
-		peer,
+		wgPeer,
 		&createdPeer,
 	)
 	if err != nil {
@@ -69,13 +69,13 @@ func (a *Adaptor) CreateWgPeer(c context.Context, peer WireGuardPeer) (*WireGuar
 	return &createdPeer, nil
 }
 
-func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, peer WireGuardPeer) (*WireGuardPeer, error) {
+func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var updatedPeer WireGuardPeer
 
 	err := a.httpClient.Patch(
 		c,
 		WGPeerPath+"/"+peerID,
-		peer,
+		wgPeer,
 		&updatedPeer,
 	)
 	if err != nil {

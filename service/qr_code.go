@@ -29,7 +29,7 @@ func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) 
 		return
 	}
 
-	qrcodePath = fmt.Sprintf("./%s/%s.jpeg", peerQrCodesPath, peer.PeerName)
+	qrcodePath = fmt.Sprintf("./%s/%s.jpeg", peerQrCodesPath, peer.Name)
 
 	return qrcodePath, nil
 }

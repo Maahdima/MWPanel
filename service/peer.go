@@ -140,7 +140,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 
 	var existingPeer model.Peer
 	if err := w.db.Where("allowed_address = ?", req.AllowedAddress).First(&existingPeer).Error; err == nil {
-		return nil, fmt.Errorf("allowed address %s is already in use by peer %s", req.AllowedAddress, existingPeer.PeerName)
+		return nil, fmt.Errorf("allowed address %s is already in use by peer %s", req.AllowedAddress, existingPeer.Name)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		w.logger.Error("failed to check allowed address uniqueness", zap.Error(err))
 		return nil, err
@@ -190,12 +190,12 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		PeerID:              *mtPeer.ID,
 		Disabled:            disabled,
 		Comment:             mtPeer.Comment,
-		PeerName:            *mtPeer.Name,
+		Name:                *mtPeer.Name,
 		PublicKey:           *mtPeer.PublicKey,
 		Interface:           *mtPeer.Interface,
 		AllowedAddress:      *mtPeer.AllowedAddress,
 		Endpoint:            req.Endpoint,
-		EndpointPort:        wgInterface.ListenPort,
+		EndpointPort:        *wgInterface.ListenPort,
 		PersistentKeepalive: timeString,
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
@@ -209,17 +209,17 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	config := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
+	config := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, *wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
 
 	err = w.configGenerator.BuildPeerConfig(
 		config,
-		dbPeer.PeerName,
+		dbPeer.Name,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.qrCodeGenerator.BuildPeerQRCode(config, dbPeer.PeerName)
+	err = w.qrCodeGenerator.BuildPeerQRCode(config, dbPeer.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +262,7 @@ func (w *WgPeer) DeletePeer(id uint) error {
 	var peer model.Peer
 	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
 		w.logger.Error("failed to find peer in database", zap.Error(err))
+		// TODO: write all errors with fmt.errorf for better error handling
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
@@ -392,7 +393,7 @@ func (w *WgPeer) handleScheduler(peer *model.Peer, req *schema.UpdatePeerRequest
 	}
 
 	if req.ExpireTime != nil && peer.SchedulerID == nil {
-		return w.scheduler.createScheduler(peer.PeerName, peer.PeerID, req.ExpireTime)
+		return w.scheduler.createScheduler(peer.Name, peer.PeerID, req.ExpireTime)
 	}
 
 	if req.ExpireTime != nil {
@@ -423,7 +424,7 @@ func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*
 	}
 
 	if queueID == nil {
-		newQueueID, err := w.queue.createQueue(peer.PeerName, peer.AllowedAddress, download, upload)
+		newQueueID, err := w.queue.createQueue(peer.Name, peer.AllowedAddress, download, upload)
 		if err != nil {
 			w.logger.Error("failed to create queue for wireguard peer", zap.Error(err))
 			return nil, err
@@ -445,7 +446,7 @@ func (w *WgPeer) preparePeerUpdate(req *schema.UpdatePeerRequest, schedulerID, q
 
 	updateData["disabled"] = req.Disabled
 	updateData["comment"] = req.Comment
-	updateData["peer_name"] = req.Name
+	updateData["name"] = req.Name
 	updateData["allowed_address"] = req.AllowedAddress
 	updateData["persistent_keepalive"] = req.PersistentKeepAlive
 	updateData["expire_time"] = req.ExpireTime
@@ -464,7 +465,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		Id:                peer.ID,
 		Disabled:          peer.Disabled,
 		Comment:           peer.Comment,
-		Name:              peer.PeerName,
+		Name:              peer.Name,
 		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
 		TrafficLimit:      peer.TrafficLimit,

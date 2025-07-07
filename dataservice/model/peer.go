@@ -7,7 +7,7 @@ type Peer struct {
 	PeerID              string  `gorm:"type:varchar(255);uniqueIndex;not null"`
 	Disabled            bool    `gorm:"type:boolean;not null;default:false"`
 	Comment             *string `gorm:"type:text"`
-	PeerName            string  `gorm:"type:varchar(255);not null"`
+	Name                string  `gorm:"type:varchar(255);not null"`
 	PublicKey           string  `gorm:"type:varchar(255);not null"`
 	Interface           string  `gorm:"type:varchar(255);not null"`
 	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex;not null"`

@@ -34,7 +34,7 @@ func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) 
 		return
 	}
 
-	configPath = fmt.Sprintf("./%s/%s.conf", peerConfigsPath, peer.PeerName)
+	configPath = fmt.Sprintf("./%s/%s.conf", peerConfigsPath, peer.Name)
 
 	return configPath, nil
 }
