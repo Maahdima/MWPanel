@@ -21,7 +21,7 @@ type UpdateInterfaceRequest struct {
 	Name     *string `json:"name,omitempty"`
 }
 
-type InterfacesDataResponse struct {
-	TotalServers  int `json:"total_servers"`
-	ActiveServers int `json:"active_servers"`
+type InterfaceStatsResponse struct {
+	TotalInterfaces  int `json:"total_interfaces"`
+	ActiveInterfaces int `json:"active_interfaces"`
 }

@@ -37,7 +37,7 @@ func StartHttpServer(db *gorm.DB) error {
 	serverService := service.NewServerService(db, mikrotikAdaptor)
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor)
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator)
-	deviceDataService := service.NewDeviceData(mikrotikAdaptor)
+	deviceDataService := service.NewDeviceData(mikrotikAdaptor, serverService, interfaceService, peerService)
 
 	e := echo.New()
 	e.Use(middleware.Logger())

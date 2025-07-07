@@ -1,10 +1,13 @@
 package schema
 
-type DeviceDataResponse struct {
-	*DeviceIdentity
-	*DeviceInfo
-	*DeviceIPv4Address
-	*DNSConfig
+type DeviceStatsResponse struct {
+	ServerInfo        *ServerStatsResponse
+	InterfaceInfo     *InterfaceStatsResponse
+	PeerInfo          *PeerStatsResponse
+	DeviceIdentity    *DeviceIdentity
+	DeviceInfo        *DeviceInfo
+	DeviceIPv4Address *DeviceIPv4Address
+	DNSConfig         *DNSConfig
 }
 
 type DeviceInfo struct {

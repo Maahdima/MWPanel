@@ -10,18 +10,40 @@ import (
 var ipv4DefaultInterface = "ether1"
 
 type DeviceData struct {
-	mikrotikAdaptor *mikrotik.Adaptor
-	logger          *zap.Logger
+	mikrotikAdaptor  *mikrotik.Adaptor
+	serverService    *Server
+	interfaceService *WgInterface
+	peerService      *WgPeer
+	logger           *zap.Logger
 }
 
-func NewDeviceData(mikrotikAdaptor *mikrotik.Adaptor) *DeviceData {
+func NewDeviceData(mikrotikAdaptor *mikrotik.Adaptor, serverService *Server, interfaceService *WgInterface, peerService *WgPeer) *DeviceData {
 	return &DeviceData{
-		mikrotikAdaptor: mikrotikAdaptor,
-		logger:          zap.L().Named("DeviceDataService"),
+		mikrotikAdaptor:  mikrotikAdaptor,
+		serverService:    serverService,
+		interfaceService: interfaceService,
+		peerService:      peerService,
+		logger:           zap.L().Named("DeviceDataService"),
 	}
 }
 
-func (d *DeviceData) GetDeviceData() (*schema.DeviceDataResponse, error) {
+func (d *DeviceData) GetDeviceData() (*schema.DeviceStatsResponse, error) {
+	serverStats, err := d.serverService.GetServersData()
+	if err != nil {
+		d.logger.Error("failed to fetch server stats", zap.Error(err))
+		return nil, err
+	}
+
+	interfaceStats, err := d.interfaceService.GetInterfacesData()
+	if err != nil {
+		return nil, err
+	}
+
+	peerStats, err := d.peerService.GetPeersData()
+	if err != nil {
+		return nil, err
+	}
+
 	info, err := d.getDeviceInfo()
 	if err != nil {
 		return nil, err
@@ -42,7 +64,10 @@ func (d *DeviceData) GetDeviceData() (*schema.DeviceDataResponse, error) {
 		return nil, err
 	}
 
-	return &schema.DeviceDataResponse{
+	return &schema.DeviceStatsResponse{
+		ServerInfo:        serverStats,
+		InterfaceInfo:     interfaceStats,
+		PeerInfo:          peerStats,
 		DeviceInfo:        info,
 		DeviceIdentity:    identity,
 		DeviceIPv4Address: ipv4,

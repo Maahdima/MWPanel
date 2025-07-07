@@ -156,29 +156,22 @@ func (i *WgInterface) DeleteInterface(id uint) error {
 	return nil
 }
 
-func (i *WgInterface) GetInterfacesData() (*schema.InterfacesDataResponse, error) {
-	// TODO: fix this
-	var totalServers int
-	var activeServers int
-
-	interfaces, err := i.mikrotikAdaptor.FetchWgInterfaces(context.Background())
-	if err != nil {
-		i.logger.Error("failed to get wireguard interfaces", zap.Error(err))
-		return nil, err
+func (i *WgInterface) GetInterfacesData() (*schema.InterfaceStatsResponse, error) {
+	var totalInterfaces int64
+	if err := i.db.Model(&model.Interface{}).Count(&totalInterfaces).Error; err != nil {
+		i.logger.Error("failed to count total interfaces", zap.Error(err))
+		return nil, fmt.Errorf("failed to count total interfaces: %w", err)
 	}
 
-	totalServers = len(*interfaces)
-
-	for _, iface := range *interfaces {
-		if iface.Disabled == utils.Ptr("false") {
-			activeServers++
-			continue
-		}
+	var activeInterfaces int64
+	if err := i.db.Model(&model.Interface{}).Where("disabled = ?", false).Count(&activeInterfaces).Error; err != nil {
+		i.logger.Error("failed to count active interfaces", zap.Error(err))
+		return nil, fmt.Errorf("failed to count active interfaces: %w", err)
 	}
 
-	return &schema.InterfacesDataResponse{
-		TotalServers:  totalServers,
-		ActiveServers: activeServers,
+	return &schema.InterfaceStatsResponse{
+		TotalInterfaces:  int(totalInterfaces),
+		ActiveInterfaces: int(activeInterfaces),
 	}, nil
 }
 

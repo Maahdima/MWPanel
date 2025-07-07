@@ -58,7 +58,7 @@ type PeerResponse struct {
 	Status            []PeerStatus `json:"status"`
 }
 
-type PeersDataResponse struct {
+type PeerStatsResponse struct {
 	RecentOnlinePeers *[]RecentOnlinePeers `json:"recent_online_peers"`
 	TotalPeers        int                  `json:"total_peers"`
 	OnlinePeers       int                  `json:"online_peers"`

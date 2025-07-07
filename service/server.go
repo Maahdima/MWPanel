@@ -172,3 +172,22 @@ func (s *Server) DeleteServer(id uint) error {
 
 	return nil
 }
+
+func (s *Server) GetServersData() (*schema.ServerStatsResponse, error) {
+	var totalServers int64
+	if err := s.db.Model(&model.Server{}).Count(&totalServers).Error; err != nil {
+		s.logger.Error("failed to count total servers", zap.Error(err))
+		return nil, err
+	}
+
+	var activeServers int64
+	if err := s.db.Model(&model.Server{}).Where("is_active = ?", true).Count(&activeServers).Error; err != nil {
+		s.logger.Error("failed to count active servers", zap.Error(err))
+		return nil, err
+	}
+
+	return &schema.ServerStatsResponse{
+		TotalServers:  int(totalServers),
+		ActiveServers: int(activeServers),
+	}, nil
+}

@@ -60,7 +60,6 @@ func setupInterfaceRoutes(router *echo.Group, jwtConfig echojwt.Config, interfac
 	interfaceGroup.POST("/:id/status", wgInterfaceController.UpdateInterfaceStatus)
 	interfaceGroup.PATCH("/:id", wgInterfaceController.UpdateInterface)
 	interfaceGroup.DELETE("/:id", wgInterfaceController.DeleteInterface)
-	interfaceGroup.GET("/stats", wgInterfaceController.GetInterfacesData)
 	//interfaceGroup.GET("/wg-interface/:id", wgInterfaceController.GetWgInterfaceByID)
 }
 
@@ -79,7 +78,6 @@ func setupPeerRoutes(router *echo.Group, jwtConfig echojwt.Config, peerService *
 	//peerGroup.GET("/wg-peer/:id", wgPeerController.GetPeerByID)
 	peerGroup.GET("/:id/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:id/qrcode", wgPeerController.GetPeerQRCode)
-	peerGroup.GET("/stats", wgPeerController.GetPeersData)
 }
 
 func setupDeviceInfoRoutes(router *echo.Group, jwtConfig echojwt.Config, deviceDataService *service.DeviceData) {

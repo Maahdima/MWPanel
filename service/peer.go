@@ -289,24 +289,24 @@ func (w *WgPeer) DeletePeer(id uint) error {
 	return nil
 }
 
-func (w *WgPeer) GetPeersData() (recentOnlinePeers *[]schema.RecentOnlinePeers, totalPeers int, onlinePeers int, err error) {
+func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 	peers, err := w.mikrotikAdaptor.FetchWgPeers(context.Background())
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, fmt.Errorf("failed to fetch wireguard peers from Mikrotik: %w", err)
 	}
 
 	var peerList []struct {
 		peer     mikrotik.WireGuardPeer
 		duration time.Duration
 	}
-	var wgPeers []schema.RecentOnlinePeers
 
+	var wgPeers []schema.RecentOnlinePeers
 	for _, peer := range *peers {
 		if peer.LastHandshake != nil {
 			duration, err := time.ParseDuration(*peer.LastHandshake)
 			if err != nil {
 				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
-				return nil, 0, 0, err
+				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
 			}
 			peerList = append(peerList, struct {
 				peer     mikrotik.WireGuardPeer
@@ -332,7 +332,11 @@ func (w *WgPeer) GetPeersData() (recentOnlinePeers *[]schema.RecentOnlinePeers, 
 		}
 	}
 
-	return &wgPeers, len(*peers), len(peerList), nil
+	return &schema.PeerStatsResponse{
+		RecentOnlinePeers: &wgPeers,
+		TotalPeers:        len(*peers),
+		OnlinePeers:       count,
+	}, nil
 }
 
 func (w *WgPeer) GenerateKeys() (privateKey, publicKey string, err error) {

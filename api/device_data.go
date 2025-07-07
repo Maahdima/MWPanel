@@ -31,7 +31,7 @@ func (c *DeviceDataController) GetDeviceInfo(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.DeviceDataResponse]{
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.DeviceStatsResponse]{
 		BasicResponse: schema.OkBasicResponse,
 		Data:          *info,
 	})

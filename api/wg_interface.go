@@ -159,20 +159,3 @@ func (c *WgInterfaceController) DeleteInterface(ctx echo.Context) error {
 		Status:     "success",
 	})
 }
-
-func (c *WgInterfaceController) GetInterfacesData(ctx echo.Context) error {
-	data, err := c.interfaceService.GetInterfacesData()
-	if err != nil {
-		c.logger.Error("failed to get wireguard interfaces data", zap.Error(err))
-		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Status:     "error",
-			Message:    "failed to fetch interface info: " + err.Error(),
-		})
-	}
-
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.InterfacesDataResponse]{
-		BasicResponse: schema.OkBasicResponse,
-		Data:          *data,
-	})
-}
