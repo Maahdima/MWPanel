@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type Peer struct {
 	gorm.Model
+	UUID                string  `gorm:"type:varchar(36);uniqueIndex;not null"`
 	PeerID              string  `gorm:"type:varchar(255);uniqueIndex;not null"`
 	Disabled            bool    `gorm:"type:boolean;not null;default:false"`
 	Comment             *string `gorm:"type:text"`

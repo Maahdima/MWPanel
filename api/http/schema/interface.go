@@ -7,6 +7,8 @@ type InterfaceResponse struct {
 	Comment     *string `json:"comment"`
 	Name        string  `json:"name"`
 	ListenPort  string  `json:"listen_port"`
+	MTU         string  `json:"mtu"`
+	Status      string  `json:"status"`
 }
 
 type CreateInterfaceRequest struct {

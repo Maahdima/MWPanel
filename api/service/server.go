@@ -5,8 +5,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/api/schema"
 	"mikrotik-wg-go/dataservice/model"
+	"mikrotik-wg-go/http/schema"
 	"strconv"
 )
 

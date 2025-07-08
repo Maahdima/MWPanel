@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/api/schema"
 	"mikrotik-wg-go/dataservice/model"
+	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/utils"
 	"mikrotik-wg-go/utils/timehelper"
 	"mikrotik-wg-go/utils/wireguard"
@@ -187,6 +188,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 	}
 
 	dbPeer := model.Peer{
+		UUID:                uuid.New().String(),
 		PeerID:              *mtPeer.ID,
 		Disabled:            disabled,
 		Comment:             mtPeer.Comment,
@@ -213,13 +215,13 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 
 	err = w.configGenerator.BuildPeerConfig(
 		config,
-		dbPeer.Name,
+		dbPeer.UUID,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.qrCodeGenerator.BuildPeerQRCode(config, dbPeer.Name)
+	err = w.qrCodeGenerator.BuildPeerQRCode(config, dbPeer.UUID)
 	if err != nil {
 		return nil, err
 	}

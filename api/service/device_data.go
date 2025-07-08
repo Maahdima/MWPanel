@@ -4,7 +4,7 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/api/schema"
+	"mikrotik-wg-go/http/schema"
 )
 
 var ipv4DefaultInterface = "ether1"

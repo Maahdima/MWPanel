@@ -39,7 +39,7 @@ func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) 
 	return configPath, nil
 }
 
-func (c *ConfigGenerator) BuildPeerConfig(config string, peerName string) error {
+func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {
 	dirPath := fmt.Sprintf("./%s", peerConfigsPath)
 
 	err := os.MkdirAll(dirPath, os.ModePerm)
@@ -47,7 +47,7 @@ func (c *ConfigGenerator) BuildPeerConfig(config string, peerName string) error 
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	filePath := fmt.Sprintf("%s/%s.conf", dirPath, peerName)
+	filePath := fmt.Sprintf("%s/%s.conf", dirPath, uuid)
 
 	file, err := os.Create(filePath)
 	if err != nil {

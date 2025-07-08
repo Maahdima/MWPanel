@@ -1,9 +1,9 @@
-package api
+package http
 
 import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"mikrotik-wg-go/api/schema"
+	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/service"
 	"net/http"
 	"strconv"

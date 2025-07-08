@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/api"
+	"mikrotik-wg-go/http"
 	"mikrotik-wg-go/service"
 	"mikrotik-wg-go/utils/httphelper"
 	"mikrotik-wg-go/utils/validate"
@@ -44,7 +44,13 @@ func StartHttpServer(db *gorm.DB) error {
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	api.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService)
+	e.Static("/", "public")
+
+	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService)
+
+	e.Any("/*", func(c echo.Context) error {
+		return c.File("public/index.html")
+	})
 
 	e.Logger.Fatal(e.Start(":1323"))
 

@@ -6,8 +6,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/api/schema"
 	"mikrotik-wg-go/dataservice/model"
+	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/utils"
 	"strconv"
 )
@@ -35,7 +35,12 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 
 	var wgInterfaces []schema.InterfaceResponse
 	for _, iface := range interfaces {
-		wgInterface := i.transformInterfaceToResponse(iface)
+		mtInterface, err := i.mikrotikAdaptor.FetchWgInterface(context.Background(), iface.InterfaceID)
+		if err != nil {
+			i.logger.Error("failed to fetch wireguard interface from Mikrotik", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+			return nil, fmt.Errorf("failed to fetch wireguard interface from Mikrotik: %w", err)
+		}
+		wgInterface := i.transformInterfaceToResponse(iface, *mtInterface.MTU, *mtInterface.Running)
 		wgInterfaces = append(wgInterfaces, wgInterface)
 	}
 
@@ -67,7 +72,7 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 		return nil, err
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(dbInterface)
+	transformedInterface := i.transformInterfaceToResponse(dbInterface, *mtInterface.MTU, *mtInterface.Running)
 	return &transformedInterface, nil
 }
 
@@ -117,7 +122,7 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		wgInterface.Name = req.Name
 	}
 
-	_, err := i.mikrotikAdaptor.UpdateWgInterface(context.Background(), iface.InterfaceID, wgInterface)
+	mtInterface, err := i.mikrotikAdaptor.UpdateWgInterface(context.Background(), iface.InterfaceID, wgInterface)
 	if err != nil {
 		i.logger.Error("failed to update wireguard interface", zap.Error(err))
 		return nil, fmt.Errorf("failed to update wireguard interface: %w", err)
@@ -132,7 +137,7 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		return nil, fmt.Errorf("failed to update wireguard interface in database")
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(iface)
+	transformedInterface := i.transformInterfaceToResponse(iface, *mtInterface.MTU, *mtInterface.Running)
 	return &transformedInterface, nil
 }
 
@@ -175,7 +180,7 @@ func (i *WgInterface) GetInterfacesData() (*schema.InterfaceStatsResponse, error
 	}, nil
 }
 
-func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface) schema.InterfaceResponse {
+func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface, mtu, status string) schema.InterfaceResponse {
 	return schema.InterfaceResponse{
 		Id:          wgInterface.ID,
 		InterfaceID: wgInterface.InterfaceID,
@@ -183,5 +188,7 @@ func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface) 
 		Comment:     wgInterface.Comment,
 		Name:        wgInterface.Name,
 		ListenPort:  wgInterface.ListenPort,
+		MTU:         mtu,
+		Status:      status,
 	}
 }

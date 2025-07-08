@@ -34,7 +34,7 @@ func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) 
 	return qrcodePath, nil
 }
 
-func (q *QRCodeGenerator) BuildPeerQRCode(config string, peerName string) error {
+func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 	dirPath := fmt.Sprintf("./%s", peerQrCodesPath)
 
 	err := os.MkdirAll(dirPath, os.ModePerm)
@@ -48,7 +48,7 @@ func (q *QRCodeGenerator) BuildPeerQRCode(config string, peerName string) error 
 		return err
 	}
 
-	filePath := fmt.Sprintf("%s/%s.jpeg", dirPath, peerName)
+	filePath := fmt.Sprintf("%s/%s.jpeg", dirPath, uuid)
 	w, err := standard.New(filePath)
 	if err != nil {
 		fmt.Printf("standard.New failed: %v", err)

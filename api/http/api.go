@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	echojwt "github.com/labstack/echo-jwt/v4"
