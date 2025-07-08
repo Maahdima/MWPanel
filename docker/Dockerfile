@@ -14,7 +14,7 @@ RUN go mod verify
 
 # Building application
 RUN rm -rf ./dist/
-RUN go build -ldflags=-linkmode=external -s -w -extldflags=--static-pie -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false -a -x -v -o dist/mw-api cmd/main.go
+RUN go build -ldflags="-linkmode=external -s -w -extldflags=--static-pie" -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false -a -x -v -o dist/mw-api cmd/main.go
 RUN set -eux; \
 	CPU_ARCH=`(test $(uname -m) = 'aarch64' && echo 'arm64') || (test $(uname -m) = 'x86_64' && echo 'amd64') || (echo 'Unsupported architecture' && exit 1)` && \
 	wget -qO ./dist/atlas https://release.ariga.io/atlas/atlas-community-linux-${CPU_ARCH}-latest && \
