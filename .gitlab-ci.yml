@@ -11,7 +11,7 @@ build-node:
   stage: build-node
   image: node:lts-alpine
   retry:
-    max: 2
+    max: 1
     exit_codes:
       - 1
   rules:
@@ -22,7 +22,7 @@ build-node:
   before_script:
     - cd ui
   script:
-    - npm install --cache .npm --prefer-offline --no-progress --legacy-peer-deps
+    - npx pnpm install --store-dir .pnpm --prefer-offline
     - npm run build
     - echo "${CI_COMMIT_SHA}" > dist/.app_commit_sha
   cache:
@@ -31,7 +31,7 @@ build-node:
         - ui/package.json
       prefix: ${CI_PROJECT_NAMESPACE}@${CI_PROJECT_NAME}
     paths:
-      - ui/.npm/
+      - ui/.pnpm/
       - ui/node_modules/
   artifacts:
     name: "${BUILD_NAME}"
