@@ -1,0 +1,66 @@
+stages:
+  - build-node
+  - build-docker
+
+variables:
+  IMAGE_NAME: ${OCI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+  IMAGE_NAME_BY_REF: ${OCI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+  BUILD_NAME: "${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}@${CI_COMMIT_SHORT_SHA}"
+
+build-node:
+  stage: build-node
+  image: node:lts-alpine
+  retry:
+    max: 2
+    exit_codes:
+      - 1
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      variables:
+        CI_ENVIRONMENT: "production"
+    - when: never
+  before_script:
+    - cd ui
+  script:
+    - npm install --cache .npm --prefer-offline --no-progress --legacy-peer-deps
+    - npm run build
+    - echo "${CI_COMMIT_SHA}" > dist/.app_commit_sha
+  cache:
+    key:
+      files:
+        - ui/package.json
+      prefix: ${CI_PROJECT_NAMESPACE}@${CI_PROJECT_NAME}
+    paths:
+      - ui/.npm/
+      - ui/node_modules/
+  artifacts:
+    name: "${BUILD_NAME}"
+    when: on_success
+    paths:
+      - ui/dist/
+    expire_in: 2 weeks
+
+build-docker:
+  stage: build-docker
+  image: docker:cli
+  services:
+    - docker:dind
+  dependencies:
+    - build-node
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      variables:
+        CI_ENVIRONMENT: "production"
+    - when: never
+  before_script:
+    - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
+    - docker buildx create --name multiarch --driver docker-container --bootstrap --use
+  script:
+    - docker buildx build .
+      --file docker/Dockerfile
+      --platform linux/arm64/v8,linux/amd64
+      --cache-from "type=registry,ref=${IMAGE_NAME_BY_REF}"
+      --cache-to "type=inline"
+      --tag "${IMAGE_NAME}" --tag "${IMAGE_NAME_BY_REF}"
+      --build-arg APP_COMMIT_SHA=${CI_COMMIT_SHA}
+      --output "type=image,oci-mediatypes=true,store=false,compression=zstd,compression-level=3,\"name=${IMAGE_NAME},${IMAGE_NAME_BY_REF}\",push=true"

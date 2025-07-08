@@ -8,19 +8,21 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
+	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice/model"
 	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/utils"
 	"mikrotik-wg-go/utils/timehelper"
 	"mikrotik-wg-go/utils/wireguard"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
 )
 
 var (
-	peerConfigsPath = "assets/config"
-	peerQrCodesPath = "assets/qrcode"
+	peerConfigsPath string
+	peerQrCodesPath string
 )
 
 var (
@@ -46,6 +48,13 @@ type WgPeer struct {
 	configGenerator *ConfigGenerator
 	qrCodeGenerator *QRCodeGenerator
 	logger          *zap.Logger
+}
+
+func init() {
+	appCfg := config.GetAppConfig()
+
+	peerConfigsPath = filepath.Join(appCfg.PeerFilesDir, "config")
+	peerQrCodesPath = filepath.Join(appCfg.PeerFilesDir, "qrcode")
 }
 
 func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Scheduler, queue *Queue, configGenerator *ConfigGenerator) *WgPeer {

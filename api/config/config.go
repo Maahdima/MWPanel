@@ -7,9 +7,11 @@ import (
 
 type AppConfig struct {
 	Mode             string
-	LogPath          string
-	LogMaxAge        string
+	Host             string
+	Port             string
 	ConsoleLogFormat string
+	PublicDir        string
+	PeerFilesDir     string
 }
 
 type DBConfig struct {
@@ -37,9 +39,11 @@ func GetEnv(key, defaultValue string) string {
 func GetAppConfig() AppConfig {
 	return AppConfig{
 		Mode:             GetEnv("MODE", "development"),
-		LogPath:          GetEnv("LOG_PATH", "./mwp.log"),
-		LogMaxAge:        GetEnv("LOG_MAX_AGE", "30"),
+		Host:             GetEnv("SERVER_HOST", "127.0.0.1"),
+		Port:             GetEnv("SERVER_PORT", "3000"),
 		ConsoleLogFormat: GetEnv("CONSOLE_LOG_FORMAT", "plain"),
+		PublicDir:        GetEnv("PUBLIC_DIR", "./public/"),
+		PeerFilesDir:     GetEnv("PEER_FILES_DIR", "./peer-files/"),
 	}
 }
 

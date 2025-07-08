@@ -1,19 +1,23 @@
 package webserver
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
+	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/http"
 	"mikrotik-wg-go/service"
 	"mikrotik-wg-go/utils/httphelper"
 	"mikrotik-wg-go/utils/validate"
+	"path/filepath"
 )
 
 func StartHttpServer(db *gorm.DB) error {
+	appCfg := config.GetAppConfig()
 	logger := zap.L()
 
 	// TODO : initial check for connection to Mikrotik device
@@ -44,15 +48,15 @@ func StartHttpServer(db *gorm.DB) error {
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	e.Static("/", "public")
+	e.Static("/", appCfg.PublicDir)
 
 	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService)
 
 	e.Any("/*", func(c echo.Context) error {
-		return c.File("public/index.html")
+		return c.File(filepath.Join(appCfg.PublicDir, "index.html"))
 	})
 
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
 
 	return nil
 }

@@ -2,7 +2,7 @@ import axios from 'axios'
 import Cookies from 'js-cookie'
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:1323/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 })
 
 axiosInstance.interceptors.request.use((config) => {
