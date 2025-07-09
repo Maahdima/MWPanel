@@ -25,6 +25,9 @@ RUN set -eux; \
 
 FROM alpine:3
 
+## Github Container Registry
+LABEL org.opencontainers.image.source=https://github.com/maahdima/mwp
+
 # Installing init software
 RUN apk add --no-cache --virtual .init-program catatonit
 RUN ln -sf /usr/bin/catatonit /sbin/init
