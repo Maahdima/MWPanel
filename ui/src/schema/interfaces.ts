@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import { createApiResponseSchema } from '@/schema/api-response.ts'
 
-export const InterfaceStatusEnum = z.enum(['running', 'not_running'])
-
 export const InterfaceSchema = z.object({
   id: z.number(),
   interface_id: z.string(),
@@ -11,7 +9,7 @@ export const InterfaceSchema = z.object({
   name: z.string(),
   listen_port: z.string(),
   mtu: z.string(),
-  status: InterfaceStatusEnum,
+  is_running: z.boolean(),
 })
 
 export const InterfacesSchema = z.array(InterfaceSchema).nullable()

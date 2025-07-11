@@ -27,7 +27,9 @@ export function PeersConfigDialog({
   currentRow,
   download = false,
 }: Props) {
-  const { data: peerConfigBlob, isLoading } = usePeerConfigQuery(currentRow.id)
+  const { data: peerConfigBlob, isLoading } = usePeerConfigQuery(
+    currentRow.uuid
+  )
   const [configText, setConfigText] = useState<string>('')
   const hasDownloaded = useRef(false)
 

@@ -6,6 +6,8 @@ import {
   PeerKeysResponseSchema,
   PeerResponseSchema,
   PeersResponseSchema,
+  PeerStats,
+  PeerStatsResponseSchema,
   UpdatePeerRequest,
 } from '@/schema/peers.ts'
 import axiosInstance from '@/api/axios-instance.ts'
@@ -16,20 +18,32 @@ export const fetchPeersList = async (): Promise<Peer[]> => {
   return parsed.data || []
 }
 
-export const fetchPeerQRCode = async (id: number): Promise<string> => {
-  const response = await axiosInstance.get(`/peer/${id}/qrcode`, {
+export const fetchPeerQRCode = async (
+  uuid: string | undefined
+): Promise<string> => {
+  const response = await axiosInstance.get(`/peer/${uuid}/qrcode`, {
     responseType: 'blob',
   })
 
   return URL.createObjectURL(response.data)
 }
 
-export const fetchPeerConfig = async (id: number): Promise<string> => {
-  const response = await axiosInstance.get(`/peer/${id}/config`, {
+export const fetchPeerConfig = async (
+  uuid: string | undefined
+): Promise<string> => {
+  const response = await axiosInstance.get(`/peer/${uuid}/config`, {
     responseType: 'blob',
   })
 
   return response.data
+}
+
+export const fetchPeerDetails = async (
+  uuid: string | undefined
+): Promise<PeerStats> => {
+  const { data } = await axiosInstance.get(`/peer/${uuid}/details`)
+  const parsed = PeerStatsResponseSchema.parse(data)
+  return parsed.data
 }
 
 export const createPeer = async (peer: CreatePeerRequest): Promise<Peer> => {

@@ -10,6 +10,7 @@ export const PeerStatusEnum = z.enum([
 
 export const PeerSchema = z.object({
   id: z.number(),
+  uuid: z.string(),
   disabled: z.boolean(),
   comment: z.string().nullable(),
   name: z.string(),
@@ -20,6 +21,7 @@ export const PeerSchema = z.object({
   upload_bandwidth: z.string().nullable(),
   traffic_limit: z.string().nullable(),
   status: z.array(PeerStatusEnum),
+  is_shared: z.boolean(),
 })
 
 export const PeersSchema = z.array(PeerSchema).nullable()
@@ -29,9 +31,20 @@ export const PeerKeysSchema = z.object({
   public_key: z.string(),
 })
 
+export const PeerStatsSchema = z.object({
+  name: z.string(),
+  expire_time: z.string().nullable(),
+  traffic_limit: z.string().nullable(),
+  download_usage: z.string(),
+  upload_usage: z.string(),
+  total_usage: z.string(),
+  usage_percent: z.string().nullable(),
+})
+
 export const PeerResponseSchema = createApiResponseSchema(PeerSchema)
 export const PeersResponseSchema = createApiResponseSchema(PeersSchema)
 export const PeerKeysResponseSchema = createApiResponseSchema(PeerKeysSchema)
+export const PeerStatsResponseSchema = createApiResponseSchema(PeerStatsSchema)
 
 export const CreatePeerSchema = z.object({
   comment: z.string().optional().nullable(),
@@ -71,3 +84,4 @@ export type UpdatePeerRequest = z.infer<typeof UpdatePeerSchema>
 export type PeerResponse = z.infer<typeof PeerResponseSchema>
 export type PeersResponse = z.infer<typeof PeersResponseSchema>
 export type PeerKeys = z.infer<typeof PeerKeysSchema>
+export type PeerStats = z.infer<typeof PeerStatsSchema>
