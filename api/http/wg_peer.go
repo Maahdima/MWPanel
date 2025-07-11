@@ -1,8 +1,10 @@
 package http
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/service"
 	"net/http"
@@ -189,21 +191,22 @@ func (c *WgPeerController) DeletePeer(ctx echo.Context) error {
 }
 
 func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
-	id := ctx.Param("id")
-	if id == "" {
-		c.logger.Error("Peer ID is required")
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		c.logger.Error("Peer uuid is required")
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	peerId, err := strconv.Atoi(id)
+	config, err := c.peerConfigService.GetPeerConfig(uuid)
 	if err != nil {
-		c.logger.Error("Invalid peer ID", zap.Error(err))
-		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
-	}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     "error",
+				Message:    "peer not found",
+			})
+		}
 
-	config, err := c.peerConfigService.GetPeerConfig(uint(peerId))
-	if err != nil {
-		c.logger.Error("failed to get peer config", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -215,21 +218,22 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 }
 
 func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
-	id := ctx.Param("id")
-	if id == "" {
-		c.logger.Error("Peer ID is required")
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		c.logger.Error("Peer uuid is required")
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	peerId, err := strconv.Atoi(id)
+	qrCode, err := c.peerQrCodeService.GetPeerQRCode(uuid)
 	if err != nil {
-		c.logger.Error("Invalid peer ID", zap.Error(err))
-		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
-	}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     "error",
+				Message:    "peer not found",
+			})
+		}
 
-	qrCode, err := c.peerQrCodeService.GetPeerQRCode(uint(peerId))
-	if err != nil {
-		c.logger.Error("failed to get peer QR code", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -238,4 +242,34 @@ func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 	}
 
 	return ctx.File(qrCode)
+}
+
+func (c *WgPeerController) GetPeerDetails(ctx echo.Context) error {
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		c.logger.Error("Peer uuid is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	stats, err := c.peerService.GetPeerDetails(uuid)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     "error",
+				Message:    "peer not found",
+			})
+		}
+
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve peer stats: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerDetailsResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          *stats,
+	})
 }

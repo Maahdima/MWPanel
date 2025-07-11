@@ -189,6 +189,6 @@ func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface, 
 		Name:        wgInterface.Name,
 		ListenPort:  wgInterface.ListenPort,
 		MTU:         mtu,
-		Status:      status,
+		IsRunning:   status == "true",
 	}
 }

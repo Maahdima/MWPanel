@@ -8,7 +8,7 @@ type InterfaceResponse struct {
 	Name        string  `json:"name"`
 	ListenPort  string  `json:"listen_port"`
 	MTU         string  `json:"mtu"`
-	Status      string  `json:"status"`
+	IsRunning   bool    `json:"is_running"`
 }
 
 type CreateInterfaceRequest struct {

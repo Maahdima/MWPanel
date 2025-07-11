@@ -126,6 +126,55 @@ func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
 	}, nil
 }
 
+func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error) {
+	var peer model.Peer
+	if err := w.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Error("peer not found in database", zap.String("uuid", uuid))
+			return nil, err
+		}
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return nil, err
+	}
+
+	if !peer.IsShared {
+		w.logger.Error("peer is not shared, stats are not available", zap.String("uuid", uuid))
+		return nil, fmt.Errorf("peer is not shared, stats are not available")
+	}
+
+	downloadUsage, err := strconv.Atoi(peer.DownloadUsage)
+	if err != nil {
+		w.logger.Error("failed to parse download usage", zap.Error(err))
+		return nil, fmt.Errorf("failed to parse download usage: %w", err)
+	}
+
+	uploadUsage, err := strconv.Atoi(peer.UploadUsage)
+	if err != nil {
+		w.logger.Error("failed to parse upload usage", zap.Error(err))
+		return nil, fmt.Errorf("failed to parse upload usage: %w", err)
+	}
+
+	totalUsage := downloadUsage + uploadUsage
+
+	var usagePercent *string
+	if peer.TrafficLimit != nil && *peer.TrafficLimit != "0" {
+		limit, err := strconv.Atoi(*peer.TrafficLimit)
+		if err == nil && limit > 0 {
+			percent := int(float64(totalUsage) / float64(limit) * 100)
+			usagePercent = utils.Ptr(strconv.Itoa(percent))
+		}
+	}
+	return &schema.PeerDetailsResponse{
+		Name:          peer.Name,
+		TrafficLimit:  peer.TrafficLimit,
+		ExpireTime:    peer.ExpireTime,
+		DownloadUsage: peer.DownloadUsage,
+		UploadUsage:   peer.UploadUsage,
+		TotalUsage:    strconv.Itoa(totalUsage),
+		UsagePercent:  usagePercent,
+	}, nil
+}
+
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 	var peers []model.Peer
 	if err := w.db.Order("created_at ASC").Find(&peers).Error; err != nil {
@@ -478,6 +527,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 	statuses := w.transformPeerStatus(peer)
 	return schema.PeerResponse{
 		Id:                peer.ID,
+		UUID:              peer.UUID,
 		Disabled:          peer.Disabled,
 		Comment:           peer.Comment,
 		Name:              peer.Name,
@@ -488,6 +538,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		DownloadBandwidth: peer.DownloadBandwidth,
 		UploadBandwidth:   peer.UploadBandwidth,
 		Status:            statuses,
+		IsShared:          peer.IsShared,
 	}
 }
 

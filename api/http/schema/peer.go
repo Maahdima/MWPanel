@@ -44,8 +44,19 @@ type PeerKeyResponse struct {
 	PrivateKey string `json:"private_key"`
 }
 
+type PeerDetailsResponse struct {
+	Name          string  `json:"name"`
+	TrafficLimit  *string `json:"traffic_limit"`
+	ExpireTime    *string `json:"expire_time"`
+	DownloadUsage string  `json:"download_usage"`
+	UploadUsage   string  `json:"upload_usage"`
+	TotalUsage    string  `json:"total_usage"`
+	UsagePercent  *string `json:"usage_percent"`
+}
+
 type PeerResponse struct {
 	Id                uint         `json:"id"`
+	UUID              string       `json:"uuid"`
 	Disabled          bool         `json:"disabled"`
 	Comment           *string      `json:"comment"`
 	Name              string       `json:"name"`
@@ -56,6 +67,7 @@ type PeerResponse struct {
 	DownloadBandwidth *string      `json:"download_bandwidth"`
 	UploadBandwidth   *string      `json:"upload_bandwidth"`
 	Status            []PeerStatus `json:"status"`
+	IsShared          bool         `json:"is_shared"`
 }
 
 type PeerStatsResponse struct {

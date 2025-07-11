@@ -67,17 +67,16 @@ func setupPeerRoutes(router *echo.Group, jwtConfig echojwt.Config, peerService *
 	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService)
 
 	peerGroup := router.Group("/peer")
-	peerGroup.Use(echojwt.WithConfig(jwtConfig))
 
-	peerGroup.GET("/keys", wgPeerController.GetPeerKeys)
-	peerGroup.GET("", wgPeerController.GetPeers)
-	peerGroup.POST("", wgPeerController.CreatePeer)
-	peerGroup.POST("/:id/status", wgPeerController.UpdatePeerStatus)
-	peerGroup.PATCH("/:id", wgPeerController.UpdatePeer)
-	peerGroup.DELETE("/:id", wgPeerController.DeletePeer)
-	//peerGroup.GET("/wg-peer/:id", wgPeerController.GetPeerByID)
-	peerGroup.GET("/:id/config", wgPeerController.GetPeerConfig)
-	peerGroup.GET("/:id/qrcode", wgPeerController.GetPeerQRCode)
+	peerGroup.GET("/keys", wgPeerController.GetPeerKeys, echojwt.WithConfig(jwtConfig))
+	peerGroup.GET("", wgPeerController.GetPeers, echojwt.WithConfig(jwtConfig))
+	peerGroup.POST("", wgPeerController.CreatePeer, echojwt.WithConfig(jwtConfig))
+	peerGroup.POST("/:id/status", wgPeerController.UpdatePeerStatus, echojwt.WithConfig(jwtConfig))
+	peerGroup.PATCH("/:id", wgPeerController.UpdatePeer, echojwt.WithConfig(jwtConfig))
+	peerGroup.DELETE("/:id", wgPeerController.DeletePeer, echojwt.WithConfig(jwtConfig))
+	peerGroup.GET("/:uuid/config", wgPeerController.GetPeerConfig)
+	peerGroup.GET("/:uuid/qrcode", wgPeerController.GetPeerQRCode)
+	peerGroup.GET("/:uuid/details", wgPeerController.GetPeerDetails)
 }
 
 func setupDeviceInfoRoutes(router *echo.Group, jwtConfig echojwt.Config, deviceDataService *service.DeviceData) {

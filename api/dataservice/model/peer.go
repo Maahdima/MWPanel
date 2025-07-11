@@ -23,4 +23,5 @@ type Peer struct {
 	UploadBandwidth     *string `gorm:"type:varchar(255)"`
 	DownloadUsage       string  `gorm:"type:varchar(255);not null;default:'0'"`
 	UploadUsage         string  `gorm:"type:varchar(255);not null;default:'0'"`
+	IsShared            bool    `gorm:"type:boolean;not null;default:false"`
 }
