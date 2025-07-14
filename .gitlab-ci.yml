@@ -64,17 +64,17 @@ build-go:
     - go mod download
     - go mod verify
     # Build for linux amd64
-    - CC=x86_64-linux-gnu-gcc GOARCH=amd64 ${BUILD_COMMAND_LINUX} -o "build/mwp.linux.amd64" "${ENTRYPOINT}"
+    - eval "CC=x86_64-linux-gnu-gcc GOARCH=amd64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.amd64' '${ENTRYPOINT}'"
     # Build for linux arm64
-    - CC=aarch64-linux-gnu-gcc GOARCH=arm64 ${BUILD_COMMAND_LINUX} -o "build/mwp.linux.arm64" "${ENTRYPOINT}"
+    - eval "CC=aarch64-linux-gnu-gcc GOARCH=arm64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.arm64' '${ENTRYPOINT}'"
     # Build for windows amd64
-    - GOARCH=amd64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o "build/mwp.windows.amd64.exe" "${ENTRYPOINT}"
+    - eval "GOARCH=amd64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o 'build/mwp.windows.amd64.exe' '${ENTRYPOINT}'"
     # Build for windows arm64
-    - GOARCH=arm64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o "build/mwp.windows.arm64.exe" "${ENTRYPOINT}"
+    - eval "GOARCH=arm64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o 'build/mwp.windows.arm64.exe' '${ENTRYPOINT}'"
     # Build for darwin amd64
-    - GOARCH=amd64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o "build/mwp.darwin.amd64" "${ENTRYPOINT}"
+    - eval "GOARCH=amd64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o 'build/mwp.darwin.amd64' '${ENTRYPOINT}'"
     # Build for darwin arm64
-    - GOARCH=arm64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o "build/mwp.darwin.arm64" "${ENTRYPOINT}"
+    - eval "GOARCH=arm64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o 'build/mwp.darwin.arm64' '${ENTRYPOINT}'"
   artifacts:
     name: "${BUILD_NAME}-go"
     when: on_success
