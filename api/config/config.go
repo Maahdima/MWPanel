@@ -40,10 +40,17 @@ type AdminConfig struct {
 }
 
 func init() {
-	_ = godotenv.Load("config/.env")
+	err := loadEnv()
+	if err != nil {
+		fmt.Println("Failed to load environment variables: " + err.Error())
+	}
 }
 
-func GetEnv(key, defaultValue string) string {
+func loadEnv() error {
+	return godotenv.Load(getEnv("ENV_FILE", "config/.env"))
+}
+
+func getEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue
@@ -53,29 +60,29 @@ func GetEnv(key, defaultValue string) string {
 
 func GetAppConfig() AppConfig {
 	return AppConfig{
-		Mode:             GetEnv("MODE", "development"),
-		Host:             GetEnv("SERVER_HOST", "127.0.0.1"),
-		Port:             GetEnv("SERVER_PORT", "3000"),
-		ConsoleLogFormat: GetEnv("CONSOLE_LOG_FORMAT", "plain"),
-		PublicDir:        GetEnv("PUBLIC_DIR", "./public/"),
-		PeerFilesDir:     GetEnv("PEER_FILES_DIR", "./peer-files/"),
+		Mode:             getEnv("MODE", "development"),
+		Host:             getEnv("SERVER_HOST", "127.0.0.1"),
+		Port:             getEnv("SERVER_PORT", "3000"),
+		ConsoleLogFormat: getEnv("CONSOLE_LOG_FORMAT", "plain"),
+		PublicDir:        getEnv("PUBLIC_DIR", "./public/"),
+		PeerFilesDir:     getEnv("PEER_FILES_DIR", "./peer-files/"),
 	}
 }
 
 func GetDBConfig() DBConfig {
 	return DBConfig{
-		Host:         GetEnv("DB_HOST", "127.0.0.1"),
-		Port:         GetEnv("DB_PORT", "5432"),
-		Username:     GetEnv("DB_USERNAME", "root"),
-		Password:     GetEnv("DB_PASSWORD", "1234"),
-		Database:     GetEnv("DB_NAME", "mwp_db"),
-		Dialect:      GetEnv("DB_DIALECT", "postgres"),
-		MigrationDir: GetEnv("MIGRATION_DIR", "./migrations/"),
+		Host:         getEnv("DB_HOST", "127.0.0.1"),
+		Port:         getEnv("DB_PORT", "5432"),
+		Username:     getEnv("DB_USERNAME", "root"),
+		Password:     getEnv("DB_PASSWORD", "1234"),
+		Database:     getEnv("DB_NAME", "mwp_db"),
+		Dialect:      getEnv("DB_DIALECT", "postgres"),
+		MigrationDir: getEnv("MIGRATION_DIR", "./migrations/"),
 	}
 }
 
 func GetServerConfig() ServerConfig {
-	apiPort := GetEnv("SERVER_API_PORT", "80")
+	apiPort := getEnv("SERVER_API_PORT", "80")
 
 	var apiPortInt int
 	if port, err := strconv.Atoi(apiPort); err == nil {
@@ -85,18 +92,18 @@ func GetServerConfig() ServerConfig {
 	}
 
 	return ServerConfig{
-		Comment:   GetEnv("SERVER_COMMENT", "Default Server"),
-		Name:      GetEnv("SERVER_NAME", "Default Server"),
-		IPAddress: GetEnv("SERVER_IP_ADDRESS", "127.0.0.1"),
+		Comment:   getEnv("SERVER_COMMENT", "Default Server"),
+		Name:      getEnv("SERVER_NAME", "Default Server"),
+		IPAddress: getEnv("SERVER_IP_ADDRESS", "127.0.0.1"),
 		APIPort:   apiPortInt,
-		Username:  GetEnv("SERVER_USERNAME", "admin"),
-		Password:  GetEnv("SERVER_PASSWORD", "admin1234"),
+		Username:  getEnv("SERVER_USERNAME", "admin"),
+		Password:  getEnv("SERVER_PASSWORD", "admin1234"),
 	}
 }
 
 func GetAdminConfig() AdminConfig {
 	return AdminConfig{
-		Username: GetEnv("ADMIN_USERNAME", "admin"),
-		Password: GetEnv("ADMIN_PASSWORD", "admin1234"),
+		Username: getEnv("ADMIN_USERNAME", "admin"),
+		Password: getEnv("ADMIN_PASSWORD", "admin1234"),
 	}
 }
