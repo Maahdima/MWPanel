@@ -17,7 +17,17 @@ interface StatsCardProps {
   stats: PeerStats | undefined
 }
 
+function remainingDays(expireTime: string | null | undefined): number {
+  if (!expireTime) return 0
+  const expireDate = new Date(expireTime)
+  const now = new Date()
+  const diffTime = expireDate.getTime() - now.getTime()
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+}
+
 export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
+  // calculate remaining days
+
   return (
     <Card className='gap-3'>
       <CardHeader>
@@ -52,7 +62,11 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
                 <ClockFadingIcon className='h-4 w-4' />
                 Expire Time
               </span>
-              <span>{stats?.expire_time ?? 'Never'}</span>
+              <span>
+                {stats?.expire_time
+                  ? `${stats?.expire_time} (${remainingDays(stats?.expire_time)} Days)`
+                  : 'Never'}
+              </span>
             </div>
 
             <div className='flex items-center justify-between'>

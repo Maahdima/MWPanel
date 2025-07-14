@@ -16,10 +16,11 @@ export const PeerSchema = z.object({
   name: z.string(),
   interface: z.string(),
   allowed_address: z.string(),
+  traffic_limit: z.string().nullable(),
   expire_time: z.string().nullable(),
   download_bandwidth: z.string().nullable(),
   upload_bandwidth: z.string().nullable(),
-  traffic_limit: z.string().nullable(),
+  total_usage: z.string(),
   status: z.array(PeerStatusEnum),
   is_shared: z.boolean(),
 })

@@ -1,10 +1,18 @@
 import { ColumnDef } from '@tanstack/react-table'
+import { IconRestore } from '@tabler/icons-react'
 import { Peer, PeerStatus } from '@/schema/peers.ts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useResetUsageMutation } from '@/hooks/peers/useResetUsageMutation.ts'
 import { useUpdatePeerStatusMutation } from '@/hooks/peers/useUpdatePeerStatusMutation.ts'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button.tsx'
 import { Switch } from '@/components/ui/switch.tsx'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
@@ -114,15 +122,62 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='Traffic' />
     ),
     cell: ({ row }) => {
-      const { traffic_limit } = row.original
+      const resetUsageMutation = useResetUsageMutation()
+
+      const peer = row.original
+
+      const handleResetUsage = () => {
+        resetUsageMutation.mutate(peer.id, {
+          onSuccess: () => {
+            toast.success('Peer usage reset successfully', {
+              duration: 5000,
+            })
+          },
+        })
+      }
+
       return (
         <div className='w-fit text-nowrap'>
-          {traffic_limit ? (
-            <Badge variant='default' className='bg-blue-400'>
-              {traffic_limit} GB
-            </Badge>
+          {peer.traffic_limit ? (
+            <div className='flex items-center justify-center space-x-1'>
+              <Button
+                className='h-6 w-6'
+                variant='outline'
+                disabled={resetUsageMutation.isPending}
+                onClick={handleResetUsage}
+              >
+                <Tooltip>
+                  <TooltipTrigger>
+                    <IconRestore className='h-1 w-1' />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset Usage</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Button>
+              <Badge variant='default' className='bg-blue-400'>
+                {peer.total_usage} GB/{peer.traffic_limit} GB
+              </Badge>
+            </div>
           ) : (
-            <Badge variant='default'>Unlimited</Badge>
+            <div className='flex items-center justify-center space-x-1'>
+              <Button
+                className='h-6 w-6'
+                variant='outline'
+                disabled={resetUsageMutation.isPending}
+                onClick={handleResetUsage}
+              >
+                <Tooltip>
+                  <TooltipTrigger>
+                    <IconRestore className='h-1 w-1' />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset Usage</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Button>
+              <Badge variant='default'>{peer.total_usage} GB/Unlimited</Badge>
+            </div>
           )}
         </div>
       )

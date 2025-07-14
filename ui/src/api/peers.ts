@@ -54,11 +54,11 @@ export const createPeer = async (peer: CreatePeerRequest): Promise<Peer> => {
 }
 
 export const updatePeerStatus = async (id: number): Promise<void> => {
-  await axiosInstance.post(`/peer/${id}/status`)
+  await axiosInstance.patch(`/peer/${id}/status`)
 }
 
 export const updatePeer = async (peer: UpdatePeerRequest): Promise<Peer> => {
-  const { data } = await axiosInstance.patch(`/peer/${peer.id}`, peer)
+  const { data } = await axiosInstance.put(`/peer/${peer.id}`, peer)
   const parsed = PeerResponseSchema.parse(data)
   return parsed.data
 }
@@ -71,4 +71,8 @@ export const fetchPeerKeys = async (): Promise<PeerKeys> => {
   const { data } = await axiosInstance.get('/peer/keys')
   const parsed = PeerKeysResponseSchema.parse(data)
   return parsed.data
+}
+
+export const resetPeerUsage = async (id: number): Promise<void> => {
+  await axiosInstance.patch(`/peer/${id}/reset-usage`)
 }
