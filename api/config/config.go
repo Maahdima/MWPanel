@@ -1,9 +1,15 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
+	"fmt"
+	"io/fs"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+
+	"github.com/maahdima/mwp/ui"
 )
 
 type AppConfig struct {
@@ -11,7 +17,7 @@ type AppConfig struct {
 	Host             string
 	Port             string
 	ConsoleLogFormat string
-	PublicDir        string
+	UiAssetsFs       fs.FS
 	PeerFilesDir     string
 }
 
@@ -64,7 +70,7 @@ func GetAppConfig() AppConfig {
 		Host:             getEnv("SERVER_HOST", "127.0.0.1"),
 		Port:             getEnv("SERVER_PORT", "3000"),
 		ConsoleLogFormat: getEnv("CONSOLE_LOG_FORMAT", "plain"),
-		PublicDir:        getEnv("PUBLIC_DIR", "./public/"),
+		UiAssetsFs:       echo.MustSubFS(ui.GetUiAssets(), "dist"),
 		PeerFilesDir:     getEnv("PEER_FILES_DIR", "./peer-files/"),
 	}
 }

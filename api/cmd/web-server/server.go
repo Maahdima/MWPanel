@@ -2,7 +2,6 @@ package webserver
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/cmd/traffic-job"
@@ -36,20 +35,7 @@ func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalc
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	publicDir := echo.MustSubFS(e.Filesystem, appCfg.PublicDir)
-	staticFilesHandler := echo.StaticDirectoryHandler(publicDir, false)
-
-	e.GET(
-		"/*",
-		func(c echo.Context) error {
-			if err := staticFilesHandler(c); err != nil {
-				return c.File(filepath.Join(appCfg.PublicDir, "index.html"))
-			}
-
-			return nil
-		},
-	)
-
+	http.SetupMwpUI(e, appCfg.UiAssetsFs)
 	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))

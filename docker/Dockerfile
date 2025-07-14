@@ -4,9 +4,15 @@ FROM golang:1-alpine AS builder
 # Installing binutils for striping atlas binary and "build-base" for using cgo
 RUN apk add --no-cache --virtual .build-essentials binutils build-base
 
+# Setting workdir
+WORKDIR /tmp/mwp_src
+
 # Copy source files inside build container
-COPY ./api /tmp/mw-api_src
-WORKDIR /tmp/mw-api_src
+COPY ./go.mod ./go.mod
+COPY ./go.sum ./go.sum
+COPY ./api ./api
+COPY ./ui/assets.go ./ui/assets.go
+COPY ./ui/dist ./ui/dist
 
 # Installing golang dependency modules
 RUN go mod download
@@ -14,7 +20,7 @@ RUN go mod verify
 
 # Building application
 RUN rm -rf ./dist/
-RUN go build -ldflags="-linkmode=external -s -w -extldflags=--static-pie" -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false -a -x -v -o dist/mw-api cmd/main.go
+RUN go build -ldflags="-linkmode=external -s -w -extldflags=--static-pie" -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false -a -x -v -o dist/mwp api/cmd/main.go
 RUN set -eux; \
 	CPU_ARCH=`(test $(uname -m) = 'aarch64' && echo 'arm64') || (test $(uname -m) = 'x86_64' && echo 'amd64') || (echo 'Unsupported architecture' && exit 1)` && \
 	wget -qO ./dist/atlas https://release.ariga.io/atlas/atlas-community-linux-${CPU_ARCH}-latest && \
@@ -42,16 +48,13 @@ RUN chown -R www-data:www-data /var/www
 WORKDIR /var/www
 
 # Copy binary files from builder container
-RUN mkdir -p /usr/local/share/mw-api/migrations
-COPY --from=builder --chown=root:root /tmp/mw-api_src/dataservice/migration[s]/ /usr/local/share/mw-api/migrations/
-COPY --from=builder --chown=root:root /tmp/mw-api_src/dist/mw-api /usr/local/sbin/
-COPY --from=builder --chown=root:root /tmp/mw-api_src/dist/atlas /usr/local/sbin/
+RUN mkdir -p /usr/local/share/mwp/migrations
+COPY --from=builder --chown=root:root /tmp/mwp_src/dataservice/migration[s]/ /usr/local/share/mwp/migrations/
+COPY --from=builder --chown=root:root /tmp/mwp_src/dist/mwp /usr/local/sbin/
+COPY --from=builder --chown=root:root /tmp/mwp_src/dist/atlas /usr/local/sbin/
 
 # Install binary dependencies
 RUN apk add --no-cache --virtual .runtime-dependencies `scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/bin | tr ',' '\n' | sort -u | awk '{ print "so:" $1 }'`
-
-# Copying the ui static files from the build directory to the public directory
-COPY --chown=root:root ui/dist public
 
 # Create the peer files directory
 RUN mkdir -p peer-files
@@ -68,11 +71,10 @@ USER www-data:www-data
 ENV MODE=production
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=3000
-ENV MIGRATION_DIR=/usr/local/share/mw-api/migrations
-ENV PUBLIC_DIR=/var/www/public
+ENV MIGRATION_DIR=/usr/local/share/mwp/migrations
 ENV PEER_FILES_DIR=/var/www/peer-files
 
 # Expose port 3000 and start server
 EXPOSE 3000
 ENTRYPOINT ["init", "--", "/bin/sh", "-c"]
-CMD ["exec mw-api"]
+CMD ["exec mwp"]
