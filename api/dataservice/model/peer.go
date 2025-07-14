@@ -18,10 +18,12 @@ type Peer struct {
 	SchedulerID         *string `gorm:"type:varchar(255)"`
 	QueueID             *string `gorm:"type:varchar(255)"`
 	ExpireTime          *string `gorm:"type:varchar(255)"`
-	TrafficLimit        *string `gorm:"type:varchar(255)"`
+	TrafficLimit        int64   `gorm:"type:bigint;default:0"` // in bytes, 0 means no limit
 	DownloadBandwidth   *string `gorm:"type:varchar(255)"`
 	UploadBandwidth     *string `gorm:"type:varchar(255)"`
-	DownloadUsage       string  `gorm:"type:varchar(255);not null;default:'0'"`
-	UploadUsage         string  `gorm:"type:varchar(255);not null;default:'0'"`
+	DownloadUsage       int64   `gorm:"type:bigint;not null;default:0"` // in bytes
+	UploadUsage         int64   `gorm:"type:bigint;not null;default:0"` // in bytes
+	LastTx              int64   `gorm:"type:bigint;not null;default:0"` // in bytes
+	LastRx              int64   `gorm:"type:bigint;not null;default:0"` // in bytes
 	IsShared            bool    `gorm:"type:boolean;not null;default:false"`
 }

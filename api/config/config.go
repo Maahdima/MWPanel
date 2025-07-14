@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/joho/godotenv"
 	"os"
+	"strconv"
 )
 
 type AppConfig struct {
@@ -22,6 +23,20 @@ type DBConfig struct {
 	Database     string
 	Dialect      string
 	MigrationDir string
+}
+
+type ServerConfig struct {
+	Comment   string
+	Name      string
+	IPAddress string
+	APIPort   int
+	Username  string
+	Password  string
+}
+
+type AdminConfig struct {
+	Username string
+	Password string
 }
 
 func init() {
@@ -56,5 +71,32 @@ func GetDBConfig() DBConfig {
 		Database:     GetEnv("DB_NAME", "mwp_db"),
 		Dialect:      GetEnv("DB_DIALECT", "postgres"),
 		MigrationDir: GetEnv("MIGRATION_DIR", "./migrations/"),
+	}
+}
+
+func GetServerConfig() ServerConfig {
+	apiPort := GetEnv("SERVER_API_PORT", "80")
+
+	var apiPortInt int
+	if port, err := strconv.Atoi(apiPort); err == nil {
+		apiPortInt = port
+	} else {
+		apiPortInt = 80
+	}
+
+	return ServerConfig{
+		Comment:   GetEnv("SERVER_COMMENT", "Default Server"),
+		Name:      GetEnv("SERVER_NAME", "Default Server"),
+		IPAddress: GetEnv("SERVER_IP_ADDRESS", "127.0.0.1"),
+		APIPort:   apiPortInt,
+		Username:  GetEnv("SERVER_USERNAME", "admin"),
+		Password:  GetEnv("SERVER_PASSWORD", "admin1234"),
+	}
+}
+
+func GetAdminConfig() AdminConfig {
+	return AdminConfig{
+		Username: GetEnv("ADMIN_USERNAME", "admin"),
+		Password: GetEnv("ADMIN_PASSWORD", "admin1234"),
 	}
 }

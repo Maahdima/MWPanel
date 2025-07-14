@@ -1,12 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
-	webserver "mikrotik-wg-go/cmd/web-server"
+	"mikrotik-wg-go/adaptor/mikrotik"
+	"mikrotik-wg-go/cmd/traffic-job"
+	"mikrotik-wg-go/cmd/web-server"
 	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice"
+	"mikrotik-wg-go/dataservice/seeds"
+	"mikrotik-wg-go/utils/httphelper"
 	"mikrotik-wg-go/utils/log"
+	"time"
 )
 
 func init() {
@@ -15,13 +20,6 @@ func init() {
 
 func main() {
 	logger := zap.L()
-
-	// TODO: remove this
-	password, err := bcrypt.GenerateFromPassword([]byte("admin1234$"), bcrypt.DefaultCost)
-	if err != nil {
-		logger.Panic("Failed to generate password hash", zap.Error(err))
-	}
-	logger.Info("Generated password hash", zap.String("hash", string(password)))
 
 	db, err := dataservice.ConnectDB(config.GetDBConfig())
 	if err != nil {
@@ -32,7 +30,49 @@ func main() {
 		logger.Panic("Failed to auto-migrate database", zap.Error(err))
 	}
 
-	if err := webserver.StartHttpServer(db); err != nil {
+	// TODO: add atlas migration
+	//if err = dataservice.AtlasMigrate(config.GetDBConfig()); err != nil {
+	//	fmt.Printf("cannot apply atlas migration [%s]", err.Error())
+	//	logger.Panic("cannot apply atlas migration", zap.Error(err))
+	//}
+
+	err = seeds.AdminSeed(db)
+	if err != nil {
+		fmt.Printf("cannot seed admin [%s]", err.Error())
+		logger.Panic("cannot seed admin", zap.Error(err))
+	}
+
+	err = seeds.ServerSeed(db)
+	if err != nil {
+		fmt.Printf("cannot seed server [%s]", err.Error())
+		logger.Panic("cannot seed server", zap.Error(err))
+	}
+
+	serverConfig := config.GetServerConfig()
+
+	client, err := httphelper.NewClient(httphelper.Config{
+		BaseURL:            fmt.Sprintf("%s://%s:%d/rest", "http", serverConfig.IPAddress, serverConfig.APIPort),
+		Username:           serverConfig.Username,
+		Password:           serverConfig.Password,
+		InsecureSkipVerify: true,
+	})
+	if err != nil {
+		logger.Panic("Failed to create HTTP client", zap.Error(err))
+	}
+
+	mikrotikAdaptor := mikrotik.NewAdaptor(client)
+	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor)
+
+	// Start the traffic calculation job
+	go func() {
+		// TODO : get checker interval from config
+		for range time.Tick(30 * time.Second) {
+			trafficCalculator.CalculateTraffic()
+		}
+	}()
+
+	// Start the HTTP server
+	if err := webserver.StartHttpServer(db, mikrotikAdaptor, trafficCalculator); err != nil {
 		logger.Panic("Failed to start HTTP server", zap.Error(err))
 	}
 }

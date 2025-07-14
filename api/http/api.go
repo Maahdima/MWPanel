@@ -3,11 +3,12 @@ package http
 import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"mikrotik-wg-go/cmd/traffic-job"
 	"mikrotik-wg-go/service"
 	"net/http"
 )
 
-func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData) {
+func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator) {
 	router := app.Group("/api")
 
 	// TODO : read from config environment variables
@@ -21,7 +22,7 @@ func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, 
 	setupAuthenticationRoutes(router, authenticationService)
 	setupServerRoutes(router, jwtConfig, serverService)
 	setupInterfaceRoutes(router, jwtConfig, interfaceService)
-	setupPeerRoutes(router, jwtConfig, peerService, peerConfigService, peerQrCodeService)
+	setupPeerRoutes(router, jwtConfig, peerService, peerConfigService, peerQrCodeService, trafficCalculator)
 	setupDeviceInfoRoutes(router, jwtConfig, deviceDataService)
 }
 
@@ -63,16 +64,17 @@ func setupInterfaceRoutes(router *echo.Group, jwtConfig echojwt.Config, interfac
 	//interfaceGroup.GET("/wg-interface/:id", wgInterfaceController.GetWgInterfaceByID)
 }
 
-func setupPeerRoutes(router *echo.Group, jwtConfig echojwt.Config, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator) {
-	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService)
+func setupPeerRoutes(router *echo.Group, jwtConfig echojwt.Config, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, trafficCalculator *traffic.Calculator) {
+	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService, trafficCalculator)
 
 	peerGroup := router.Group("/peer")
 
 	peerGroup.GET("/keys", wgPeerController.GetPeerKeys, echojwt.WithConfig(jwtConfig))
 	peerGroup.GET("", wgPeerController.GetPeers, echojwt.WithConfig(jwtConfig))
 	peerGroup.POST("", wgPeerController.CreatePeer, echojwt.WithConfig(jwtConfig))
-	peerGroup.POST("/:id/status", wgPeerController.UpdatePeerStatus, echojwt.WithConfig(jwtConfig))
-	peerGroup.PATCH("/:id", wgPeerController.UpdatePeer, echojwt.WithConfig(jwtConfig))
+	peerGroup.PATCH("/:id/status", wgPeerController.UpdatePeerStatus, echojwt.WithConfig(jwtConfig))
+	peerGroup.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage, echojwt.WithConfig(jwtConfig))
+	peerGroup.PUT("/:id", wgPeerController.UpdatePeer, echojwt.WithConfig(jwtConfig))
 	peerGroup.DELETE("/:id", wgPeerController.DeletePeer, echojwt.WithConfig(jwtConfig))
 	peerGroup.GET("/:uuid/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:uuid/qrcode", wgPeerController.GetPeerQRCode)

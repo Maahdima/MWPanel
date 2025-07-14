@@ -8,21 +8,14 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice/model"
 	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/utils"
 	"mikrotik-wg-go/utils/timehelper"
 	"mikrotik-wg-go/utils/wireguard"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
-)
-
-var (
-	peerConfigsPath string
-	peerQrCodesPath string
 )
 
 var (
@@ -48,13 +41,6 @@ type WgPeer struct {
 	configGenerator *ConfigGenerator
 	qrCodeGenerator *QRCodeGenerator
 	logger          *zap.Logger
-}
-
-func init() {
-	appCfg := config.GetAppConfig()
-
-	peerConfigsPath = filepath.Join(appCfg.PeerFilesDir, "config")
-	peerQrCodesPath = filepath.Join(appCfg.PeerFilesDir, "qrcode")
 }
 
 func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Scheduler, queue *Queue, configGenerator *ConfigGenerator) *WgPeer {
@@ -142,35 +128,21 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		return nil, fmt.Errorf("peer is not shared, stats are not available")
 	}
 
-	downloadUsage, err := strconv.Atoi(peer.DownloadUsage)
-	if err != nil {
-		w.logger.Error("failed to parse download usage", zap.Error(err))
-		return nil, fmt.Errorf("failed to parse download usage: %w", err)
-	}
-
-	uploadUsage, err := strconv.Atoi(peer.UploadUsage)
-	if err != nil {
-		w.logger.Error("failed to parse upload usage", zap.Error(err))
-		return nil, fmt.Errorf("failed to parse upload usage: %w", err)
-	}
-
-	totalUsage := downloadUsage + uploadUsage
+	totalUsage := peer.DownloadUsage + peer.UploadUsage
 
 	var usagePercent *string
-	if peer.TrafficLimit != nil && *peer.TrafficLimit != "0" {
-		limit, err := strconv.Atoi(*peer.TrafficLimit)
-		if err == nil && limit > 0 {
-			percent := int(float64(totalUsage) / float64(limit) * 100)
-			usagePercent = utils.Ptr(strconv.Itoa(percent))
-		}
+	if peer.TrafficLimit != 0 && peer.TrafficLimit > 0 {
+		percent := float64(totalUsage) / float64(peer.TrafficLimit) * 100
+		usagePercent = utils.Ptr(fmt.Sprintf("%.1f", percent))
 	}
+
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
-		TrafficLimit:  peer.TrafficLimit,
+		TrafficLimit:  utils.Ptr(utils.BytesToGB(peer.TrafficLimit)),
 		ExpireTime:    peer.ExpireTime,
-		DownloadUsage: peer.DownloadUsage,
-		UploadUsage:   peer.UploadUsage,
-		TotalUsage:    strconv.Itoa(totalUsage),
+		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
+		UploadUsage:   utils.BytesToGB(peer.UploadUsage),
+		TotalUsage:    utils.BytesToGB(totalUsage),
 		UsagePercent:  usagePercent,
 	}, nil
 }
@@ -259,7 +231,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		PersistentKeepalive: timeString,
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
-		TrafficLimit:        req.TrafficLimit,
+		TrafficLimit:        utils.GBToBytes(*req.TrafficLimit), // TODO : fix
 		ExpireTime:          req.ExpireTime,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
@@ -533,10 +505,11 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		Name:              peer.Name,
 		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
-		TrafficLimit:      peer.TrafficLimit,
+		TrafficLimit:      utils.Ptr(utils.BytesToGB(peer.TrafficLimit)),
 		ExpireTime:        peer.ExpireTime,
 		DownloadBandwidth: peer.DownloadBandwidth,
 		UploadBandwidth:   peer.UploadBandwidth,
+		TotalUsage:        utils.BytesToGB(peer.DownloadUsage + peer.UploadUsage),
 		Status:            statuses,
 		IsShared:          peer.IsShared,
 	}
@@ -558,27 +531,9 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 		}
 	}
 
-	if peer.TrafficLimit != nil {
-		downloadUsage, err := strconv.Atoi(peer.DownloadUsage)
-		if err != nil {
-			w.logger.Error("failed to parse download usage", zap.Error(err))
-			return peerStatus
-		}
-
-		uploadUsage, err := strconv.Atoi(peer.UploadUsage)
-		if err != nil {
-			w.logger.Error("failed to parse upload usage", zap.Error(err))
-			return peerStatus
-		}
-
-		trafficLimit, err := strconv.Atoi(*peer.TrafficLimit)
-		if err != nil {
-			w.logger.Error("failed to parse traffic limit", zap.Error(err))
-			return peerStatus
-		}
-
-		totalUsedTraffic := downloadUsage + uploadUsage
-		if totalUsedTraffic > trafficLimit {
+	if peer.TrafficLimit != 0 {
+		totalUsedTraffic := peer.DownloadUsage + peer.UploadUsage
+		if totalUsedTraffic > peer.TrafficLimit {
 			peerStatus = append(peerStatus, schema.SuspendedPeer)
 		}
 	}

@@ -5,34 +5,20 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"mikrotik-wg-go/adaptor/mikrotik"
+	"mikrotik-wg-go/cmd/traffic-job"
 	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/http"
 	"mikrotik-wg-go/service"
-	"mikrotik-wg-go/utils/httphelper"
 	"mikrotik-wg-go/utils/validate"
 	"path/filepath"
 )
 
-func StartHttpServer(db *gorm.DB) error {
+func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator) error {
 	appCfg := config.GetAppConfig()
-	logger := zap.L()
 
 	// TODO : initial check for connection to Mikrotik device
-	client, err := httphelper.NewClient(httphelper.Config{
-		BaseURL:            "http://192.168.64.2/rest",
-		Username:           "admin",
-		Password:           "admin1234$",
-		InsecureSkipVerify: true,
-	})
-	if err != nil {
-		logger.Panic("Failed to create HTTP client", zap.Error(err))
-		return err
-	}
-
-	mikrotikAdaptor := mikrotik.NewAdaptor(client)
 	authenticationService := service.NewAuthentication(db)
 	schedulerService := service.NewScheduler(mikrotikAdaptor)
 	queueService := service.NewQueue(mikrotikAdaptor)
@@ -62,7 +48,7 @@ func StartHttpServer(db *gorm.DB) error {
 		},
 	)
 
-	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService)
+	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
 

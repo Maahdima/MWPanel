@@ -22,10 +22,10 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 			logger.Config{
 				// TODO : use config values
 				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Info,
+				LogLevel:                  logger.Error,
 				IgnoreRecordNotFoundError: false,
 				ParameterizedQueries:      false,
-				Colorful:                  false,
+				Colorful:                  true,
 			},
 		)
 		conf.Logger = newLogger

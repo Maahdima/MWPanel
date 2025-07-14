@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"mikrotik-wg-go/cmd/traffic-job"
 	"mikrotik-wg-go/http/schema"
 	"mikrotik-wg-go/service"
 	"net/http"
@@ -15,14 +16,16 @@ type WgPeerController struct {
 	peerService       *service.WgPeer
 	peerConfigService *service.ConfigGenerator
 	peerQrCodeService *service.QRCodeGenerator
+	trafficCalculator *traffic.Calculator
 	logger            *zap.Logger
 }
 
-func NewWgPeerController(PeerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator) *WgPeerController {
+func NewWgPeerController(PeerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, trafficCalculator *traffic.Calculator) *WgPeerController {
 	return &WgPeerController{
 		peerService:       PeerService,
 		peerConfigService: peerConfigService,
 		peerQrCodeService: peerQrCodeService,
+		trafficCalculator: trafficCalculator,
 		logger:            zap.L().Named("WgPeerController"),
 	}
 }
@@ -272,4 +275,30 @@ func (c *WgPeerController) GetPeerDetails(ctx echo.Context) error {
 		BasicResponse: schema.OkBasicResponse,
 		Data:          *stats,
 	})
+}
+
+func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	err = c.trafficCalculator.ResetPeerUsage(uint(peerId))
+	if err != nil {
+		c.logger.Error("failed to reset wireguard peer usage", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to reset wireguard peer usage: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
 }

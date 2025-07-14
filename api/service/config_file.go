@@ -5,9 +5,23 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice/model"
 	"os"
+	"path/filepath"
 )
+
+var (
+	peerConfigsPath string
+)
+
+func init() {
+	appCfg := config.GetAppConfig()
+	peerConfigsPath = filepath.Join(appCfg.PeerFilesDir, "config")
+	if err := os.MkdirAll(peerConfigsPath, os.ModePerm); err != nil {
+		panic(fmt.Sprintf("failed to create peer config directory: %v", err))
+	}
+}
 
 // TODO : Make these configurable
 var (

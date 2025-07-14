@@ -7,13 +7,27 @@ import (
 	"github.com/yeqown/go-qrcode/writer/standard"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"mikrotik-wg-go/config"
 	"mikrotik-wg-go/dataservice/model"
 	"os"
+	"path/filepath"
+)
+
+var (
+	peerQrCodesPath string
 )
 
 type QRCodeGenerator struct {
 	db     *gorm.DB
 	logger *zap.Logger
+}
+
+func init() {
+	appCfg := config.GetAppConfig()
+	peerQrCodesPath = filepath.Join(appCfg.PeerFilesDir, "qrcode")
+	if err := os.MkdirAll(peerQrCodesPath, os.ModePerm); err != nil {
+		panic(fmt.Sprintf("failed to create QR code directory: %v", err))
+	}
 }
 
 func NewQRCodeGenerator(db *gorm.DB) *QRCodeGenerator {

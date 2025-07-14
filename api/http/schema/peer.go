@@ -66,6 +66,7 @@ type PeerResponse struct {
 	ExpireTime        *string      `json:"expire_time"`
 	DownloadBandwidth *string      `json:"download_bandwidth"`
 	UploadBandwidth   *string      `json:"upload_bandwidth"`
+	TotalUsage        string       `json:"total_usage"`
 	Status            []PeerStatus `json:"status"`
 	IsShared          bool         `json:"is_shared"`
 }
