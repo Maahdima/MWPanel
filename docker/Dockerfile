@@ -1,7 +1,7 @@
 FROM alpine:3
 
 ## Github Container Registry
-LABEL org.opencontainers.image.source=https://github.com/maahdima/mwp
+LABEL org.opencontainers.image.source=https://github.com/Maahdima/MWPanel
 
 # Installing init software
 RUN set -eux; \
