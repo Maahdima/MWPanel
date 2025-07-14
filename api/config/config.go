@@ -17,7 +17,7 @@ type AppConfig struct {
 	Host             string
 	Port             string
 	ConsoleLogFormat string
-	UiAssetsFs       fs.FS
+	UIAssetsFs       fs.FS
 	PeerFilesDir     string
 }
 
@@ -69,7 +69,7 @@ func GetAppConfig() AppConfig {
 		Host:             getEnv("SERVER_HOST", "127.0.0.1"),
 		Port:             getEnv("SERVER_PORT", "3000"),
 		ConsoleLogFormat: getEnv("CONSOLE_LOG_FORMAT", "plain"),
-		UiAssetsFs:       echo.MustSubFS(ui.GetUiAssets(), "dist"),
+		UIAssetsFs:       echo.MustSubFS(ui.GetUIAssets(), "dist"),
 		PeerFilesDir:     getEnv("PEER_FILES_DIR", "./peer-files/"),
 	}
 }

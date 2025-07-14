@@ -9,19 +9,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type UiController struct {
+type UIController struct {
 	uiAssetsFs             fs.FS
 	staticDirectoryHandler echo.HandlerFunc
 }
 
-func NewUiController(fs fs.FS) *UiController {
-	return &UiController{
+func NewUiController(fs fs.FS) *UIController {
+	return &UIController{
 		uiAssetsFs:             fs,
 		staticDirectoryHandler: echo.StaticDirectoryHandler(fs, false),
 	}
 }
 
-func (c *UiController) Serve(ctx echo.Context) error {
+func (c *UIController) Serve(ctx echo.Context) error {
 	if err := c.staticDirectoryHandler(ctx); err != nil {
 		f, err := c.uiAssetsFs.Open("index.html")
 		if err != nil {

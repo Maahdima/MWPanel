@@ -35,7 +35,7 @@ func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalc
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	http.SetupMwpUI(e, appCfg.UiAssetsFs)
+	http.SetupMwpUI(e, appCfg.UIAssetsFs)
 	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
