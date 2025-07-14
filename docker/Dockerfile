@@ -1,34 +1,3 @@
-### BEGIN building
-FROM golang:1-alpine AS builder
-
-# Installing binutils for striping binaries and "build-base" for using cgo
-RUN apk add --no-cache --virtual .build-essentials binutils build-base
-
-# Setting workdir
-WORKDIR /tmp/mwp_src
-
-# Copy source files inside build container
-COPY ./go.mod ./go.mod
-COPY ./go.sum ./go.sum
-COPY ./api ./api
-COPY ./ui/assets.go ./ui/assets.go
-COPY ./ui/dist ./ui/dist
-
-# Installing golang dependency modules
-RUN go mod download
-RUN go mod verify
-
-# Building application
-RUN rm -rf ./dist/
-RUN RUN set -eux; \
-	go build -a -x -v \
-	-ldflags="-linkmode=external -s -w -extldflags=--static-pie" \
-	-buildmode=pie \
-	-tags=osusergo,netgo,static_build \
-	-buildvcs=false \
-	-o dist/mwp api/cmd/main.go
-### END building
-
 FROM alpine:3
 
 ## Github Container Registry
@@ -48,8 +17,8 @@ WORKDIR /var/www/mwp
 
 RUN chown -R www-data:www-data /var/www/mwp
 
-# Copy binary files from builder container
-COPY --from=builder --chown=root:root /tmp/mwp_src/dist/mwp /usr/local/sbin/
+# Copy binary file
+COPY --chown=root:root ./build/mwp.$TARGETOS.$TARGETARCH /usr/local/sbin/mwp
 
 # Install binary dependencies
 RUN apk add --no-cache --virtual .runtime-dependencies `scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/sbin/ | tr ',' '\n' | sort -u | awk '{ print "so:" $1 }'`

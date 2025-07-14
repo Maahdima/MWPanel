@@ -1,5 +1,6 @@
 stages:
   - build-node
+  - build-go
   - build-docker
   - publish-docker
 
@@ -17,8 +18,6 @@ build-node:
       - 1
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
-      variables:
-        CI_ENVIRONMENT: "production"
     - when: never
   before_script:
     - cd ui
@@ -41,17 +40,57 @@ build-node:
       - ui/dist/
     expire_in: 2 weeks
 
+build-go:
+  stage: build-go
+  image: golang:1-bookworm
+  dependencies:
+    - build-node
+  retry:
+    max: 1
+    exit_codes:
+      - 1
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      variables:
+        ENTRYPOINT: "api/cmd/main.go"
+        BUILD_COMMAND_GENERIC: "CGO_ENABLED=0 go build -x -v -trimpath -ldflags='-v -s -w' -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false"
+        BUILD_COMMAND_LINUX: "GOOS=linux CGO_ENABLED=1 go build -x -v -trimpath -ldflags='-v -linkmode=external -s -w -extldflags=--static-pie' -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false"
+    - when: never
+  before_script:
+    - ARCH=$(uname -m)
+    - GCC_CROSS_PACKAGE=$((test "${ARCH}" = 'aarch64' && echo 'gcc-x86-64-linux-gnu') || (test "${ARCH}" = 'x86_64' && echo 'gcc-aarch64-linux-gnu'))
+    - apt update && apt install -y "${GCC_CROSS_PACKAGE}"
+  script:
+    - go mod download
+    - go mod verify
+    # Build for linux amd64
+    - CC=x86_64-linux-gnu-gcc GOARCH=amd64 ${BUILD_COMMAND_LINUX} -o "build/mwp.linux.amd64" "${ENTRYPOINT}"
+    # Build for linux arm64
+    - CC=aarch64-linux-gnu-gcc GOARCH=arm64 ${BUILD_COMMAND_LINUX} -o "build/mwp.linux.arm64" "${ENTRYPOINT}"
+    # Build for windows amd64
+    - GOARCH=amd64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o "build/mwp.windows.amd64.exe" "${ENTRYPOINT}"
+    # Build for windows arm64
+    - GOARCH=arm64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o "build/mwp.windows.arm64.exe" "${ENTRYPOINT}"
+    # Build for darwin amd64
+    - GOARCH=amd64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o "build/mwp.darwin.amd64" "${ENTRYPOINT}"
+    # Build for darwin arm64
+    - GOARCH=arm64 GOOS=darwin ${BUILD_COMMAND_GENERIC} -o "build/mwp.darwin.arm64" "${ENTRYPOINT}"
+  artifacts:
+    name: "${BUILD_NAME}-go"
+    when: on_success
+    paths:
+      - build/
+    expire_in: 2 weeks
+
 .build-docker-base:
   stage: build-docker
   image: docker:cli
   services:
     - docker:dind
   dependencies:
-    - build-node
+    - build-go
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
-      variables:
-        CI_ENVIRONMENT: "production"
     - when: never
   before_script:
     - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
@@ -99,8 +138,6 @@ publish-docker:
     - build-docker-arm64
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
-      variables:
-        CI_ENVIRONMENT: "production"
     - when: never
   variables:
     PLATFORM_AMD64: amd64
