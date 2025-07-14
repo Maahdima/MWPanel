@@ -10,22 +10,31 @@ RUN set -eux; \
 
 # ensure www-data user exists
 # 82 is the standard uid/gid for "www-data" in Alpine
-RUN set -eux && adduser -u 82 -D -S -s /sbin/nologin -h /var/www/mwp -G www-data www-data
+RUN set -eux && \
+	adduser -u 82 -D -S -s /sbin/nologin -h /var/www/mwp -G www-data www-data && \
+	mkdir -p /var/www/mwp && \
+	chown www-data:www-data /var/www/mwp
 
 # Setting workdir
 WORKDIR /var/www/mwp
-
-RUN chown -R www-data:www-data /var/www/mwp
 
 # Copy binary file
 COPY --chown=root:root ./build/mwp.$TARGETOS.$TARGETARCH /usr/local/sbin/mwp
 
 # Install binary dependencies
-RUN apk add --no-cache --virtual .runtime-dependencies `scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/sbin/ | tr ',' '\n' | sort -u | awk '{ print "so:" $1 }'`
+RUN set -eux; \
+    RUNTIME_DEPS=$( \
+      scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/sbin/ | \
+      tr ',' '\n' | \
+      sort -u | \
+      awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }'\
+    ) && \
+    apk add --no-cache --virtual .runtime-dependencies "${RUNTIME_DEPS}"
 
 # Create the peer files directory
-RUN mkdir -p peer-files
-RUN chown -R www-data:www-data peer-files
+RUN set -eux; \
+	mkdir -p peer-files && \
+    chown www-data:www-data peer-files
 
 # Putting app version inside container just for version tracking
 ARG APP_COMMIT_SHA=unknown
