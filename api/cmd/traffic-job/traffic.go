@@ -59,7 +59,7 @@ func (c *Calculator) CalculateTraffic() {
 		peer.LastRx = currentRx
 
 		totalBytes := peer.DownloadUsage + peer.UploadUsage
-		if peer.TrafficLimit > 0 && totalBytes > peer.TrafficLimit {
+		if peer.TrafficLimit != nil && *peer.TrafficLimit > 0 && totalBytes > *peer.TrafficLimit {
 			c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
 
 			peer.Disabled = true

@@ -131,14 +131,14 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
 
 	var usagePercent *string
-	if peer.TrafficLimit != 0 && peer.TrafficLimit > 0 {
-		percent := float64(totalUsage) / float64(peer.TrafficLimit) * 100
+	if peer.TrafficLimit != nil && *peer.TrafficLimit != 0 && *peer.TrafficLimit > 0 {
+		percent := float64(totalUsage) / float64(*peer.TrafficLimit) * 100
 		usagePercent = utils.Ptr(fmt.Sprintf("%.1f", percent))
 	}
 
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
-		TrafficLimit:  utils.Ptr(utils.BytesToGB(peer.TrafficLimit)),
+		TrafficLimit:  utils.Ptr(utils.BytesToGB(*peer.TrafficLimit)),
 		ExpireTime:    peer.ExpireTime,
 		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
 		UploadUsage:   utils.BytesToGB(peer.UploadUsage),
@@ -217,6 +217,8 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
+	trafficLimit := utils.GBToBytes(*req.TrafficLimit)
+
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),
 		PeerID:              *mtPeer.ID,
@@ -231,8 +233,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		PersistentKeepalive: timeString,
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
-		TrafficLimit:        utils.GBToBytes(*req.TrafficLimit), // TODO : fix
-		ExpireTime:          req.ExpireTime,
+		TrafficLimit:        &trafficLimit,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
 	}
@@ -480,13 +481,19 @@ func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*
 func (w *WgPeer) preparePeerUpdate(req *schema.UpdatePeerRequest, schedulerID, queueID *string) map[string]interface{} {
 	updateData := map[string]interface{}{}
 
+	trafficLimit := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+	if trafficLimit > 0 {
+		updateData["traffic_limit"] = trafficLimit
+	} else {
+		updateData["traffic_limit"] = nil
+	}
+
 	updateData["disabled"] = req.Disabled
 	updateData["comment"] = req.Comment
 	updateData["name"] = req.Name
 	updateData["allowed_address"] = req.AllowedAddress
 	updateData["persistent_keepalive"] = req.PersistentKeepAlive
 	updateData["expire_time"] = req.ExpireTime
-	updateData["traffic_limit"] = req.TrafficLimit
 	updateData["download_bandwidth"] = req.DownloadBandwidth
 	updateData["upload_bandwidth"] = req.UploadBandwidth
 	updateData["scheduler_id"] = schedulerID
@@ -497,6 +504,15 @@ func (w *WgPeer) preparePeerUpdate(req *schema.UpdatePeerRequest, schedulerID, q
 
 func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 	statuses := w.transformPeerStatus(peer)
+
+	var trafficLimit *string
+
+	if peer.TrafficLimit == nil {
+		trafficLimit = nil
+	} else {
+		trafficLimit = utils.Ptr(utils.BytesToGB(*peer.TrafficLimit))
+	}
+
 	return schema.PeerResponse{
 		Id:                peer.ID,
 		UUID:              peer.UUID,
@@ -505,7 +521,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		Name:              peer.Name,
 		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
-		TrafficLimit:      utils.Ptr(utils.BytesToGB(peer.TrafficLimit)),
+		TrafficLimit:      trafficLimit,
 		ExpireTime:        peer.ExpireTime,
 		DownloadBandwidth: peer.DownloadBandwidth,
 		UploadBandwidth:   peer.UploadBandwidth,
@@ -531,9 +547,9 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 		}
 	}
 
-	if peer.TrafficLimit != 0 {
+	if peer.TrafficLimit != nil && *peer.TrafficLimit != 0 {
 		totalUsedTraffic := peer.DownloadUsage + peer.UploadUsage
-		if totalUsedTraffic > peer.TrafficLimit {
+		if totalUsedTraffic > *peer.TrafficLimit {
 			peerStatus = append(peerStatus, schema.SuspendedPeer)
 		}
 	}
