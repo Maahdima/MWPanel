@@ -1,11 +1,13 @@
 package http
 
 import (
+	"net/http"
+
+	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/service"
+
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"mikrotik-wg-go/cmd/traffic-job"
-	"mikrotik-wg-go/service"
-	"net/http"
 )
 
 func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator) {

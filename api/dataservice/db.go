@@ -3,15 +3,17 @@ package dataservice
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"time"
+
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/dataservice/model"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/dataservice/model"
-	"os"
-	"time"
 )
 
 func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {

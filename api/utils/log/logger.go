@@ -1,10 +1,12 @@
 package log
 
 import (
+	"os"
+
+	"github.com/maahdima/mwp/api/config"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"mikrotik-wg-go/config"
-	"os"
 )
 
 func InitLogger(cfg config.AppConfig) {

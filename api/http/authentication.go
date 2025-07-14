@@ -1,11 +1,13 @@
 package http
 
 import (
+	"net/http"
+
+	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/service"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"mikrotik-wg-go/http/schema"
-	"mikrotik-wg-go/service"
-	"net/http"
 )
 
 type AuthController struct {

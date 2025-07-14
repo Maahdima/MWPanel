@@ -3,13 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/dataservice/model"
-	"mikrotik-wg-go/http/schema"
-	"mikrotik-wg-go/utils"
-	"strconv"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 type WgInterface struct {

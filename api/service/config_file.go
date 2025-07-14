@@ -3,12 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/dataservice/model"
 	"os"
 	"path/filepath"
+
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/dataservice/model"
 )
 
 var (

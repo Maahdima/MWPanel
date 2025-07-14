@@ -2,13 +2,15 @@ package traffic
 
 import (
 	"context"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/dataservice/model"
-	"mikrotik-wg-go/utils"
 	"strconv"
 	"sync"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/utils"
+
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type Calculator struct {

@@ -1,8 +1,9 @@
 package mikrotik
 
 import (
+	"github.com/maahdima/mwp/api/utils/httphelper"
+
 	"go.uber.org/zap"
-	"mikrotik-wg-go/utils/httphelper"
 )
 
 var (

@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/cmd/traffic-job"
-	"mikrotik-wg-go/cmd/web-server"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/dataservice"
-	"mikrotik-wg-go/dataservice/seeds"
-	"mikrotik-wg-go/utils/httphelper"
-	"mikrotik-wg-go/utils/log"
 	"time"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/cmd/web-server"
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/dataservice"
+	"github.com/maahdima/mwp/api/dataservice/seeds"
+	"github.com/maahdima/mwp/api/utils/httphelper"
+	"github.com/maahdima/mwp/api/utils/log"
+
+	"go.uber.org/zap"
 )
 
 func init() {

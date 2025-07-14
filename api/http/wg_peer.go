@@ -2,14 +2,16 @@ package http
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/service"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/cmd/traffic-job"
-	"mikrotik-wg-go/http/schema"
-	"mikrotik-wg-go/service"
-	"net/http"
-	"strconv"
 )
 
 type WgPeerController struct {

@@ -1,4 +1,4 @@
-module mikrotik-wg-go
+module github.com/maahdima/mwp
 
 go 1.24
 

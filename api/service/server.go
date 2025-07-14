@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"strconv"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/http/schema"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/dataservice/model"
-	"mikrotik-wg-go/http/schema"
-	"strconv"
 )
 
 type Server struct {

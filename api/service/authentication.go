@@ -2,12 +2,14 @@ package service
 
 import (
 	"errors"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/dataservice/model"
-	"time"
+
+	"github.com/maahdima/mwp/api/dataservice/model"
 )
 
 var (

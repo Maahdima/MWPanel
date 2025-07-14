@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+
 	"go.uber.org/zap"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/utils"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 type Scheduler struct {

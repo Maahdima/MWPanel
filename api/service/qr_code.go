@@ -3,14 +3,16 @@ package service
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/dataservice/model"
-	"os"
-	"path/filepath"
+
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/dataservice/model"
 )
 
 var (

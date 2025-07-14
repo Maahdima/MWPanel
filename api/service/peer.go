@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/dataservice/model"
-	"mikrotik-wg-go/http/schema"
-	"mikrotik-wg-go/utils"
-	"mikrotik-wg-go/utils/timehelper"
-	"mikrotik-wg-go/utils/wireguard"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/utils"
+	"github.com/maahdima/mwp/api/utils/timehelper"
+	"github.com/maahdima/mwp/api/utils/wireguard"
 )
 
 var (

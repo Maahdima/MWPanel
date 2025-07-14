@@ -2,17 +2,19 @@ package webserver
 
 import (
 	"fmt"
+	"path/filepath"
+
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/http"
+	"github.com/maahdima/mwp/api/service"
+	"github.com/maahdima/mwp/api/utils/validate"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/adaptor/mikrotik"
-	"mikrotik-wg-go/cmd/traffic-job"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/http"
-	"mikrotik-wg-go/service"
-	"mikrotik-wg-go/utils/validate"
-	"path/filepath"
 )
 
 func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator) error {

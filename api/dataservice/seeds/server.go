@@ -2,10 +2,12 @@ package seeds
 
 import (
 	"fmt"
+
+	"github.com/maahdima/mwp/api/config"
+	"github.com/maahdima/mwp/api/dataservice/model"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"mikrotik-wg-go/config"
-	"mikrotik-wg-go/dataservice/model"
 )
 
 func ServerSeed(db *gorm.DB) error {
