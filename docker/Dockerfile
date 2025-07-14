@@ -1,7 +1,7 @@
 ### BEGIN building
 FROM golang:1-alpine AS builder
 
-# Installing binutils for striping atlas binary and "build-base" for using cgo
+# Installing binutils for striping binaries and "build-base" for using cgo
 RUN apk add --no-cache --virtual .build-essentials binutils build-base
 
 # Setting workdir
@@ -20,13 +20,13 @@ RUN go mod verify
 
 # Building application
 RUN rm -rf ./dist/
-RUN go build -ldflags="-linkmode=external -s -w -extldflags=--static-pie" -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false -a -x -v -o dist/mwp api/cmd/main.go
-RUN set -eux; \
-	CPU_ARCH=`(test $(uname -m) = 'aarch64' && echo 'arm64') || (test $(uname -m) = 'x86_64' && echo 'amd64') || (echo 'Unsupported architecture' && exit 1)` && \
-	wget -qO ./dist/atlas https://release.ariga.io/atlas/atlas-community-linux-${CPU_ARCH}-latest && \
-	echo "$(wget -qO- https://release.ariga.io/atlas/atlas-community-linux-${CPU_ARCH}-latest.sha256)  ./dist/atlas" | sha256sum -swc && \
-	strip -vps ./dist/atlas && \
-	chmod +x ./dist/atlas
+RUN RUN set -eux; \
+	go build -a -x -v \
+	-ldflags="-linkmode=external -s -w -extldflags=--static-pie" \
+	-buildmode=pie \
+	-tags=osusergo,netgo,static_build \
+	-buildvcs=false \
+	-o dist/mwp api/cmd/main.go
 ### END building
 
 FROM alpine:3
@@ -35,26 +35,24 @@ FROM alpine:3
 LABEL org.opencontainers.image.source=https://github.com/maahdima/mwp
 
 # Installing init software
-RUN apk add --no-cache --virtual .init-program catatonit
-RUN ln -sf /usr/bin/catatonit /sbin/init
+RUN set -eux; \
+	apk add --no-cache --virtual .init-program catatonit && \
+	ln -sf /usr/bin/catatonit /sbin/init
 
 # ensure www-data user exists
 # 82 is the standard uid/gid for "www-data" in Alpine
-RUN set -eux && adduser -u 82 -D -S -s /sbin/nologin -h /var/www -G www-data www-data
-
-RUN chown -R www-data:www-data /var/www
+RUN set -eux && adduser -u 82 -D -S -s /sbin/nologin -h /var/www/mwp -G www-data www-data
 
 # Setting workdir
-WORKDIR /var/www
+WORKDIR /var/www/mwp
+
+RUN chown -R www-data:www-data /var/www/mwp
 
 # Copy binary files from builder container
-RUN mkdir -p /usr/local/share/mwp/migrations
-COPY --from=builder --chown=root:root /tmp/mwp_src/dataservice/migration[s]/ /usr/local/share/mwp/migrations/
 COPY --from=builder --chown=root:root /tmp/mwp_src/dist/mwp /usr/local/sbin/
-COPY --from=builder --chown=root:root /tmp/mwp_src/dist/atlas /usr/local/sbin/
 
 # Install binary dependencies
-RUN apk add --no-cache --virtual .runtime-dependencies `scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/bin | tr ',' '\n' | sort -u | awk '{ print "so:" $1 }'`
+RUN apk add --no-cache --virtual .runtime-dependencies `scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/sbin/ | tr ',' '\n' | sort -u | awk '{ print "so:" $1 }'`
 
 # Create the peer files directory
 RUN mkdir -p peer-files
@@ -71,8 +69,7 @@ USER www-data:www-data
 ENV MODE=production
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=3000
-ENV MIGRATION_DIR=/usr/local/share/mwp/migrations
-ENV PEER_FILES_DIR=/var/www/peer-files
+ENV PEER_FILES_DIR=/var/www/mwp/peer-files
 
 # Expose port 3000 and start server
 EXPOSE 3000

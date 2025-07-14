@@ -22,13 +22,12 @@ type AppConfig struct {
 }
 
 type DBConfig struct {
-	Host         string
-	Port         string
-	Username     string
-	Password     string
-	Database     string
-	Dialect      string
-	MigrationDir string
+	Host     string
+	Port     string
+	Username string
+	Password string
+	Database string
+	Dialect  string
 }
 
 type ServerConfig struct {
@@ -77,13 +76,12 @@ func GetAppConfig() AppConfig {
 
 func GetDBConfig() DBConfig {
 	return DBConfig{
-		Host:         getEnv("DB_HOST", "127.0.0.1"),
-		Port:         getEnv("DB_PORT", "5432"),
-		Username:     getEnv("DB_USERNAME", "root"),
-		Password:     getEnv("DB_PASSWORD", "1234"),
-		Database:     getEnv("DB_NAME", "mwp_db"),
-		Dialect:      getEnv("DB_DIALECT", "postgres"),
-		MigrationDir: getEnv("MIGRATION_DIR", "./migrations/"),
+		Host:     getEnv("DB_HOST", "127.0.0.1"),
+		Port:     getEnv("DB_PORT", "5432"),
+		Username: getEnv("DB_USERNAME", "root"),
+		Password: getEnv("DB_PASSWORD", "1234"),
+		Database: getEnv("DB_NAME", "mwp_db"),
+		Dialect:  getEnv("DB_DIALECT", "postgres"),
 	}
 }
 
