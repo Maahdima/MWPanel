@@ -19,6 +19,8 @@ RUN set -eux && \
 WORKDIR /var/www/mwp
 
 # Copy binary file
+ARG TARGETOS
+ARG TARGETARCH
 COPY --chown=root:root ./build/mwp.$TARGETOS.$TARGETARCH /usr/local/sbin/mwp
 
 # Install binary dependencies
