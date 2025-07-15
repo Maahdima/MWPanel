@@ -35,10 +35,9 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 
 	var dialect gorm.Dialector
 	if config.Dialect == "sqlite" {
-		dialect = sqlite.New(sqlite.Config{
-			DSN: fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-				config.Username, config.Password, config.Host, config.Port, config.Database)})
-
+		dialect = sqlite.Open(
+			fmt.Sprintf("file:%s?_foreign_keys=true", config.Database),
+		)
 	} else if config.Dialect == "postgres" {
 		var dsn string
 
