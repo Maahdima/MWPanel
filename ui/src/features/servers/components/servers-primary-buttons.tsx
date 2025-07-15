@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button'
 import { useServers } from '@/features/servers/context/servers-context.tsx'
 
 interface Props {
+  serversLength: number
   refetchServersList: () => void
   isServersListRefetching: boolean
 }
 
 export function ServersPrimaryButtons({
+  serversLength,
   refetchServersList,
   isServersListRefetching,
 }: Props) {
@@ -31,7 +33,7 @@ export function ServersPrimaryButtons({
       </Button>
       <Button
         className='space-x-1'
-        disabled={true}
+        disabled={serversLength === 1}
         onClick={() => setOpen('add')}
       >
         <span>Add New Server</span> <IconUserPlus size={18} />

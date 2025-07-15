@@ -37,6 +37,7 @@ export default function Servers() {
             </p>
           </div>
           <ServersPrimaryButtons
+            serversLength={serversList?.length ?? 0}
             refetchServersList={refetchServersList}
             isServersListRefetching={isServersListRefetching}
           />

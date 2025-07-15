@@ -14,21 +14,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
+import { OnlineBadge } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
+import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
-
-const statusClass = new Map<PeerStatus, string>([
-  ['active', 'bg-teal-100/30 text-teal-900 dark:text-teal-200 border-teal-200'],
-  ['inactive', 'bg-neutral-300/40 dark:text-neutral-100 border-neutral-300'],
-  [
-    'expired',
-    'bg-yellow-500/40 text-yellow-900 dark:text-yellow-100 border-yellow-300',
-  ],
-  [
-    'suspended',
-    'bg-destructive/10 dark:bg-destructive/50 text-destructive dark:text-primary border-destructive/10',
-  ],
-])
 
 export const peersColumns: ColumnDef<Peer>[] = [
   {
@@ -64,6 +53,25 @@ export const peersColumns: ColumnDef<Peer>[] = [
     enableSorting: false,
   },
   {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Name' />
+    ),
+    cell: ({ row }) => {
+      const { name } = row.original
+      return (
+        <div className='flex w-fit items-center justify-center gap-3 text-nowrap'>
+          <OnlineBadge />
+          {name}
+        </div>
+      )
+    },
+    meta: {
+      className: cn('border-l border-r'),
+    },
+  },
+  {
     accessorKey: 'comment',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Comment' />
@@ -79,20 +87,6 @@ export const peersColumns: ColumnDef<Peer>[] = [
       className: cn('border-l border-r'),
     },
     enableHiding: false,
-  },
-  {
-    id: 'name',
-    accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Name' />
-    ),
-    cell: ({ row }) => {
-      const { name } = row.original
-      return <div className='w-fit text-nowrap'>{name}</div>
-    },
-    meta: {
-      className: cn('border-l border-r'),
-    },
   },
   {
     accessorKey: 'interface',
@@ -155,7 +149,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
                   </TooltipContent>
                 </Tooltip>
               </Button>
-              <Badge variant='default' className='bg-blue-400'>
+              <Badge variant='default' className='rounded-sm bg-blue-400'>
                 {peer.total_usage} GB/{peer.traffic_limit} GB
               </Badge>
             </div>
@@ -196,11 +190,13 @@ export const peersColumns: ColumnDef<Peer>[] = [
       return (
         <div className='w-fit text-nowrap'>
           {expire_time ? (
-            <Badge variant='default' className='bg-yellow-400'>
+            <Badge variant='default' className='rounded-sm bg-yellow-400'>
               {expire_time}
             </Badge>
           ) : (
-            <Badge variant='default'>Unlimited</Badge>
+            <Badge className='rounded-sm' variant='default'>
+              Never
+            </Badge>
           )}
         </div>
       )
@@ -219,12 +215,14 @@ export const peersColumns: ColumnDef<Peer>[] = [
       return (
         <div className='w-fit text-nowrap'>
           {row.original ? (
-            <Badge variant='default' className='bg-purple-500'>
+            <Badge variant='default' className='rounded-sm bg-purple-500'>
               {download_bandwidth || 'Unlimited'}/
               {upload_bandwidth || 'Unlimited'}
             </Badge>
           ) : (
-            <Badge variant='default'>Unlimited</Badge>
+            <Badge className='rounded-sm' variant='default'>
+              Unlimited
+            </Badge>
           )}
         </div>
       )
@@ -245,14 +243,21 @@ export const peersColumns: ColumnDef<Peer>[] = [
       return (
         <div className='flex space-x-2'>
           {Array.isArray(status)
-            ? status.map((status: PeerStatus, idx: number) => {
-                const badgeColor = statusClass.get(status)
-                return (
-                  <Badge key={idx} className={cn('capitalize', badgeColor)}>
-                    {status}
-                  </Badge>
-                )
-              })
+            ? status.map((status: PeerStatus, idx: number) => (
+                <ColoredBadge
+                  key={idx}
+                  color={
+                    status === 'active'
+                      ? 'green'
+                      : status === 'inactive'
+                        ? 'gray'
+                        : status === 'expired'
+                          ? 'yellow'
+                          : 'red'
+                  }
+                  text={status}
+                />
+              ))
             : null}
         </div>
       )

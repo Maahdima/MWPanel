@@ -34,10 +34,10 @@ export function PeersPrimaryButtons({
           <IconRefresh />
         )}
       </Button>
-      <Button variant='outline' className='space-x-1'>
+      <Button variant='outline' className='space-x-1' disabled={true}>
         <span>Export</span> <IconUpload size={18} />
       </Button>
-      <Button variant='outline' className='space-x-1'>
+      <Button variant='outline' className='space-x-1' disabled={true}>
         <span>Import</span> <IconDownload size={18} />
       </Button>
       <Button className='space-x-1' onClick={() => setOpen('add')}>

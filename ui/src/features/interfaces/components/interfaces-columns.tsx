@@ -3,10 +3,10 @@ import { Interface } from '@/schema/interfaces.ts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useUpdateInterfaceStatusMutation } from '@/hooks/interfaces/useUpdateInterfaceStatusMutation.ts'
-import { Badge } from '@/components/ui/badge.tsx'
 import { Switch } from '@/components/ui/switch.tsx'
 import LongText from '@/components/long-text'
 import { InterfacesTableRowActions } from '@/features/interfaces/components/interfaces-table-row-actions.tsx'
+import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 
 export const interfacesColumns: ColumnDef<Interface>[] = [
@@ -43,6 +43,20 @@ export const interfacesColumns: ColumnDef<Interface>[] = [
     enableSorting: false,
   },
   {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Name' />
+    ),
+    cell: ({ row }) => {
+      const { name } = row.original
+      return <div className='w-fit text-nowrap'>{name}</div>
+    },
+    meta: {
+      className: cn('border-l border-r'),
+    },
+  },
+  {
     accessorKey: 'comment',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Comment' />
@@ -58,20 +72,6 @@ export const interfacesColumns: ColumnDef<Interface>[] = [
       className: cn('border-l border-r'),
     },
     enableHiding: false,
-  },
-  {
-    id: 'name',
-    accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Name' />
-    ),
-    cell: ({ row }) => {
-      const { name } = row.original
-      return <div className='w-fit text-nowrap'>{name}</div>
-    },
-    meta: {
-      className: cn('border-l border-r'),
-    },
   },
   {
     accessorKey: 'listen_port',
@@ -91,19 +91,9 @@ export const interfacesColumns: ColumnDef<Interface>[] = [
     ),
     cell: ({ row }) =>
       row.original.is_running ? (
-        <Badge
-          variant='outline'
-          className='border-teal-200 bg-teal-100/30 text-teal-900 dark:text-teal-200'
-        >
-          Running
-        </Badge>
+        <ColoredBadge color='green' text='Running' />
       ) : (
-        <Badge
-          variant='outline'
-          className='bg-destructive/10 dark:bg-destructive/50 text-destructive dark:text-primary border-destructive/10'
-        >
-          Not Running
-        </Badge>
+        <ColoredBadge color='red' text='Not Running' />
       ),
     filterFn: (row, columnId, filterValue: string[]) => {
       const cellValue = row.getValue(columnId) as string[]
