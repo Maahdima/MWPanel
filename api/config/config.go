@@ -1,9 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"io/fs"
+	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -17,6 +18,7 @@ type AppConfig struct {
 	Host             string
 	Port             string
 	ConsoleLogFormat string
+	DataDirPath      string
 	UIAssetsFs       fs.FS
 	PeerFilesDir     string
 }
@@ -47,7 +49,7 @@ type AdminConfig struct {
 func init() {
 	err := loadEnv()
 	if err != nil {
-		fmt.Println("Failed to load environment variables: " + err.Error())
+		log.Println("Failed to load environment variables: " + err.Error())
 	}
 }
 
@@ -64,24 +66,47 @@ func getEnv(key, defaultValue string) string {
 }
 
 func GetAppConfig() AppConfig {
+	dataDir := getEnv("DATA_DIR", "")
+	if dataDir == "" {
+		userConfigDir, err := os.UserConfigDir()
+		if err != nil {
+			log.Fatalf("Failed to get user config directory: %v", err)
+		}
+
+		dataDir = filepath.Join(userConfigDir, "mwp")
+	}
+
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatalf("Failed to create data directory: %v", err)
+	}
+
 	return AppConfig{
-		Mode:             getEnv("MODE", "development"),
-		Host:             getEnv("SERVER_HOST", "127.0.0.1"),
+		Mode:             getEnv("MODE", "production"),
+		Host:             getEnv("SERVER_HOST", "0.0.0.0"),
 		Port:             getEnv("SERVER_PORT", "3000"),
 		ConsoleLogFormat: getEnv("CONSOLE_LOG_FORMAT", "plain"),
 		UIAssetsFs:       echo.MustSubFS(ui.GetUIAssets(), "dist"),
-		PeerFilesDir:     getEnv("PEER_FILES_DIR", "./peer-files/"),
+		PeerFilesDir:     getEnv("PEER_FILES_DIR", filepath.Join(dataDir, "peer-files")),
+		DataDirPath:      dataDir,
 	}
 }
 
 func GetDBConfig() DBConfig {
+	dialect := getEnv("DB_DIALECT", "sqlite")
+
+	defaultDatabaseName := "mwp_db"
+	if dialect == "sqlite" {
+		appCfg := GetAppConfig()
+		defaultDatabaseName = filepath.Join(appCfg.DataDirPath, "mwp.db")
+	}
+
 	return DBConfig{
 		Host:     getEnv("DB_HOST", "127.0.0.1"),
 		Port:     getEnv("DB_PORT", "5432"),
 		Username: getEnv("DB_USERNAME", "root"),
 		Password: getEnv("DB_PASSWORD", "1234"),
-		Database: getEnv("DB_NAME", "mwp_db"),
-		Dialect:  getEnv("DB_DIALECT", "postgres"),
+		Database: getEnv("DB_NAME", defaultDatabaseName),
+		Dialect:  dialect,
 	}
 }
 
@@ -107,7 +132,7 @@ func GetServerConfig() ServerConfig {
 
 func GetAdminConfig() AdminConfig {
 	return AdminConfig{
-		Username: getEnv("ADMIN_USERNAME", "admin"),
-		Password: getEnv("ADMIN_PASSWORD", "admin1234"),
+		Username: getEnv("ADMIN_USERNAME", "mwpadmin"),
+		Password: getEnv("ADMIN_PASSWORD", "mwpadmin"),
 	}
 }
