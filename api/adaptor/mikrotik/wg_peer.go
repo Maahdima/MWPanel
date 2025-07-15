@@ -2,6 +2,7 @@ package mikrotik
 
 import (
 	"context"
+
 	"go.uber.org/zap"
 )
 
@@ -26,7 +27,9 @@ type WireGuardPeer struct {
 func (a *Adaptor) FetchWgPeers(c context.Context) (*[]WireGuardPeer, error) {
 	var wgPeers []WireGuardPeer
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		WGPeerPath,
 		&wgPeers,
@@ -42,7 +45,9 @@ func (a *Adaptor) FetchWgPeers(c context.Context) (*[]WireGuardPeer, error) {
 func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer, error) {
 	var wgPeer WireGuardPeer
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		WGPeerPath+"/"+peerID,
 		&wgPeer,
@@ -58,7 +63,9 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var createdPeer WireGuardPeer
 
-	err := a.httpClient.Put(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Put(
 		c,
 		WGPeerPath,
 		wgPeer,
@@ -74,7 +81,9 @@ func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGu
 func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var updatedPeer WireGuardPeer
 
-	err := a.httpClient.Patch(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Patch(
 		c,
 		WGPeerPath+"/"+peerID,
 		wgPeer,
@@ -88,7 +97,9 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 }
 
 func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
-	err := a.httpClient.Delete(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Delete(
 		c,
 		WGPeerPath+"/"+peerID,
 		nil,

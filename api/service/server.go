@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 
@@ -14,13 +15,15 @@ import (
 
 type Server struct {
 	db              *gorm.DB
+	mwpClients      *common.MwpClients
 	mikrotikAdaptor *mikrotik.Adaptor
 	logger          *zap.Logger
 }
 
-func NewServerService(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor) *Server {
+func NewServerService(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor) *Server {
 	return &Server{
 		db:              db,
+		mwpClients:      mwpClients,
 		mikrotikAdaptor: mikrotikAdaptor,
 		logger:          zap.L().Named("ServerService"),
 	}
@@ -42,7 +45,7 @@ func (s *Server) ToggleServerStatus(id uint) (*schema.ServerResponse, error) {
 
 	return &schema.ServerResponse{
 		Id:        server.ID,
-		Comment:   &server.Comment,
+		Comment:   server.Comment,
 		Name:      server.Name,
 		IPAddress: server.IPAddress,
 		APIPort:   strconv.Itoa(server.APIPort),
@@ -58,6 +61,8 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 		return nil, err
 	}
 
+	s.mwpClients.SetClient(req)
+
 	_, err = s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
 	if err != nil {
 		s.logger.Error("failed to connect to device when creating a new server", zap.Error(err))
@@ -65,7 +70,7 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 	}
 
 	server := model.Server{
-		Comment:   *req.Comment,
+		Comment:   req.Comment,
 		Name:      req.Name,
 		IPAddress: req.IPAddress,
 		APIPort:   apiPort,
@@ -80,7 +85,7 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 
 	return &schema.ServerResponse{
 		Id:        server.ID,
-		Comment:   &server.Comment,
+		Comment:   server.Comment,
 		Name:      server.Name,
 		IPAddress: server.IPAddress,
 		APIPort:   strconv.Itoa(server.APIPort),
@@ -111,7 +116,7 @@ func (s *Server) GetServers() (*[]schema.ServerResponse, error) {
 
 		serverResponses = append(serverResponses, schema.ServerResponse{
 			Id:        server.ID,
-			Comment:   &server.Comment,
+			Comment:   server.Comment,
 			Name:      server.Name,
 			IPAddress: server.IPAddress,
 			APIPort:   strconv.Itoa(server.APIPort),
@@ -130,7 +135,7 @@ func (s *Server) UpdateServer(id uint, req *schema.UpdateServerRequest) (*schema
 		return nil, err
 	}
 
-	server.Comment = *req.Comment
+	server.Comment = req.Comment
 	server.Name = *req.Name
 	server.IPAddress = *req.IPAddress
 
@@ -151,7 +156,7 @@ func (s *Server) UpdateServer(id uint, req *schema.UpdateServerRequest) (*schema
 
 	return &schema.ServerResponse{
 		Id:        server.ID,
-		Comment:   &server.Comment,
+		Comment:   server.Comment,
 		Name:      server.Name,
 		IPAddress: server.IPAddress,
 		APIPort:   strconv.Itoa(server.APIPort),

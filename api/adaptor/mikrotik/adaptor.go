@@ -1,9 +1,9 @@
 package mikrotik
 
 import (
-	"github.com/maahdima/mwp/api/utils/httphelper"
-
 	"go.uber.org/zap"
+
+	"github.com/maahdima/mwp/api/common"
 )
 
 var (
@@ -18,14 +18,14 @@ var (
 )
 
 type Adaptor struct {
-	httpClient *httphelper.Client
+	mwpClients *common.MwpClients
 	logger     *zap.Logger
 }
 
 // NewAdaptor creates a new instance of the Mikrotik adaptor
-func NewAdaptor(httpClient *httphelper.Client) *Adaptor {
+func NewAdaptor(mwpClients *common.MwpClients) *Adaptor {
 	return &Adaptor{
-		httpClient: httpClient,
+		mwpClients: mwpClients,
 		logger:     zap.L().Named("MikrotikAdaptor"),
 	}
 }

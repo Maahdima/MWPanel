@@ -56,7 +56,9 @@ type IPAddress struct {
 func (a *Adaptor) FetchDeviceInfo(c context.Context) (*SystemInfo, error) {
 	var systemInfo SystemInfo
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		DeviceInfoPath,
 		&systemInfo,
@@ -71,7 +73,9 @@ func (a *Adaptor) FetchDeviceInfo(c context.Context) (*SystemInfo, error) {
 func (a *Adaptor) FetchDeviceIdentity(c context.Context) (*SystemIdentity, error) {
 	var systemIdentity SystemIdentity
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		DeviceIdentityPath,
 		&systemIdentity,
@@ -86,7 +90,9 @@ func (a *Adaptor) FetchDeviceIdentity(c context.Context) (*SystemIdentity, error
 func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 	var dnsConfig DNSConfig
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		DeviceDnsPath,
 		&dnsConfig,
@@ -101,7 +107,9 @@ func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 func (a *Adaptor) FetchIPv4Addresses(c context.Context) (*[]IPAddress, error) {
 	var ipv4Address []IPAddress
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		DeviceIPv4Path,
 		&ipv4Address,

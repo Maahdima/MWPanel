@@ -5,6 +5,7 @@ import (
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/http"
 	"github.com/maahdima/mwp/api/service"
@@ -16,16 +17,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator) error {
+func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator) error {
 	appCfg := config.GetAppConfig()
 
-	// TODO : initial check for connection to Mikrotik device
 	authenticationService := service.NewAuthentication(db)
 	schedulerService := service.NewScheduler(mikrotikAdaptor)
 	queueService := service.NewQueue(mikrotikAdaptor)
 	configGenerator := service.NewConfigGenerator(db)
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
-	serverService := service.NewServerService(db, mikrotikAdaptor)
+	serverService := service.NewServerService(db, mwpClients, mikrotikAdaptor)
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor)
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator)
 	deviceDataService := service.NewDeviceData(mikrotikAdaptor, serverService, interfaceService, peerService)
@@ -36,7 +36,7 @@ func StartHttpServer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, trafficCalc
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
 	http.SetupMwpUI(e, appCfg.UIAssetsFs)
-	http.SetupMwpAPI(e, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
+	http.SetupMwpAPI(e, mwpClients, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
 

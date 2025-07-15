@@ -28,7 +28,7 @@ type UpdateServerRequest struct {
 
 type ServerResponse struct {
 	Id        uint         `json:"id"`
-	Comment   *string      `json:"comment,omitempty"`
+	Comment   *string      `json:"comment"`
 	Name      string       `json:"name"`
 	IPAddress string       `json:"ip_address"`
 	APIPort   string       `json:"api_port"`

@@ -4,13 +4,15 @@ import (
 	"net/http"
 
 	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/common"
+	"github.com/maahdima/mwp/api/http/middleware"
 	"github.com/maahdima/mwp/api/service"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
-func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator) {
+func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator) {
 	router := app.Group("/api")
 
 	// TODO : read from config environment variables
@@ -23,9 +25,9 @@ func SetupMwpAPI(app *echo.Echo, authenticationService *service.Authentication, 
 
 	setupAuthenticationRoutes(router, authenticationService)
 	setupServerRoutes(router, jwtConfig, serverService)
-	setupInterfaceRoutes(router, jwtConfig, interfaceService)
-	setupPeerRoutes(router, jwtConfig, peerService, peerConfigService, peerQrCodeService, trafficCalculator)
-	setupDeviceInfoRoutes(router, jwtConfig, deviceDataService)
+	setupInterfaceRoutes(router, mwpClients, jwtConfig, interfaceService)
+	setupPeerRoutes(router, mwpClients, jwtConfig, peerService, peerConfigService, peerQrCodeService, trafficCalculator)
+	setupDeviceInfoRoutes(router, mwpClients, jwtConfig, deviceDataService)
 }
 
 func setupAuthenticationRoutes(router *echo.Group, authService *service.Authentication) {
@@ -52,11 +54,11 @@ func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverServi
 	serverGroup.DELETE("/:id", serverController.DeleteServer)
 }
 
-func setupInterfaceRoutes(router *echo.Group, jwtConfig echojwt.Config, interfaceService *service.WgInterface) {
+func setupInterfaceRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, interfaceService *service.WgInterface) {
 	wgInterfaceController := NewWgInterfaceController(interfaceService)
 
 	interfaceGroup := router.Group("/interface")
-	interfaceGroup.Use(echojwt.WithConfig(jwtConfig))
+	interfaceGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
 
 	interfaceGroup.GET("", wgInterfaceController.GetInterfaces)
 	interfaceGroup.POST("", wgInterfaceController.CreateInterface)
@@ -66,28 +68,28 @@ func setupInterfaceRoutes(router *echo.Group, jwtConfig echojwt.Config, interfac
 	//interfaceGroup.GET("/wg-interface/:id", wgInterfaceController.GetWgInterfaceByID)
 }
 
-func setupPeerRoutes(router *echo.Group, jwtConfig echojwt.Config, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, trafficCalculator *traffic.Calculator) {
+func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, trafficCalculator *traffic.Calculator) {
 	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService, trafficCalculator)
 
 	peerGroup := router.Group("/peer")
 
 	peerGroup.GET("/keys", wgPeerController.GetPeerKeys, echojwt.WithConfig(jwtConfig))
-	peerGroup.GET("", wgPeerController.GetPeers, echojwt.WithConfig(jwtConfig))
-	peerGroup.POST("", wgPeerController.CreatePeer, echojwt.WithConfig(jwtConfig))
-	peerGroup.PATCH("/:id/status", wgPeerController.UpdatePeerStatus, echojwt.WithConfig(jwtConfig))
-	peerGroup.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage, echojwt.WithConfig(jwtConfig))
-	peerGroup.PUT("/:id", wgPeerController.UpdatePeer, echojwt.WithConfig(jwtConfig))
-	peerGroup.DELETE("/:id", wgPeerController.DeletePeer, echojwt.WithConfig(jwtConfig))
+	peerGroup.GET("", wgPeerController.GetPeers, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	peerGroup.POST("", wgPeerController.CreatePeer, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	peerGroup.PATCH("/:id/status", wgPeerController.UpdatePeerStatus, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	peerGroup.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	peerGroup.PUT("/:id", wgPeerController.UpdatePeer, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	peerGroup.DELETE("/:id", wgPeerController.DeletePeer, echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
 	peerGroup.GET("/:uuid/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:uuid/qrcode", wgPeerController.GetPeerQRCode)
 	peerGroup.GET("/:uuid/details", wgPeerController.GetPeerDetails)
 }
 
-func setupDeviceInfoRoutes(router *echo.Group, jwtConfig echojwt.Config, deviceDataService *service.DeviceData) {
+func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, deviceDataService *service.DeviceData) {
 	deviceInfoController := NewDeviceDataController(deviceDataService)
 
 	deviceGroup := router.Group("/device")
-	deviceGroup.Use(echojwt.WithConfig(jwtConfig))
+	deviceGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
 
 	deviceGroup.GET("/stats", deviceInfoController.GetDeviceInfo)
 }

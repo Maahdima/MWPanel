@@ -2,6 +2,7 @@ package mikrotik
 
 import (
 	"context"
+
 	"go.uber.org/zap"
 )
 
@@ -20,7 +21,9 @@ type WireGuardInterface struct {
 func (a *Adaptor) FetchWgInterfaces(c context.Context) (*[]WireGuardInterface, error) {
 	var wgInterfaces []WireGuardInterface
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		WGInterfacePath,
 		&wgInterfaces,
@@ -35,7 +38,9 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) (*[]WireGuardInterface, e
 func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*WireGuardInterface, error) {
 	var wgInterface WireGuardInterface
 
-	err := a.httpClient.Get(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Get(
 		c,
 		WGInterfacePath+"/"+interfaceID,
 		&wgInterface,
@@ -50,7 +55,9 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var createdInterface WireGuardInterface
 
-	err := a.httpClient.Put(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Put(
 		c,
 		WGInterfacePath,
 		wgInterface,
@@ -66,7 +73,9 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var updatedInterface WireGuardInterface
 
-	err := a.httpClient.Patch(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Patch(
 		c,
 		WGInterfacePath+"/"+interfaceID,
 		wgInterface,
@@ -80,7 +89,9 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 }
 
 func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error {
-	err := a.httpClient.Delete(
+	httpClient := a.mwpClients.GetClient(nil)
+
+	err := httpClient.Delete(
 		c,
 		WGInterfacePath+"/"+interfaceID,
 		nil,

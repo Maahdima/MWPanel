@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -30,15 +29,6 @@ type DBConfig struct {
 	Password string
 	Database string
 	Dialect  string
-}
-
-type ServerConfig struct {
-	Comment   string
-	Name      string
-	IPAddress string
-	APIPort   int
-	Username  string
-	Password  string
 }
 
 type AdminConfig struct {
@@ -107,26 +97,6 @@ func GetDBConfig() DBConfig {
 		Password: getEnv("DB_PASSWORD", "1234"),
 		Database: getEnv("DB_NAME", defaultDatabaseName),
 		Dialect:  dialect,
-	}
-}
-
-func GetServerConfig() ServerConfig {
-	apiPort := getEnv("SERVER_API_PORT", "80")
-
-	var apiPortInt int
-	if port, err := strconv.Atoi(apiPort); err == nil {
-		apiPortInt = port
-	} else {
-		apiPortInt = 80
-	}
-
-	return ServerConfig{
-		Comment:   getEnv("SERVER_COMMENT", "Default Server"),
-		Name:      getEnv("SERVER_NAME", "Default Server"),
-		IPAddress: getEnv("SERVER_IP_ADDRESS", "127.0.0.1"),
-		APIPort:   apiPortInt,
-		Username:  getEnv("SERVER_USERNAME", "admin"),
-		Password:  getEnv("SERVER_PASSWORD", "admin1234"),
 	}
 }
 
