@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import { IconAlertTriangle } from '@tabler/icons-react'
 import { toast } from 'sonner'

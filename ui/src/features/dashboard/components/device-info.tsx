@@ -2,7 +2,7 @@ import { DeviceData } from '@/schema/dashboard.ts'
 import { Card, CardContent } from '@/components/ui/card'
 
 interface DeviceInfoProps {
-  stats: DeviceData | null
+  stats: DeviceData | undefined
 }
 
 export default function DeviceInfo({ stats }: DeviceInfoProps) {

@@ -96,13 +96,13 @@ export default function Dashboard() {
               {isDeviceLoading ? (
                 <DeviceStatsSkeleton type='base' />
               ) : (
-                deviceData && <DeviceInfo stats={deviceData} />
+                <DeviceInfo stats={deviceData} />
               )}
 
               {isDeviceLoading ? (
                 <DeviceStatsSkeleton type='resource' />
               ) : (
-                deviceData && <DeviceResource stats={deviceData} />
+                <DeviceResource stats={deviceData} />
               )}
 
               {isDeviceLoading ? (

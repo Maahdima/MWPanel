@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { IconRestore } from '@tabler/icons-react'
 import { Peer, PeerStatus } from '@/schema/peers.ts'
@@ -18,6 +19,7 @@ import { OnlineBadge } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
+import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'
 
 export const peersColumns: ColumnDef<Peer>[] = [
   {
@@ -116,64 +118,72 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='Traffic' />
     ),
     cell: ({ row }) => {
+      const [dialogOpen, setDialogOpen] = useState(false)
+
       const resetUsageMutation = useResetUsageMutation()
 
       const peer = row.original
 
-      const handleResetUsage = () => {
-        resetUsageMutation.mutate(peer.id, {
+      const handleResetUsage = async () => {
+        resetUsageMutation.mutateAsync(peer.id, {
           onSuccess: () => {
+            setDialogOpen(false)
             toast.success('Peer usage reset successfully', {
               duration: 5000,
             })
+          },
+          onError: () => {
+            setDialogOpen(false)
           },
         })
       }
 
       return (
-        <div className='w-fit text-nowrap'>
-          {peer.traffic_limit ? (
-            <div className='flex items-center justify-center space-x-1'>
-              <Button
-                className='h-6 w-6'
-                variant='outline'
-                disabled={resetUsageMutation.isPending}
-                onClick={handleResetUsage}
-              >
-                <Tooltip>
-                  <TooltipTrigger>
-                    <IconRestore className='h-1 w-1' />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Reset Usage</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Button>
-              <Badge variant='default' className='rounded-sm bg-blue-400'>
-                {peer.total_usage} GB/{peer.traffic_limit} GB
-              </Badge>
+        <SimpleDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          title='Reset Peer Usage?'
+          description='This will reset the peer’s usage statistics. Are you sure?'
+          actionText='Confirm Reset'
+          mutateAsync={handleResetUsage}
+          trigger={
+            <div className='w-fit cursor-pointer text-nowrap'>
+              {peer.traffic_limit ? (
+                <div className='flex items-center justify-center space-x-1'>
+                  <Button className='h-6 w-6' variant='outline'>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <IconRestore className='h-1 w-1' />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reset Usage</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Button>
+                  <Badge variant='default' className='rounded-sm bg-blue-400'>
+                    {peer.total_usage} GB/{peer.traffic_limit} GB
+                  </Badge>
+                </div>
+              ) : (
+                <div className='flex items-center justify-center space-x-1'>
+                  <Button className='h-6 w-6' variant='outline'>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <IconRestore className='h-1 w-1' />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reset Usage</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Button>
+                  <Badge variant='default'>
+                    {peer.total_usage} GB/Unlimited
+                  </Badge>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className='flex items-center justify-center space-x-1'>
-              <Button
-                className='h-6 w-6'
-                variant='outline'
-                disabled={resetUsageMutation.isPending}
-                onClick={handleResetUsage}
-              >
-                <Tooltip>
-                  <TooltipTrigger>
-                    <IconRestore className='h-1 w-1' />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Reset Usage</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Button>
-              <Badge variant='default'>{peer.total_usage} GB/Unlimited</Badge>
-            </div>
-          )}
-        </div>
+          }
+        />
       )
     },
     meta: {

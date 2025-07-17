@@ -6,7 +6,6 @@ import {
   IconSettings,
   IconTool,
   IconTransferVertical,
-  IconUserCog,
   IconUsers,
 } from '@tabler/icons-react'
 import { type SidebarData } from '../types'
@@ -50,11 +49,6 @@ export const sidebarData: SidebarData = {
           title: 'Settings',
           icon: IconSettings,
           items: [
-            {
-              title: 'Profile',
-              url: '/settings',
-              icon: IconUserCog,
-            },
             {
               title: 'Account',
               url: '/settings/account',
