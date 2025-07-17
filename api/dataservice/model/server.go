@@ -1,9 +1,7 @@
 package model
 
-import "gorm.io/gorm"
-
 type Server struct {
-	gorm.Model
+	Model
 	Comment   *string `gorm:"type:varchar(255)"`
 	Name      string  `gorm:"type:varchar(64);uniqueIndex;not null;"`
 	IPAddress string  `gorm:"type:varchar(64);uniqueIndex;not null;"`

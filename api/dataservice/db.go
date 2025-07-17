@@ -10,8 +10,8 @@ import (
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -36,7 +36,7 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 	var dialect gorm.Dialector
 	if config.Dialect == "sqlite" {
 		dialect = sqlite.Open(
-			fmt.Sprintf("file:%s?_foreign_keys=true", config.Database),
+			fmt.Sprintf("file:%s?_pragma=foreign_keys(1)", config.Database),
 		)
 	} else if config.Dialect == "postgres" {
 		var dsn string
