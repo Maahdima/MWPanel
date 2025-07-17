@@ -10,21 +10,24 @@ import {
   UpdateServerSchema,
 } from '@/schema/servers.ts'
 import { toast } from 'sonner'
-import { useCreateServerMutation } from '@/hooks/servers/useCreateServerMutation.ts'
-import { useUpdateServerMutation } from '@/hooks/servers/useUpdateServerMutation.ts'
 import { Form } from '@/components/ui/form'
 import { PasswordField } from '@/features/shared-components/password-field.tsx'
 import { SimpleField } from '@/features/shared-components/simple-field.tsx'
 
 interface ServerFormProps {
+  createServer: (data: CreateServerRequest) => Promise<void>
+  updateServer: (data: UpdateServerRequest) => Promise<void>
   currentRow?: Partial<CreateServerRequest>
   onClose: () => void
 }
 
-export function ServerForm({ currentRow, onClose }: ServerFormProps) {
+export function ServerForm({
+  createServer,
+  updateServer,
+  currentRow,
+  onClose,
+}: ServerFormProps) {
   const isEdit = Boolean(currentRow)
-  const { mutateAsync: createServer } = useCreateServerMutation()
-  const { mutateAsync: updateServer } = useUpdateServerMutation()
 
   const form = useForm<CreateServerRequest>({
     resolver: zodResolver(
