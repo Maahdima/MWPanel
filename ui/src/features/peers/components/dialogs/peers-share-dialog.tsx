@@ -21,7 +21,8 @@ type Props = {
 }
 
 export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
-  const { data: shareData, isLoading } = usePeerShareQuery(currentRow.uuid, {
+  // TODO: isLoading and skeleton
+  const { data: shareData } = usePeerShareQuery(currentRow.uuid, {
     enabled: open,
   })
 
