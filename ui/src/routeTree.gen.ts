@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ShareRouteImport } from './routes/share'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
@@ -25,10 +26,14 @@ import { Route as AuthenticatedServersIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPeersIndexRouteImport } from './routes/_authenticated/peers/index'
 import { Route as AuthenticatedInterfacesIndexRouteImport } from './routes/_authenticated/interfaces/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
-import { Route as PeersShareUuidRouteImport } from './routes/peers/share/$uuid'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 
+const ShareRoute = ShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -113,11 +118,6 @@ const AuthenticatedHelpCenterIndexRoute =
     path: '/help-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const PeersShareUuidRoute = PeersShareUuidRouteImport.update({
-  id: '/peers/share/$uuid',
-  path: '/peers/share/$uuid',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedSettingsAppearanceRoute =
   AuthenticatedSettingsAppearanceRouteImport.update({
     id: '/appearance',
@@ -132,6 +132,7 @@ const AuthenticatedSettingsAccountRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/share': typeof ShareRoute
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/otp': typeof authOtpRoute
@@ -144,7 +145,6 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
-  '/peers/share/$uuid': typeof PeersShareUuidRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
@@ -152,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/share': typeof ShareRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/otp': typeof authOtpRoute
   '/sign-in': typeof authSignInRoute
@@ -163,7 +164,6 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
-  '/peers/share/$uuid': typeof PeersShareUuidRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
@@ -173,6 +173,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/share': typeof ShareRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/otp': typeof authOtpRoute
@@ -185,7 +186,6 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
-  '/peers/share/$uuid': typeof PeersShareUuidRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/interfaces/': typeof AuthenticatedInterfacesIndexRoute
   '/_authenticated/peers/': typeof AuthenticatedPeersIndexRoute
@@ -195,6 +195,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/share'
     | '/settings'
     | '/forgot-password'
     | '/otp'
@@ -207,7 +208,6 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/settings/appearance'
-    | '/peers/share/$uuid'
     | '/help-center'
     | '/interfaces'
     | '/peers'
@@ -215,6 +215,7 @@ export interface FileRouteTypes {
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/share'
     | '/forgot-password'
     | '/otp'
     | '/sign-in'
@@ -226,7 +227,6 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/settings/appearance'
-    | '/peers/share/$uuid'
     | '/help-center'
     | '/interfaces'
     | '/peers'
@@ -235,6 +235,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/share'
     | '/_authenticated/settings'
     | '/(auth)/forgot-password'
     | '/(auth)/otp'
@@ -247,7 +248,6 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
-    | '/peers/share/$uuid'
     | '/_authenticated/help-center/'
     | '/_authenticated/interfaces/'
     | '/_authenticated/peers/'
@@ -257,6 +257,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ShareRoute: typeof ShareRoute
   authForgotPasswordRoute: typeof authForgotPasswordRoute
   authOtpRoute: typeof authOtpRoute
   authSignInRoute: typeof authSignInRoute
@@ -265,11 +266,17 @@ export interface RootRouteChildren {
   errors404Route: typeof errors404Route
   errors500Route: typeof errors500Route
   errors503Route: typeof errors503Route
-  PeersShareUuidRoute: typeof PeersShareUuidRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/share': {
+      id: '/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof ShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -382,13 +389,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/peers/share/$uuid': {
-      id: '/peers/share/$uuid'
-      path: '/peers/share/$uuid'
-      fullPath: '/peers/share/$uuid'
-      preLoaderRoute: typeof PeersShareUuidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/settings/appearance': {
       id: '/_authenticated/settings/appearance'
       path: '/appearance'
@@ -447,6 +447,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ShareRoute: ShareRoute,
   authForgotPasswordRoute: authForgotPasswordRoute,
   authOtpRoute: authOtpRoute,
   authSignInRoute: authSignInRoute,
@@ -455,7 +456,6 @@ const rootRouteChildren: RootRouteChildren = {
   errors404Route: errors404Route,
   errors500Route: errors500Route,
   errors503Route: errors503Route,
-  PeersShareUuidRoute: PeersShareUuidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

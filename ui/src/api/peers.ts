@@ -11,6 +11,7 @@ import {
   PeerStats,
   PeerStatsResponseSchema,
   UpdatePeerRequest,
+  UpdatePeerShareExpireRequest,
 } from '@/schema/peers.ts'
 import axiosInstance from '@/api/axios-instance.ts'
 
@@ -59,6 +60,10 @@ export const updatePeerStatus = async (id: number): Promise<void> => {
   await axiosInstance.patch(`/peer/${id}/status`)
 }
 
+export const updatePeerShareStatus = async (id: number): Promise<void> => {
+  await axiosInstance.patch(`/peer/${id}/share/status`)
+}
+
 export const updatePeer = async (peer: UpdatePeerRequest): Promise<Peer> => {
   const { data } = await axiosInstance.put(`/peer/${peer.id}`, peer)
   const parsed = PeerResponseSchema.parse(data)
@@ -75,12 +80,16 @@ export const fetchPeerKeys = async (): Promise<PeerKeys> => {
   return parsed.data
 }
 
-export const fetchPeerShare = async (
-  uuid: string | undefined
-): Promise<PeerShare> => {
-  const { data } = await axiosInstance.get(`/peer/${uuid}/share`)
+export const fetchPeerShareStatus = async (id: number): Promise<PeerShare> => {
+  const { data } = await axiosInstance.get(`/peer/${id}/share`)
   const parsed = PeerShareResponseSchema.parse(data)
   return parsed.data
+}
+
+export const updatePeerShareExpire = async (
+  peer: UpdatePeerShareExpireRequest
+): Promise<void> => {
+  await axiosInstance.put(`/peer/${peer.id}/share/expire`, peer)
 }
 
 export const resetPeerUsage = async (id: number): Promise<void> => {

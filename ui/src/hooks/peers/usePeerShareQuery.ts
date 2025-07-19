@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchPeerShare } from '@/api/peers.ts'
+import { fetchPeerShareStatus } from '@/api/peers.ts'
 
-export function usePeerShareQuery(
-  uuid: string,
-  options?: { enabled?: boolean }
-) {
+export function usePeerShareQuery(id: number, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ['peer_share', uuid],
-    queryFn: () => fetchPeerShare(uuid),
-    enabled: !!uuid && (options?.enabled ?? true),
+    queryKey: ['peer_share', id],
+    queryFn: () => fetchPeerShareStatus(id),
+    enabled: !!id && (options?.enabled ?? true),
   })
 }

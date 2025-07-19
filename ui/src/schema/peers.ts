@@ -85,10 +85,18 @@ export const UpdatePeerSchema = z.object({
   upload_bandwidth: z.string().optional().nullable(),
 })
 
+export const UpdatePeerShareExpireSchema = z.object({
+  id: z.number().int().positive(),
+  expire_time: z.string().optional().nullable(),
+})
+
 export type Peer = z.infer<typeof PeerSchema>
 export type PeerStatus = z.infer<typeof PeerStatusEnum>
 export type CreatePeerRequest = z.infer<typeof CreatePeerSchema>
 export type UpdatePeerRequest = z.infer<typeof UpdatePeerSchema>
+export type UpdatePeerShareExpireRequest = z.infer<
+  typeof UpdatePeerShareExpireSchema
+>
 export type PeerResponse = z.infer<typeof PeerResponseSchema>
 export type PeersResponse = z.infer<typeof PeersResponseSchema>
 export type PeerKeys = z.infer<typeof PeerKeysSchema>

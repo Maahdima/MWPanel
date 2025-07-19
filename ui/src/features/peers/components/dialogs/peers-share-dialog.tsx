@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
 import { Peer } from '@/schema/peers.ts'
-import { CalendarIcon, ClipboardCopyIcon, LinkIcon, XIcon } from 'lucide-react'
+import {
+  CalendarIcon,
+  CheckIcon,
+  ClipboardCopyIcon,
+  LinkIcon,
+  XIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { usePeerShareQuery } from '@/hooks/peers/usePeerShareQuery.ts'
+import { useUpdatePeerShareExpireMutation } from '@/hooks/peers/useUpdatePeerShareExpireMutation.ts'
+import { useUpdatePeerShareStatusMutation } from '@/hooks/peers/useUpdatePeerShareStatusMutation.ts'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,17 +29,12 @@ type Props = {
 
 export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
   // TODO: isLoading and skeleton
-  const { data: shareData } = usePeerShareQuery(currentRow.uuid, {
+  const { data: shareData } = usePeerShareQuery(currentRow.id, {
     enabled: open,
   })
 
-  const [expireDate, setExpireDate] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (shareData?.expire_time) {
-      setExpireDate(shareData.expire_time)
-    }
-  }, [shareData])
+  const updatePeerShareStatus = useUpdatePeerShareStatusMutation()
+  const updatePeerShareExpire = useUpdatePeerShareExpireMutation()
 
   const handleCopy = () => {
     if (shareData?.share_link) {
@@ -43,9 +45,36 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
     }
   }
 
-  const handleStopSharing = () => {
-    // TODO: add actual API call to stop sharing if needed
-    onOpenChange(false)
+  const handleExpireDateChange = async (value: string | null) => {
+    if (value) {
+      updatePeerShareExpire.mutateAsync({
+        id: currentRow.id,
+        expire_time: value,
+      })
+      toast.success('Expiration date updated successfully', {
+        duration: 5000,
+      })
+    } else {
+      updatePeerShareExpire.mutateAsync({
+        id: currentRow.id,
+        expire_time: null,
+      })
+      toast.success('Expiration date cleared successfully', {
+        duration: 5000,
+      })
+    }
+  }
+
+  const handleToggleStatus = async () => {
+    updatePeerShareStatus.mutateAsync(currentRow.id)
+    toast.success(
+      shareData?.is_shared
+        ? 'Peer sharing stopped successfully'
+        : 'Peer sharing started successfully',
+      {
+        duration: 5000,
+      }
+    )
   }
 
   return (
@@ -56,39 +85,60 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
         </DialogHeader>
 
         <div className='gap-2 space-y-4'>
-          <div className='space-y-3'>
-            <Label className='flex items-center gap-1'>
-              <LinkIcon className='h-4 w-4 opacity-60' />
-              Share Link
+          {!shareData?.is_shared && (
+            <Label>
+              Currently, this peer is not shared. You can start sharing it by
+              clicking the button below.
             </Label>
-            <div className='flex items-center gap-2'>
-              <Input value={shareData?.share_link ?? ''} readOnly />
-              <Button variant='outline' size='icon' onClick={handleCopy}>
-                <ClipboardCopyIcon className='h-4 w-4' />
-              </Button>
+          )}
+
+          {shareData?.is_shared && (
+            <div className='space-y-3'>
+              <Label className='flex items-center gap-1'>
+                <LinkIcon className='h-4 w-4 opacity-60' />
+                Share Link
+              </Label>
+              <div className='flex items-center gap-2'>
+                <Input value={shareData?.share_link ?? ''} readOnly />
+                <Button variant='outline' size='icon' onClick={handleCopy}>
+                  <ClipboardCopyIcon className='h-4 w-4' />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className='space-y-3'>
-            <Label className='flex items-center gap-1'>
-              <CalendarIcon className='h-4 w-4 opacity-60' />
-              Expire At
-            </Label>
-            <SimpleDatepicker
-              value={expireDate}
-              onChange={(value) => setExpireDate(value)}
-              placeholder='Pick an expiration date'
-            />
-          </div>
+          {shareData?.is_shared && (
+            <div className='space-y-3'>
+              <Label className='flex items-center gap-1'>
+                <CalendarIcon className='h-4 w-4 opacity-60' />
+                Expire At
+              </Label>
+              <SimpleDatepicker
+                value={shareData?.expire_time ?? null}
+                onChange={(value) => handleExpireDateChange(value)}
+                placeholder='Pick an expiration date'
+              />
+            </div>
+          )}
 
-          <Button
-            variant='destructive'
-            className='w-full'
-            onClick={handleStopSharing}
-          >
-            <XIcon className='mr-2 h-4 w-4' />
-            Stop Sharing
-          </Button>
+          {shareData?.is_shared ? (
+            <Button
+              variant='destructive'
+              className='w-full'
+              onClick={handleToggleStatus}
+            >
+              <XIcon className='mr-2 h-4 w-4' />
+              Stop Sharing
+            </Button>
+          ) : (
+            <Button
+              className='w-full text-white shadow-xs hover:bg-green-600/90 focus-visible:ring-green-600/20 dark:bg-green-600/60 dark:focus-visible:ring-green-600/40'
+              onClick={handleToggleStatus}
+            >
+              <CheckIcon className='mr-2 h-4 w-4' />
+              Start Sharing
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
