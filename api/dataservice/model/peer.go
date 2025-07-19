@@ -24,4 +24,5 @@ type Peer struct {
 	LastTx              int64   `gorm:"type:bigint;not null;default:0"` // in bytes
 	LastRx              int64   `gorm:"type:bigint;not null;default:0"` // in bytes
 	IsShared            bool    `gorm:"type:boolean;not null;default:false"`
+	ShareExpireTime     *string `gorm:"type:varchar(255)"`
 }

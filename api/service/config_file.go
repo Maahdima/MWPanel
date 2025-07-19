@@ -55,6 +55,12 @@ func (c *ConfigGenerator) GetPeerConfig(uuid string) (configPath string, err err
 		return
 	}
 
+	// TODO: return 404
+	if !peer.IsShared {
+		c.logger.Error("peer is not shared", zap.String("uuid", uuid))
+		return "", errors.New("peer is not shared")
+	}
+
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
 
 	return configPath, nil

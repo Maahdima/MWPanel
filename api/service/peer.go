@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/utils"
@@ -114,6 +115,74 @@ func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
 	}, nil
 }
 
+func (w *WgPeer) GetPeerShareStatus(id uint) (*schema.PeerShareStatusResponse, error) {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Error("peer not found in database", zap.Uint("id", id))
+			return nil, fmt.Errorf("peer not found: %w", err)
+		}
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return nil, err
+	}
+
+	if !peer.IsShared {
+		return &schema.PeerShareStatusResponse{
+			IsShared:   false,
+			ShareLink:  nil,
+			ExpireTime: nil,
+		}, nil
+	}
+
+	appCfg := config.GetAppConfig()
+
+	// TODO: https
+	shareLink := fmt.Sprintf("http://%s:%s/share?shareId=%s", appCfg.Host, appCfg.Port, peer.UUID)
+
+	return &schema.PeerShareStatusResponse{
+		IsShared:   peer.IsShared,
+		ShareLink:  &shareLink,
+		ExpireTime: peer.ShareExpireTime,
+	}, nil
+}
+
+func (w *WgPeer) TogglePeerShareStatus(id uint) error {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return fmt.Errorf("peer not found: %w", err)
+	}
+
+	isShared := !peer.IsShared
+
+	if err := w.db.Model(&peer).Update("is_shared", isShared).Error; err != nil {
+		w.logger.Error("failed to update peer share status in database", zap.Error(err))
+		return fmt.Errorf("failed to update peer share status: %w", err)
+	}
+
+	return nil
+}
+
+func (w *WgPeer) UpdatePeerShareExpireTime(id uint, expireTime *string) error {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return fmt.Errorf("peer not found: %w", err)
+	}
+
+	if !peer.IsShared {
+		w.logger.Error("peer is not shared, cannot set expire time", zap.Uint("id", id))
+		return fmt.Errorf("peer is not shared, cannot set expire time")
+	}
+
+	if err := w.db.Model(&peer).Update("share_expire_time", expireTime).Error; err != nil {
+		w.logger.Error("failed to update peer share expire time in database", zap.Error(err))
+		return fmt.Errorf("failed to update peer share expire time: %w", err)
+	}
+
+	return nil
+}
+
 func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error) {
 	var peer model.Peer
 	if err := w.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
@@ -125,9 +194,22 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		return nil, err
 	}
 
+	// TODO: return 404
 	if !peer.IsShared {
 		w.logger.Error("peer is not shared, stats are not available", zap.String("uuid", uuid))
-		return nil, fmt.Errorf("peer is not shared, stats are not available")
+		return nil, fmt.Errorf("peer is not shared")
+	}
+
+	if peer.ShareExpireTime != nil {
+		expireTime, err := time.Parse("2006-01-02", *peer.ShareExpireTime)
+		if err != nil {
+			w.logger.Error("failed to parse share expire time", zap.Error(err))
+			return nil, fmt.Errorf("failed to parse share expire time: %w", err)
+		}
+		if time.Now().After(expireTime) {
+			w.logger.Error("share link has expired", zap.String("uuid", uuid))
+			return nil, fmt.Errorf("share link has expired")
+		}
 	}
 
 	totalUsage := peer.DownloadUsage + peer.UploadUsage

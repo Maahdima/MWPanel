@@ -39,6 +39,10 @@ type UpdatePeerRequest struct {
 	UploadBandwidth     *string `json:"upload_bandwidth,omitempty"`
 }
 
+type UpdatePeerShareExpireRequest struct {
+	ExpireTime *string `json:"expire_time"`
+}
+
 type PeerKeyResponse struct {
 	PublicKey  string `json:"public_key"`
 	PrivateKey string `json:"private_key"`
@@ -52,6 +56,12 @@ type PeerDetailsResponse struct {
 	UploadUsage   string  `json:"upload_usage"`
 	TotalUsage    string  `json:"total_usage"`
 	UsagePercent  *string `json:"usage_percent"`
+}
+
+type PeerShareStatusResponse struct {
+	IsShared   bool    `json:"is_shared"`
+	ShareLink  *string `json:"share_link"`
+	ExpireTime *string `json:"expire_time"`
 }
 
 type PeerResponse struct {

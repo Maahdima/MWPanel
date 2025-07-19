@@ -50,6 +50,12 @@ func (q *QRCodeGenerator) GetPeerQRCode(uuid string) (qrcodePath string, err err
 		return
 	}
 
+	// TODO: return 404
+	if !peer.IsShared {
+		q.logger.Error("peer is not shared", zap.String("uuid", uuid))
+		return "", errors.New("peer is not shared")
+	}
+
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
