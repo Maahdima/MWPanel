@@ -5,6 +5,8 @@ import {
   PeerKeys,
   PeerKeysResponseSchema,
   PeerResponseSchema,
+  PeerShare,
+  PeerShareResponseSchema,
   PeersResponseSchema,
   PeerStats,
   PeerStatsResponseSchema,
@@ -70,6 +72,14 @@ export const deletePeer = async (id: number): Promise<void> => {
 export const fetchPeerKeys = async (): Promise<PeerKeys> => {
   const { data } = await axiosInstance.get('/peer/keys')
   const parsed = PeerKeysResponseSchema.parse(data)
+  return parsed.data
+}
+
+export const fetchPeerShare = async (
+  uuid: string | undefined
+): Promise<PeerShare> => {
+  const { data } = await axiosInstance.get(`/peer/${uuid}/share`)
+  const parsed = PeerShareResponseSchema.parse(data)
   return parsed.data
 }
 

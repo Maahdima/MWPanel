@@ -18,9 +18,9 @@ interface Props {
 }
 
 export function PeersQRCodeDialog({ open, onOpenChange, currentRow }: Props) {
-  const { data: peerQRCode, isLoading: peerQRCodeLoading } = usePeerQRCodeQuery(
-    currentRow.uuid
-  )
+  const { data: peerQRCode, isLoading } = usePeerQRCodeQuery(currentRow.uuid, {
+    enabled: open,
+  })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,7 +33,7 @@ export function PeersQRCodeDialog({ open, onOpenChange, currentRow }: Props) {
         </DialogHeader>
 
         <div className='flex justify-center py-6'>
-          {peerQRCodeLoading ? (
+          {isLoading ? (
             <Skeleton className='h-48 w-48 rounded-md' />
           ) : peerQRCode ? (
             <img

@@ -1,6 +1,7 @@
 import { useDeletePeerMutation } from '@/hooks/peers/useDeletePeerMutation.ts'
 import { PeersConfigDialog } from '@/features/peers/components/dialogs/peers-config-dialog.tsx'
 import { PeersQRCodeDialog } from '@/features/peers/components/dialogs/peers-qrcode-dialog.tsx'
+import { PeersShareDialog } from '@/features/peers/components/dialogs/peers-share-dialog.tsx'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
 import { ActionDialog } from '@/features/shared-components/table/dialogs/action-dialog.tsx'
 import { DeleteEntityDialog } from '@/features/shared-components/table/dialogs/delete-entity-dialog.tsx'
@@ -41,6 +42,13 @@ export function PeersDialogs() {
             entity={{ ...currentRow, id: String(currentRow.id) }}
             entityType='Peer'
             mutationFn={async (id: string) => mutateAsync(Number(id))}
+          />
+
+          <PeersShareDialog
+            key={`peer-share-${currentRow.id}`}
+            open={open === 'share'}
+            onOpenChange={handleClose('share')}
+            currentRow={currentRow}
           />
 
           <PeersQRCodeDialog

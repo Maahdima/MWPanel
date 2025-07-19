@@ -42,7 +42,7 @@ export function PeersTableRowActions({ row }: PeersTableRowActionsProps) {
           <DropdownMenuItem
             onClick={() => {
               setCurrentRow(row.original)
-              setOpen('qrCode')
+              setOpen('share')
             }}
           >
             Share

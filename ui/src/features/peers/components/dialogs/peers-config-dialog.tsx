@@ -28,7 +28,10 @@ export function PeersConfigDialog({
   download = false,
 }: Props) {
   const { data: peerConfigBlob, isLoading } = usePeerConfigQuery(
-    currentRow.uuid
+    currentRow.uuid,
+    {
+      enabled: open,
+    }
   )
   const [configText, setConfigText] = useState<string>('')
   const hasDownloaded = useRef(false)
@@ -75,13 +78,17 @@ export function PeersConfigDialog({
         <div className='bg-muted relative max-h-[60vh] overflow-auto rounded-md px-4 py-3'>
           {isLoading ? (
             <Skeleton className='h-[200px] w-full' />
-          ) : (
+          ) : configText ? (
             <pre className='text-sm break-words whitespace-pre-wrap'>
               <code>{configText}</code>
             </pre>
+          ) : (
+            <div className='text-muted-foreground'>
+              Configuration not available
+            </div>
           )}
 
-          {!isLoading && (
+          {!isLoading && configText && (
             <Button
               variant='ghost'
               size='sm'

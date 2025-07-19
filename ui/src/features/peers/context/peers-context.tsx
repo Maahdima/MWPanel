@@ -6,6 +6,7 @@ type PeersDialogType =
   | 'add'
   | 'edit'
   | 'delete'
+  | 'share'
   | 'qrCode'
   | 'config'
   | 'show_config'

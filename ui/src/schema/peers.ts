@@ -32,6 +32,12 @@ export const PeerKeysSchema = z.object({
   public_key: z.string(),
 })
 
+export const PeerShareSchema = z.object({
+  is_shared: z.boolean(),
+  share_link: z.string().nullable(),
+  expire_time: z.string().nullable(),
+})
+
 export const PeerStatsSchema = z.object({
   name: z.string(),
   expire_time: z.string().nullable(),
@@ -45,6 +51,7 @@ export const PeerStatsSchema = z.object({
 export const PeerResponseSchema = createApiResponseSchema(PeerSchema)
 export const PeersResponseSchema = createApiResponseSchema(PeersSchema)
 export const PeerKeysResponseSchema = createApiResponseSchema(PeerKeysSchema)
+export const PeerShareResponseSchema = createApiResponseSchema(PeerShareSchema)
 export const PeerStatsResponseSchema = createApiResponseSchema(PeerStatsSchema)
 
 export const CreatePeerSchema = z.object({
@@ -85,4 +92,5 @@ export type UpdatePeerRequest = z.infer<typeof UpdatePeerSchema>
 export type PeerResponse = z.infer<typeof PeerResponseSchema>
 export type PeersResponse = z.infer<typeof PeersResponseSchema>
 export type PeerKeys = z.infer<typeof PeerKeysSchema>
+export type PeerShare = z.infer<typeof PeerShareSchema>
 export type PeerStats = z.infer<typeof PeerStatsSchema>
