@@ -219,7 +219,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	trafficLimit := utils.GBToBytes(*req.TrafficLimit)
+	trafficLimit := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
 
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),

@@ -50,26 +50,19 @@ func (q *QRCodeGenerator) GetPeerQRCode(uuid string) (qrcodePath string, err err
 		return
 	}
 
-	qrcodePath = fmt.Sprintf("./%s/%s.jpeg", peerQrCodesPath, peer.UUID)
+	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
 }
 
 func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
-	dirPath := fmt.Sprintf("./%s", peerQrCodesPath)
-
-	err := os.MkdirAll(dirPath, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
 	qrc, err := qrcode.New(config)
 	if err != nil {
 		fmt.Printf("could not generate QRCode: %v", err)
 		return err
 	}
 
-	filePath := fmt.Sprintf("%s/%s.jpeg", dirPath, uuid)
+	filePath := fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, uuid)
 
 	w, err := standard.New(filePath)
 	if err != nil {
