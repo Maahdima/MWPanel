@@ -194,22 +194,10 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		return nil, err
 	}
 
-	// TODO: return 404
-	if !peer.IsShared {
-		w.logger.Error("peer is not shared, stats are not available", zap.String("uuid", uuid))
+	isSharable := utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
+	if !isSharable {
+		// TODO: return 404
 		return nil, fmt.Errorf("peer is not shared")
-	}
-
-	if peer.ShareExpireTime != nil {
-		expireTime, err := time.Parse("2006-01-02", *peer.ShareExpireTime)
-		if err != nil {
-			w.logger.Error("failed to parse share expire time", zap.Error(err))
-			return nil, fmt.Errorf("failed to parse share expire time: %w", err)
-		}
-		if time.Now().After(expireTime) {
-			w.logger.Error("share link has expired", zap.String("uuid", uuid))
-			return nil, fmt.Errorf("share link has expired")
-		}
 	}
 
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
@@ -326,17 +314,17 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	config := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, *wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
+	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, *wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
 
 	err = w.configGenerator.BuildPeerConfig(
-		config,
+		configData,
 		dbPeer.UUID,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.qrCodeGenerator.BuildPeerQRCode(config, dbPeer.UUID)
+	err = w.qrCodeGenerator.BuildPeerQRCode(configData, dbPeer.UUID)
 	if err != nil {
 		return nil, err
 	}

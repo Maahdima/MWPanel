@@ -11,6 +11,7 @@ import (
 
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 var (
@@ -55,10 +56,10 @@ func (c *ConfigGenerator) GetPeerConfig(uuid string) (configPath string, err err
 		return
 	}
 
-	// TODO: return 404
+	utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
 	if !peer.IsShared {
-		c.logger.Error("peer is not shared", zap.String("uuid", uuid))
-		return "", errors.New("peer is not shared")
+		// TODO: return 404
+		return "", fmt.Errorf("peer is not shared")
 	}
 
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)

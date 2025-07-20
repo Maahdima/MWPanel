@@ -13,6 +13,7 @@ import (
 
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 var (
@@ -50,10 +51,10 @@ func (q *QRCodeGenerator) GetPeerQRCode(uuid string) (qrcodePath string, err err
 		return
 	}
 
-	// TODO: return 404
-	if !peer.IsShared {
-		q.logger.Error("peer is not shared", zap.String("uuid", uuid))
-		return "", errors.New("peer is not shared")
+	isSharable := utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
+	if !isSharable {
+		// TODO: return 404
+		return "", fmt.Errorf("peer is not shared")
 	}
 
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
