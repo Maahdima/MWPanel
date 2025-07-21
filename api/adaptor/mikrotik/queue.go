@@ -5,10 +5,10 @@ import (
 )
 
 type Queue struct {
-	ID       *string `json:".id,omitempty"`
-	Disabled *string `json:"disabled,omitempty"`
+	ID       string  `json:".id,omitempty"`
+	Disabled string  `json:"disabled,omitempty"`
 	Comment  *string `json:"comment,omitempty"`
-	Name     *string `json:"name,omitempty"`
+	Name     string  `json:"name,omitempty"`
 	Target   *string `json:"target,omitempty"`
 	MaxLimit *string `json:"max-limit,omitempty"`
 }

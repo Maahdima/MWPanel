@@ -40,7 +40,23 @@ func NewQRCodeGenerator(db *gorm.DB) *QRCodeGenerator {
 	}
 }
 
-func (q *QRCodeGenerator) GetPeerQRCode(uuid string) (qrcodePath string, err error) {
+func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) {
+	var peer model.Peer
+	if err = q.db.First(&peer, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			q.logger.Error("peer not found in database", zap.Uint("id", id))
+			return
+		}
+		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+		return
+	}
+
+	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
+
+	return qrcodePath, nil
+}
+
+func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err error) {
 	var peer model.Peer
 	if err = q.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

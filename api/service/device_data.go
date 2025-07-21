@@ -6,10 +6,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/http/schema"
 )
-
-var ipv4DefaultInterface = "ether1"
 
 type DeviceData struct {
 	mikrotikAdaptor  *mikrotik.Adaptor
@@ -117,7 +116,7 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	}
 
 	for _, ipv4 := range *ipv4Addresses {
-		if ipv4.Interface == ipv4DefaultInterface {
+		if ipv4.Interface == common.IPv4DefaultInterface {
 			return &schema.DeviceIPv4Address{
 				IPv4: ipv4.Address,
 				// TODO : implement ISP fetching

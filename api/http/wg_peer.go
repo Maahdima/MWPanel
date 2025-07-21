@@ -196,13 +196,19 @@ func (c *WgPeerController) DeletePeer(ctx echo.Context) error {
 }
 
 func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
-	uuid := ctx.Param("uuid")
-	if uuid == "" {
-		c.logger.Error("Peer uuid is required")
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	config, err := c.peerConfigService.GetPeerConfig(uuid)
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	config, err := c.peerConfigService.GetPeerConfig(uint(peerId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -222,14 +228,21 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 	return ctx.File(config)
 }
 
+// TODO : use id here
 func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
-	uuid := ctx.Param("uuid")
-	if uuid == "" {
-		c.logger.Error("Peer uuid is required")
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	qrCode, err := c.peerQrCodeService.GetPeerQRCode(uuid)
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	qrCode, err := c.peerQrCodeService.GetPeerQRCode(uint(peerId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -346,36 +359,6 @@ func (c *WgPeerController) UpdatePeerShareExpire(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
-}
-
-func (c *WgPeerController) GetPeerDetails(ctx echo.Context) error {
-	uuid := ctx.Param("uuid")
-	if uuid == "" {
-		c.logger.Error("Peer uuid is required")
-		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
-	}
-
-	stats, err := c.peerService.GetPeerDetails(uuid)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
-				StatusCode: http.StatusNotFound,
-				Status:     "error",
-				Message:    "peer not found",
-			})
-		}
-
-		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Status:     "error",
-			Message:    "failed to retrieve peer stats: " + err.Error(),
-		})
-	}
-
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerDetailsResponse]{
-		BasicResponse: schema.OkBasicResponse,
-		Data:          *stats,
-	})
 }
 
 func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {

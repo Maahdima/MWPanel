@@ -7,15 +7,15 @@ import (
 )
 
 type WireGuardPeer struct {
-	ID                     *string `json:".id,omitempty"`
-	Disabled               *string `json:"disabled,omitempty"`
+	ID                     string  `json:".id,omitempty"`
+	Disabled               string  `json:"disabled,omitempty"`
 	Comment                *string `json:"comment,omitempty"`
-	AllowedAddress         *string `json:"allowed-address,omitempty"`
+	AllowedAddress         string  `json:"allowed-address,omitempty"`
 	PersistentKeepAlive    *string `json:"persistent-keepalive,omitempty"`
-	Interface              *string `json:"interface,omitempty"`
-	Name                   *string `json:"name,omitempty"`
+	Interface              string  `json:"interface,omitempty"`
+	Name                   string  `json:"name,omitempty"`
 	PresharedKey           *string `json:"preshared-key,omitempty"`
-	PublicKey              *string `json:"public-key,omitempty"`
+	PublicKey              string  `json:"public-key,omitempty"`
 	ClientEndpoint         *string `json:"client-endpoint,omitempty"`
 	CurrentEndpointAddress *string `json:"current-endpoint-address,omitempty"`
 	CurrentEndpointPort    *string `json:"current-endpoint-port,omitempty"`
@@ -24,7 +24,7 @@ type WireGuardPeer struct {
 	TransferTx             *string `json:"tx,omitempty"`
 }
 
-func (a *Adaptor) FetchWgPeers(c context.Context) (*[]WireGuardPeer, error) {
+func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 	var wgPeers []WireGuardPeer
 
 	httpClient := a.mwpClients.GetClient(nil)
@@ -39,7 +39,7 @@ func (a *Adaptor) FetchWgPeers(c context.Context) (*[]WireGuardPeer, error) {
 		return nil, err
 	}
 
-	return &wgPeers, nil
+	return wgPeers, nil
 }
 
 func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer, error) {

@@ -7,18 +7,18 @@ import (
 )
 
 type WireGuardInterface struct {
-	ID         *string `json:".id,omitempty"`
-	Disabled   *string `json:"disabled,omitempty"`
+	ID         string  `json:".id"`
+	Disabled   string  `json:"disabled,omitempty"`
 	Comment    *string `json:"comment,omitempty"`
-	ListenPort *string `json:"listen-port,omitempty"`
-	MTU        *string `json:"mtu,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	PrivateKey *string `json:"private-key,omitempty"`
-	PublicKey  *string `json:"public-key,omitempty"`
+	ListenPort string  `json:"listen-port,omitempty"`
+	MTU        string  `json:"mtu,omitempty"`
+	Name       string  `json:"name"`
+	PrivateKey string  `json:"private-key,omitempty"`
+	PublicKey  string  `json:"public-key,omitempty"`
 	Running    *string `json:"running,omitempty"`
 }
 
-func (a *Adaptor) FetchWgInterfaces(c context.Context) (*[]WireGuardInterface, error) {
+func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, error) {
 	var wgInterfaces []WireGuardInterface
 
 	httpClient := a.mwpClients.GetClient(nil)
@@ -32,7 +32,7 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) (*[]WireGuardInterface, e
 		return nil, err
 	}
 
-	return &wgInterfaces, nil
+	return wgInterfaces, nil
 }
 
 func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*WireGuardInterface, error) {

@@ -5,10 +5,10 @@ import (
 )
 
 type Scheduler struct {
-	ID        *string `json:".id,omitempty"`
-	Disabled  *string `json:"disabled,omitempty"`
+	ID        string  `json:".id,omitempty"`
+	Disabled  string  `json:"disabled,omitempty"`
 	Comment   *string `json:"comment,omitempty"`
-	Name      *string `json:"name,omitempty"`
+	Name      string  `json:"name,omitempty"`
 	StartDate *string `json:"start-date,omitempty"`
 	StartTime *string `json:"start-time,omitempty"`
 	Interval  *string `json:"interval,omitempty"`

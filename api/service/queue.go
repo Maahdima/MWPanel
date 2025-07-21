@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/utils"
 )
 
@@ -33,8 +34,8 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 
 	maxLimit := *normalizedDownload + "/" + *normalizedUpload
 	wgQueue := mikrotik.Queue{
-		Comment:  utils.Ptr(queueComment + peerName),
-		Name:     utils.Ptr(queueName + peerName),
+		Comment:  utils.Ptr(common.QueueComment + peerName),
+		Name:     common.QueueName + peerName,
 		Target:   utils.Ptr(peerAllowedAddress),
 		MaxLimit: &maxLimit,
 	}
@@ -45,7 +46,7 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 		return nil, err
 	}
 
-	return createdQueue.ID, nil
+	return &createdQueue.ID, nil
 }
 
 func (q *Queue) updateQueue(queueID, downloadBandwidth, uploadBandwidth *string) error {

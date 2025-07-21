@@ -20,7 +20,7 @@ type CreateInterfaceRequest struct {
 type UpdateInterfaceRequest struct {
 	Disabled *bool   `json:"disabled,omitempty"`
 	Comment  *string `json:"comment,omitempty"`
-	Name     *string `json:"name,omitempty"`
+	Name     string  `json:"name,omitempty"`
 }
 
 type InterfaceStatsResponse struct {

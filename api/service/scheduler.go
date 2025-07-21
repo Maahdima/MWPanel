@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/utils"
 )
 
@@ -21,19 +22,19 @@ func NewScheduler(mikrotikAdaptor *mikrotik.Adaptor) *Scheduler {
 	}
 }
 
-func (s *Scheduler) createScheduler(peerName, peerID string, expireTime *string) (*string, error) {
+func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string) (*string, error) {
 	if expireTime == nil {
 		return nil, nil
 	}
 
 	scheduler := mikrotik.Scheduler{
-		Comment:   utils.Ptr(schedulerComment + peerName),
-		Name:      utils.Ptr(schedulerName + peerName),
+		Comment:   utils.Ptr(common.SchedulerComment + peerName),
+		Name:      common.SchedulerName + peerName,
 		StartDate: expireTime,
-		StartTime: utils.Ptr(schedulerStartTime),
-		Interval:  utils.Ptr(schedulerInterval),
-		Policy:    utils.Ptr(schedulerPolicy),
-		OnEvent:   utils.Ptr(schedulerEvent + peerID),
+		StartTime: utils.Ptr(common.SchedulerStartTime),
+		Interval:  utils.Ptr(common.SchedulerInterval),
+		Policy:    utils.Ptr(common.SchedulerPolicy),
+		OnEvent:   utils.Ptr(common.SchedulerEvent + peerID),
 	}
 
 	createdScheduler, err := s.mikrotikAdaptor.CreateScheduler(context.Background(), scheduler)
@@ -42,7 +43,7 @@ func (s *Scheduler) createScheduler(peerName, peerID string, expireTime *string)
 		return nil, err
 	}
 
-	return createdScheduler.ID, nil
+	return &createdScheduler.ID, nil
 }
 
 func (s *Scheduler) updateScheduler(schedulerID, expireTime *string) error {

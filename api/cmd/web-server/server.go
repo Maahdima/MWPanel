@@ -29,6 +29,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor)
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator)
 	deviceDataService := service.NewDeviceData(mikrotikAdaptor, serverService, interfaceService, peerService)
+	syncService := service.NewSyncService(db, mikrotikAdaptor)
 
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -36,7 +37,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
 	http.SetupMwpUI(e, appCfg.UIAssetsFs)
-	http.SetupMwpAPI(e, mwpClients, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator)
+	http.SetupMwpAPI(e, mwpClients, authenticationService, serverService, interfaceService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator, syncService)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
 

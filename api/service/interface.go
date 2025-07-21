@@ -11,7 +11,6 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
-	"github.com/maahdima/mwp/api/utils"
 )
 
 type WgInterface struct {
@@ -42,7 +41,7 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 			i.logger.Error("failed to fetch wireguard interface from Mikrotik", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
 			return nil, fmt.Errorf("failed to fetch wireguard interface from Mikrotik: %w", err)
 		}
-		wgInterface := i.transformInterfaceToResponse(iface, *mtInterface.MTU, *mtInterface.Running)
+		wgInterface := i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running)
 		wgInterfaces = append(wgInterfaces, wgInterface)
 	}
 
@@ -51,9 +50,9 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 
 func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*schema.InterfaceResponse, error) {
 	wgInterface := &mikrotik.WireGuardInterface{
-		Name:       &req.Name,
+		Name:       req.Name,
 		Comment:    req.Comment,
-		ListenPort: &req.ListenPort,
+		ListenPort: req.ListenPort,
 	}
 
 	mtInterface, err := i.mikrotikAdaptor.CreateWgInterface(context.Background(), *wgInterface)
@@ -63,10 +62,10 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 	}
 
 	dbInterface := model.Interface{
-		InterfaceID: *mtInterface.ID,
+		InterfaceID: mtInterface.ID,
 		Comment:     req.Comment,
-		Name:        *wgInterface.Name,
-		ListenPort:  *wgInterface.ListenPort,
+		Name:        wgInterface.Name,
+		ListenPort:  wgInterface.ListenPort,
 	}
 
 	if err := i.db.Create(&dbInterface).Error; err != nil {
@@ -74,7 +73,7 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 		return nil, err
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(dbInterface, *mtInterface.MTU, *mtInterface.Running)
+	transformedInterface := i.transformInterfaceToResponse(dbInterface, mtInterface.MTU, *mtInterface.Running)
 	return &transformedInterface, nil
 }
 
@@ -85,7 +84,7 @@ func (i *WgInterface) ToggleInterfaceStatus(id uint) error {
 		return fmt.Errorf("failed to find wireguard interface in database: %w", err)
 	}
 
-	disabled := utils.Ptr(strconv.FormatBool(!iface.Disabled))
+	disabled := strconv.FormatBool(!iface.Disabled)
 
 	wgInterface := mikrotik.WireGuardInterface{
 		Disabled: disabled,
@@ -115,14 +114,13 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 
 	if req.Disabled != nil {
 		disabledStr := strconv.FormatBool(*req.Disabled)
-		wgInterface.Disabled = &disabledStr
+		wgInterface.Disabled = disabledStr
 	}
 	if req.Comment != nil {
 		wgInterface.Comment = req.Comment
 	}
-	if req.Name != nil {
-		wgInterface.Name = req.Name
-	}
+
+	wgInterface.Name = req.Name
 
 	mtInterface, err := i.mikrotikAdaptor.UpdateWgInterface(context.Background(), iface.InterfaceID, wgInterface)
 	if err != nil {
@@ -131,15 +129,15 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 	}
 
 	iface.Comment = req.Comment
-	iface.Name = *wgInterface.Name
-	iface.ListenPort = *wgInterface.ListenPort
+	iface.Name = wgInterface.Name
+	iface.ListenPort = wgInterface.ListenPort
 
 	if err := i.db.Save(&iface).Error; err != nil {
 		i.logger.Error("failed to update wireguard interface in database", zap.Error(err))
 		return nil, fmt.Errorf("failed to update wireguard interface in database")
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(iface, *mtInterface.MTU, *mtInterface.Running)
+	transformedInterface := i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running)
 	return &transformedInterface, nil
 }
 

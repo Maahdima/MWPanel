@@ -29,8 +29,8 @@ type CreatePeerRequest struct {
 type UpdatePeerRequest struct {
 	Disabled            *bool   `json:"disabled,omitempty"`
 	Comment             *string `json:"comment,omitempty"`
-	Name                *string `json:"name,omitempty"`
-	AllowedAddress      *string `json:"allowed_address,omitempty"`
+	Name                string  `json:"name,omitempty"`
+	AllowedAddress      string  `json:"allowed_address,omitempty"`
 	PresharedKey        *string `json:"preshared_key,omitempty"`
 	PersistentKeepAlive *string `json:"persistent_keepalive,omitempty"`
 	ExpireTime          *string `json:"expire_time,omitempty"`

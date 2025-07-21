@@ -13,27 +13,13 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/utils"
 	"github.com/maahdima/mwp/api/utils/timehelper"
 	"github.com/maahdima/mwp/api/utils/wireguard"
-)
-
-var (
-	schedulerComment   = "Expire WireGuard Peer: "
-	schedulerName      = "Schedule: "
-	schedulerStartTime = "12:00:00"
-	schedulerInterval  = "00:00:00"
-	schedulerPolicy    = "read,write"
-	schedulerEvent     = "/interface/wireguard/peers/disable"
-)
-
-var (
-	queueComment     = "Wg Bandwidth Queue: "
-	queueName        = "Bandwidth Limit: "
-	defaultKeepalive = "25"
 )
 
 type WgPeer struct {
@@ -64,7 +50,7 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
-	disabled := utils.Ptr(strconv.FormatBool(!peer.Disabled))
+	disabled := strconv.FormatBool(!peer.Disabled)
 
 	wgPeer := mikrotik.WireGuardPeer{
 		Disabled: disabled,
@@ -251,11 +237,11 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 
 	wgPeer := &mikrotik.WireGuardPeer{
 		Comment:        req.Comment,
-		Name:           &req.Name,
-		AllowedAddress: &req.AllowedAddress,
-		Interface:      &req.Interface,
+		Name:           req.Name,
+		AllowedAddress: req.AllowedAddress,
+		Interface:      req.Interface,
 		PresharedKey:   req.PresharedKey,
-		PublicKey:      &req.PublicKey,
+		PublicKey:      req.PublicKey,
 	}
 
 	mtPeer, err := w.mikrotikAdaptor.CreateWgPeer(context.Background(), *wgPeer)
@@ -263,17 +249,17 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	schedulerId, err := w.scheduler.createScheduler(*mtPeer.Name, *mtPeer.ID, req.ExpireTime)
+	schedulerId, err := w.scheduler.createScheduler(mtPeer.ID, mtPeer.Name, req.ExpireTime)
 	if err != nil {
 		return nil, err
 	}
 
-	queueId, err := w.queue.createQueue(*mtPeer.Name, *mtPeer.AllowedAddress, req.DownloadBandwidth, req.UploadBandwidth)
+	queueId, err := w.queue.createQueue(mtPeer.Name, mtPeer.AllowedAddress, req.DownloadBandwidth, req.UploadBandwidth)
 	if err != nil {
 		return nil, err
 	}
 
-	var timeString = defaultKeepalive
+	var timeString = common.DefaultKeepalive
 	if req.PersistentKeepAlive != nil {
 		parsedTime, err := timehelper.ParseTime(*req.PersistentKeepAlive)
 		if err != nil {
@@ -283,7 +269,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		timeString = strconv.Itoa(parsedTime)
 	}
 
-	disabled, err := strconv.ParseBool(*mtPeer.Disabled)
+	disabled, err := strconv.ParseBool(mtPeer.Disabled)
 	if err != nil {
 		w.logger.Error("failed to parse disabled field from Mikrotik peer", zap.Error(err))
 		return nil, err
@@ -293,15 +279,15 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),
-		PeerID:              *mtPeer.ID,
+		PeerID:              mtPeer.ID,
 		Disabled:            disabled,
 		Comment:             mtPeer.Comment,
-		Name:                *mtPeer.Name,
-		PublicKey:           *mtPeer.PublicKey,
-		Interface:           *mtPeer.Interface,
-		AllowedAddress:      *mtPeer.AllowedAddress,
+		Name:                mtPeer.Name,
+		PublicKey:           mtPeer.PublicKey,
+		Interface:           mtPeer.Interface,
+		AllowedAddress:      mtPeer.AllowedAddress,
 		Endpoint:            req.Endpoint,
-		EndpointPort:        *wgInterface.ListenPort,
+		EndpointPort:        wgInterface.ListenPort,
 		PersistentKeepalive: timeString,
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
@@ -314,7 +300,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, *wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
+	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
 
 	err = w.configGenerator.BuildPeerConfig(
 		configData,
@@ -406,7 +392,7 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 	}
 
 	var wgPeers []schema.RecentOnlinePeers
-	for _, peer := range *peers {
+	for _, peer := range peers {
 		if peer.LastHandshake != nil {
 			duration, err := time.ParseDuration(*peer.LastHandshake)
 			if err != nil {
@@ -428,7 +414,7 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 	for _, item := range peerList {
 		if item.duration < 150*time.Second {
 			wgPeers = append(wgPeers, schema.RecentOnlinePeers{
-				Name:     *item.peer.Name,
+				Name:     item.peer.Name,
 				LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05")})
 			count++
 			if count == 5 {
@@ -439,7 +425,7 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 
 	return &schema.PeerStatsResponse{
 		RecentOnlinePeers: &wgPeers,
-		TotalPeers:        len(*peers),
+		TotalPeers:        len(peers),
 		OnlinePeers:       count,
 	}, nil
 }
@@ -465,17 +451,15 @@ func (w *WgPeer) updateMikrotikPeer(peerID string, req *schema.UpdatePeerRequest
 
 	if req.Disabled != nil {
 		disabledStr := strconv.FormatBool(*req.Disabled)
-		wgPeer.Disabled = &disabledStr
+		wgPeer.Disabled = disabledStr
 	}
 	if req.Comment != nil {
 		wgPeer.Comment = req.Comment
 	}
-	if req.Name != nil {
-		wgPeer.Name = req.Name
-	}
-	if req.AllowedAddress != nil {
-		wgPeer.AllowedAddress = req.AllowedAddress
-	}
+
+	wgPeer.Name = req.Name
+	wgPeer.AllowedAddress = req.AllowedAddress
+
 	if req.PersistentKeepAlive != nil {
 		wgPeer.PersistentKeepAlive = req.PersistentKeepAlive
 	}
@@ -502,7 +486,7 @@ func (w *WgPeer) handleScheduler(peer *model.Peer, req *schema.UpdatePeerRequest
 	}
 
 	if req.ExpireTime != nil && peer.SchedulerID == nil {
-		return w.scheduler.createScheduler(peer.Name, peer.PeerID, req.ExpireTime)
+		return w.scheduler.createScheduler(peer.PeerID, peer.Name, req.ExpireTime)
 	}
 
 	if req.ExpireTime != nil {

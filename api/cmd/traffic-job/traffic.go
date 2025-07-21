@@ -66,7 +66,7 @@ func (c *Calculator) CalculateTraffic() {
 
 			peer.Disabled = true
 			_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
-				Disabled: utils.Ptr(strconv.FormatBool(true)),
+				Disabled: strconv.FormatBool(true),
 			})
 			if err != nil {
 				c.logger.Error("Failed to disable peer on Mikrotik", zap.String("peerID", peer.PeerID), zap.Error(err))
