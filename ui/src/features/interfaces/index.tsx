@@ -1,4 +1,5 @@
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery.ts'
+import { useSyncInterfacesMutation } from '@/hooks/interfaces/useSyncInterfacesMutation.ts'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -17,6 +18,9 @@ export default function Interfaces() {
     refetch: refetchInterfacesList,
     isRefetching: isInterfacesListRefetching,
   } = useInterfacesListQuery()
+
+  const { mutate: syncInterfaces, isPending: isInterfacesSyncing } =
+    useSyncInterfacesMutation()
 
   return (
     <InterfacesProvider>
@@ -37,6 +41,8 @@ export default function Interfaces() {
           <InterfacesPrimaryButtons
             refetchInterfacesList={refetchInterfacesList}
             isInterfacesListRefetching={isInterfacesListRefetching}
+            syncInterfaces={syncInterfaces}
+            isInterfacesSyncing={isInterfacesSyncing}
           />
         </div>
 

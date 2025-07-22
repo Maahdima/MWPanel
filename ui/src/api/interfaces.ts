@@ -41,3 +41,7 @@ export const updateInterface = async (
 export const deleteInterface = async (id: number): Promise<void> => {
   await axiosInstance.delete(`/interface/${id}`)
 }
+
+export const syncInterfaces = async (): Promise<void> => {
+  await axiosInstance.post('/sync/interfaces')
+}

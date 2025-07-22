@@ -1,4 +1,5 @@
 import { usePeersListQuery } from '@/hooks/peers/usePeersListQuery.ts'
+import { useSyncPeersMutation } from '@/hooks/peers/useSyncPeersMutation.ts'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -17,6 +18,9 @@ export default function Peers() {
     refetch: refetchPeersList,
     isRefetching: isPeersListRefetching,
   } = usePeersListQuery()
+
+  const { mutate: syncPeers, isPending: isPeersSyncing } =
+    useSyncPeersMutation()
 
   return (
     <PeersProvider>
@@ -39,6 +43,8 @@ export default function Peers() {
           <PeersPrimaryButtons
             refetchPeersList={refetchPeersList}
             isPeersListRefetching={isPeersListRefetching}
+            syncPeers={syncPeers}
+            isPeersSyncing={isPeersSyncing}
           />
         </div>
 
