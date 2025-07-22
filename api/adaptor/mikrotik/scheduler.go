@@ -2,6 +2,8 @@ package mikrotik
 
 import (
 	"context"
+
+	"github.com/maahdima/mwp/api/common"
 )
 
 type Scheduler struct {
@@ -23,7 +25,7 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 
 	err := httpClient.Put(
 		c,
-		SchedulerPath,
+		common.SchedulerPath,
 		scheduler,
 		&createdScheduler,
 	)
@@ -41,7 +43,7 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 
 	err := httpClient.Patch(
 		c,
-		SchedulerPath+"/"+schedulerID,
+		common.SchedulerPath+"/"+schedulerID,
 		scheduler,
 		&updatedScheduler,
 	)
@@ -57,7 +59,7 @@ func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
 
 	err := httpClient.Delete(
 		c,
-		SchedulerPath+"/"+schedulerID,
+		common.SchedulerPath+"/"+schedulerID,
 		nil,
 	)
 	if err != nil {

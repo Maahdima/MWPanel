@@ -48,8 +48,8 @@ func (c *Calculator) CalculateTraffic() {
 			continue
 		}
 
-		currentTx := utils.ParseStringToInt(*wgPeer.TransferTx)
-		currentRx := utils.ParseStringToInt(*wgPeer.TransferRx)
+		currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
+		currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
 
 		deltaTx := calculateDelta(peer.LastTx, currentTx, maxCounter)
 		deltaRx := calculateDelta(peer.LastRx, currentRx, maxCounter)
@@ -99,8 +99,8 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 		return err
 	}
 
-	currentTx := utils.ParseStringToInt(*wgPeer.TransferTx)
-	currentRx := utils.ParseStringToInt(*wgPeer.TransferRx)
+	currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
+	currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
 
 	err = c.db.Transaction(func(tx *gorm.DB) error {
 		peer.DownloadUsage = 0

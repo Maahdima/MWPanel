@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+
+	"github.com/maahdima/mwp/api/common"
 )
 
 type WireGuardInterface struct {
@@ -25,7 +27,7 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 
 	err := httpClient.Get(
 		c,
-		WGInterfacePath,
+		common.WGInterfacePath,
 		&wgInterfaces,
 	)
 	if err != nil {
@@ -42,7 +44,7 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 
 	err := httpClient.Get(
 		c,
-		WGInterfacePath+"/"+interfaceID,
+		common.WGInterfacePath+"/"+interfaceID,
 		&wgInterface,
 	)
 	if err != nil {
@@ -59,7 +61,7 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 
 	err := httpClient.Put(
 		c,
-		WGInterfacePath,
+		common.WGInterfacePath,
 		wgInterface,
 		&createdInterface,
 	)
@@ -77,7 +79,7 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 
 	err := httpClient.Patch(
 		c,
-		WGInterfacePath+"/"+interfaceID,
+		common.WGInterfacePath+"/"+interfaceID,
 		wgInterface,
 		&updatedInterface,
 	)
@@ -93,7 +95,7 @@ func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error
 
 	err := httpClient.Delete(
 		c,
-		WGInterfacePath+"/"+interfaceID,
+		common.WGInterfacePath+"/"+interfaceID,
 		nil,
 	)
 	if err != nil {

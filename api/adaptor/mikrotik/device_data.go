@@ -2,6 +2,8 @@ package mikrotik
 
 import (
 	"context"
+
+	"github.com/maahdima/mwp/api/common"
 )
 
 type SystemIdentity struct {
@@ -60,7 +62,7 @@ func (a *Adaptor) FetchDeviceInfo(c context.Context) (*SystemInfo, error) {
 
 	err := httpClient.Get(
 		c,
-		DeviceInfoPath,
+		common.DeviceInfoPath,
 		&systemInfo,
 	)
 	if err != nil {
@@ -77,7 +79,7 @@ func (a *Adaptor) FetchDeviceIdentity(c context.Context) (*SystemIdentity, error
 
 	err := httpClient.Get(
 		c,
-		DeviceIdentityPath,
+		common.DeviceIdentityPath,
 		&systemIdentity,
 	)
 	if err != nil {
@@ -94,7 +96,7 @@ func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 
 	err := httpClient.Get(
 		c,
-		DeviceDnsPath,
+		common.DeviceDnsPath,
 		&dnsConfig,
 	)
 	if err != nil {
@@ -111,7 +113,7 @@ func (a *Adaptor) FetchIPv4Addresses(c context.Context) (*[]IPAddress, error) {
 
 	err := httpClient.Get(
 		c,
-		DeviceIPv4Path,
+		common.DeviceIPv4Path,
 		&ipv4Address,
 	)
 	if err != nil {

@@ -26,13 +26,6 @@ func init() {
 	}
 }
 
-// TODO : Make these configurable
-var (
-	allowedIpsExcludeLocal = ""
-	allowedIpsIncludeLocal = "0.0.0.0/0, ::/0"
-	defaultDns             = "8.8.8.8, 1.1.1.1"
-)
-
 type ConfigGenerator struct {
 	db     *gorm.DB
 	logger *zap.Logger

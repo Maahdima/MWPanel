@@ -2,6 +2,8 @@ package mikrotik
 
 import (
 	"context"
+
+	"github.com/maahdima/mwp/api/common"
 )
 
 type Queue struct {
@@ -20,7 +22,7 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 
 	err := httpClient.Put(
 		c,
-		QueuePath,
+		common.QueuePath,
 		queue,
 		&createdQueue,
 	)
@@ -38,7 +40,7 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 
 	err := httpClient.Patch(
 		c,
-		QueuePath+"/"+queueID,
+		common.QueuePath+"/"+queueID,
 		queue,
 		&updatedQueue,
 	)
@@ -54,7 +56,7 @@ func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 
 	err := httpClient.Delete(
 		c,
-		QueuePath+"/"+queueID,
+		common.QueuePath+"/"+queueID,
 		nil,
 	)
 	if err != nil {

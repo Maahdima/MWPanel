@@ -65,6 +65,8 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 		InterfaceID: mtInterface.ID,
 		Comment:     req.Comment,
 		Name:        wgInterface.Name,
+		PrivateKey:  wgInterface.PrivateKey,
+		PublicKey:   wgInterface.PublicKey,
 		ListenPort:  wgInterface.ListenPort,
 	}
 

@@ -1,6 +1,17 @@
 package common
 
 var (
+	DeviceInfoPath     = "/system/resource"
+	DeviceIdentityPath = "/system/identity"
+	DeviceDnsPath      = "/ip/dns"
+	DeviceIPv4Path     = "/ip/address"
+	WGPeerPath         = "/interface/wireguard/peers"
+	WGInterfacePath    = "/interface/wireguard"
+	QueuePath          = "/queue/simple"
+	SchedulerPath      = "/system/scheduler"
+)
+
+var (
 	IPv4DefaultInterface = "ether1"
 )
 
@@ -17,4 +28,11 @@ var (
 	QueueComment     = "Wg Bandwidth Queue: "
 	QueueName        = "Bandwidth Limit: "
 	DefaultKeepalive = "25"
+)
+
+// TODO : Make these configurable
+var (
+	AllowedIpsExcludeLocal = ""
+	AllowedIpsIncludeLocal = "0.0.0.0/0, ::/0"
+	DefaultDns             = "8.8.8.8, 1.1.1.1"
 )

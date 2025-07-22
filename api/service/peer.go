@@ -241,6 +241,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		AllowedAddress: req.AllowedAddress,
 		Interface:      req.Interface,
 		PresharedKey:   req.PresharedKey,
+		PrivateKey:     &req.PrivateKey,
 		PublicKey:      req.PublicKey,
 	}
 
@@ -283,6 +284,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		Disabled:            disabled,
 		Comment:             mtPeer.Comment,
 		Name:                mtPeer.Name,
+		PrivateKey:          *mtPeer.PrivateKey,
 		PublicKey:           mtPeer.PublicKey,
 		Interface:           mtPeer.Interface,
 		AllowedAddress:      mtPeer.AllowedAddress,
@@ -300,7 +302,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, defaultDns, wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, allowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
+	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, common.DefaultDns, wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, common.AllowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
 
 	err = w.configGenerator.BuildPeerConfig(
 		configData,

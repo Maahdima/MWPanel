@@ -228,7 +228,6 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 	return ctx.File(config)
 }
 
-// TODO : use id here
 func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 	id := ctx.Param("id")
 	if id == "" {
