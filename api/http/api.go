@@ -101,8 +101,8 @@ func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	syncGroup := router.Group("/sync")
 	syncGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
 
-	syncGroup.GET("/peers", syncController.SyncPeers)
-	syncGroup.GET("/interfaces", syncController.SyncInterfaces)
+	syncGroup.POST("/peers", syncController.SyncPeers)
+	syncGroup.POST("/interfaces", syncController.SyncInterfaces)
 }
 
 func setupUserRoutes(router *echo.Group, userController *UserController) {
