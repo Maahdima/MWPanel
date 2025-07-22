@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function PeersQRCodeDialog({ open, onOpenChange, currentRow }: Props) {
-  const { data: peerQRCode, isLoading } = usePeerQRCodeQuery(currentRow.uuid, {
+  const { data: peerQRCode, isLoading } = usePeerQRCodeQuery(currentRow.id, {
     enabled: open,
   })
 

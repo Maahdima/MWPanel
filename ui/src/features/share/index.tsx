@@ -3,9 +3,9 @@
 import { AxiosError } from 'axios'
 import { useSearch } from '@tanstack/react-router'
 import { IconRoute } from '@tabler/icons-react'
-import { usePeerConfigQuery } from '@/hooks/peers/usePeerConfigQuery.ts'
-import { usePeerQRCodeQuery } from '@/hooks/peers/usePeerQRCodeQuery.ts'
-import { usePeerStatsQuery } from '@/hooks/peers/usePeerStatsQuery.ts'
+import { useUserConfigQuery } from '@/hooks/user/useUserConfigQuery.ts'
+import { useUserDetailsQuery } from '@/hooks/user/useUserDetailsQuery.ts'
+import { useUserQRCodeQuery } from '@/hooks/user/useUserQRCodeQuery.ts'
 import NotFoundError from '@/features/errors/not-found-error.tsx'
 import PeerConfigCard from '@/features/share/components/peer-config-card.tsx'
 import PeerQRCodeCard from '@/features/share/components/peer-qrcode-card.tsx'
@@ -14,18 +14,16 @@ import PeerStatsCard from '@/features/share/components/peer-stats-card.tsx'
 export default function PeerShare() {
   const { shareId } = useSearch({ from: '/share' })
 
-  console.log(`Share ID: ${shareId}`)
-
   const {
     data: stats,
     error: statsError,
     isLoading: statsLoading,
-  } = usePeerStatsQuery(shareId)
+  } = useUserDetailsQuery(shareId)
 
   const { data: configBlob, isLoading: configLoading } =
-    usePeerConfigQuery(shareId)
+    useUserConfigQuery(shareId)
 
-  const { data: qrCode, isLoading: qrCodeLoading } = usePeerQRCodeQuery(shareId)
+  const { data: qrCode, isLoading: qrCodeLoading } = useUserQRCodeQuery(shareId)
 
   if (statsError && (statsError as AxiosError)?.response?.status === 404) {
     return <NotFoundError />

@@ -28,7 +28,7 @@ export function PeersConfigDialog({
   download = false,
 }: Props) {
   const { data: peerConfigBlob, isLoading } = usePeerConfigQuery(
-    currentRow.uuid,
+    currentRow.id,
     {
       enabled: open,
     }
