@@ -54,3 +54,28 @@ func (a *AuthController) Login(ctx echo.Context) error {
 		},
 	})
 }
+
+func (a *AuthController) UpdateProfile(ctx echo.Context) error {
+	var req schema.UpdateProfileRequest
+	if err := ctx.Bind(&req); err != nil {
+		a.logger.Warn("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	if err := ctx.Validate(&req); err != nil {
+		a.logger.Warn("failed to validate request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	err := a.authService.UpdateProfile(req.OldUsername, req.NewUsername, req.OldPassword, req.NewPassword)
+	if err != nil {
+		a.logger.Error("failed to update profile", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to update profile: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}

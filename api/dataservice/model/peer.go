@@ -17,7 +17,7 @@ type Peer struct {
 	SchedulerID         *string `gorm:"type:varchar(255)"`
 	QueueID             *string `gorm:"type:varchar(255)"`
 	ExpireTime          *string `gorm:"type:varchar(255)"`
-	TrafficLimit        *int64  `gorm:"type:bigint;default:0"` // in bytes, 0 means no limit
+	TrafficLimit        *int64  `gorm:"type:bigint"`
 	DownloadBandwidth   *string `gorm:"type:varchar(255)"`
 	UploadBandwidth     *string `gorm:"type:varchar(255)"`
 	DownloadUsage       int64   `gorm:"type:bigint;not null;default:0"` // in bytes

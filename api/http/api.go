@@ -44,8 +44,7 @@ func setupAuthenticationRoutes(router *echo.Group, authController *AuthControlle
 	authGroup := router.Group("/auth")
 
 	authGroup.POST("/login", authController.Login)
-	//router.POST("/refresh-token", authController.RefreshToken)
-	//router.GET("/logout", authController.Logout)
+	router.PUT("/profile", authController.UpdateProfile)
 }
 
 func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverController *ServerController) {

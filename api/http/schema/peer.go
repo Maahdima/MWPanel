@@ -78,6 +78,7 @@ type PeerResponse struct {
 	UploadBandwidth   *string      `json:"upload_bandwidth"`
 	TotalUsage        string       `json:"total_usage"`
 	Status            []PeerStatus `json:"status"`
+	IsOnline          bool         `json:"is_online"`
 	IsShared          bool         `json:"is_shared"`
 }
 

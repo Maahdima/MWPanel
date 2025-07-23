@@ -66,6 +66,40 @@ func (a *Authentication) Login(username, password string) (accessToken, refreshT
 	return accessToken, refreshToken, expiresIn, nil
 }
 
+func (a *Authentication) UpdateProfile(oldUsername, newUsername, oldPassword, newPassword string) error {
+	var admin model.Admin
+
+	if err := a.db.First(&admin, "username = ?", oldUsername).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			a.logger.Error("user not found", zap.String("username", oldUsername))
+			return errors.New("user not found")
+		}
+		a.logger.Error("failed to query user from database", zap.Error(err))
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+		a.logger.Error("password mismatch", zap.String("username", oldUsername), zap.Error(err))
+		return errors.New("password mismatch")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		a.logger.Error("failed to hash new password", zap.Error(err))
+		return err
+	}
+
+	admin.Username = newUsername
+	admin.Password = string(hashedPassword)
+
+	if err := a.db.Save(&admin).Error; err != nil {
+		a.logger.Error("failed to update user profile", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
 func (a *Authentication) generateAccessToken(username string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": username,

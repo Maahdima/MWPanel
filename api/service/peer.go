@@ -188,15 +188,16 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
 
-	var usagePercent *string
-	if peer.TrafficLimit != nil && *peer.TrafficLimit != 0 && *peer.TrafficLimit > 0 {
+	var usagePercent, trafficLimit *string
+	if peer.TrafficLimit != nil {
+		trafficLimit = utils.Ptr(utils.BytesToGB(*peer.TrafficLimit))
 		percent := float64(totalUsage) / float64(*peer.TrafficLimit) * 100
 		usagePercent = utils.Ptr(fmt.Sprintf("%.1f", percent))
 	}
 
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
-		TrafficLimit:  utils.Ptr(utils.BytesToGB(*peer.TrafficLimit)),
+		TrafficLimit:  trafficLimit,
 		ExpireTime:    peer.ExpireTime,
 		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
 		UploadUsage:   utils.BytesToGB(peer.UploadUsage),
@@ -206,15 +207,35 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 }
 
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
-	var peers []model.Peer
-	if err := w.db.Order("created_at ASC").Find(&peers).Error; err != nil {
+	var dbPeers []model.Peer
+	if err := w.db.Order("created_at ASC").Find(&dbPeers).Error; err != nil {
 		w.logger.Error("failed to get peers from database", zap.Error(err))
 		return nil, err
 	}
 
 	var wgPeers []schema.PeerResponse
-	for _, peer := range peers {
-		wgPeer := w.transformPeerToResponse(peer)
+	for _, dbPeer := range dbPeers {
+		peer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), dbPeer.PeerID)
+		if err != nil {
+			w.logger.Error("failed to fetch wireguard peer from Mikrotik", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
+			continue
+		}
+
+		wgPeer := w.transformPeerToResponse(dbPeer)
+
+		var duration time.Duration
+		if peer.LastHandshake != nil {
+			duration, err = time.ParseDuration(*peer.LastHandshake)
+			if err != nil {
+				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
+				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
+			}
+
+			if duration < 150*time.Second {
+				wgPeer.IsOnline = true
+			}
+		}
+
 		wgPeers = append(wgPeers, wgPeer)
 	}
 
@@ -414,14 +435,12 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 
 	count := 0
 	for _, item := range peerList {
-		if item.duration < 150*time.Second {
-			wgPeers = append(wgPeers, schema.RecentOnlinePeers{
-				Name:     item.peer.Name,
-				LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05")})
-			count++
-			if count == 5 {
-				break
-			}
+		wgPeers = append(wgPeers, schema.RecentOnlinePeers{
+			Name:     item.peer.Name,
+			LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05")})
+		count++
+		if count == 5 {
+			break
 		}
 	}
 
@@ -605,7 +624,7 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 		}
 	}
 
-	if peer.TrafficLimit != nil && *peer.TrafficLimit != 0 {
+	if peer.TrafficLimit != nil {
 		totalUsedTraffic := peer.DownloadUsage + peer.UploadUsage
 		if totalUsedTraffic > *peer.TrafficLimit {
 			peerStatus = append(peerStatus, schema.SuspendedPeer)
