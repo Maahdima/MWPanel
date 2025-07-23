@@ -22,6 +22,7 @@ export const PeerSchema = z.object({
   upload_bandwidth: z.string().nullable(),
   total_usage: z.string(),
   status: z.array(PeerStatusEnum),
+  is_online: z.boolean(),
   is_shared: z.boolean(),
 })
 

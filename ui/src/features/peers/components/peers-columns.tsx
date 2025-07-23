@@ -15,7 +15,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
-import { OnlineBadge } from '@/features/peers/components/activity-badge.tsx'
+import {
+  OfflineBadge,
+  OnlineBadge,
+} from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
@@ -61,10 +64,14 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='Name' />
     ),
     cell: ({ row }) => {
-      const { name } = row.original
+      const { name, is_online } = row.original
       return (
         <div className='flex w-fit items-center justify-center gap-3 text-nowrap'>
-          <OnlineBadge />
+          {is_online ? (
+            <OnlineBadge peerName={name} />
+          ) : (
+            <OfflineBadge peerName={name} />
+          )}
           {name}
         </div>
       )

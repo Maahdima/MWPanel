@@ -40,3 +40,19 @@ export function buildDeviceStats(
     { label: 'Disk Usage', value: diskValue },
   ]
 }
+
+export function getAvatarInitials(name: string): string {
+  if (!name) return ''
+
+  const cleaned = name.trim().replace(/\s+/g, ' ')
+  if (!cleaned) return ''
+
+  const words = cleaned.split(' ')
+
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+
+  const single = words[0]
+  return single.slice(0, 2).toUpperCase()
+}
