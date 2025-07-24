@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/http/schema"
 )
 
 var (
@@ -33,40 +34,46 @@ func NewAuthentication(db *gorm.DB) *Authentication {
 	}
 }
 
-func (a *Authentication) Login(username, password string) (accessToken, refreshToken string, expiresIn int64, err error) {
+func (a *Authentication) Login(username, password string) (*schema.LoginResponse, error) {
 	var admin model.Admin
 
 	if err := a.db.First(&admin, "username = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("user not found", zap.String("username", username))
-			return "", "", 0, errors.New("user not found")
+			return nil, errors.New("user not found")
 		}
 		a.logger.Error("failed to query user from database", zap.Error(err))
-		return "", "", 0, err
+		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password)); err != nil {
 		a.logger.Error("password mismatch", zap.String("username", username), zap.Error(err))
-		return "", "", 0, errors.New("password mismatch")
+		return nil, errors.New("password mismatch")
 	}
 
-	accessToken, err = a.generateAccessToken(username)
+	accessToken, err := a.generateAccessToken(username)
 	if err != nil {
 		a.logger.Error("failed to generate access token", zap.Error(err))
-		return "", "", 0, err
+		return nil, err
 	}
 
-	refreshToken, err = a.generateRefreshToken(username)
+	refreshToken, err := a.generateRefreshToken(username)
 	if err != nil {
 		a.logger.Error("failed to generate refresh token", zap.Error(err))
-		return "", "", 0, err
+		return nil, err
 	}
 
-	expiresIn = int64(accessTokenTTL.Seconds())
-	return accessToken, refreshToken, expiresIn, nil
+	expiresIn := int64(accessTokenTTL.Seconds())
+	return &schema.LoginResponse{
+		UserID:       admin.ID,
+		Username:     admin.Username,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    expiresIn,
+	}, nil
 }
 
-func (a *Authentication) UpdateProfile(oldUsername, newUsername, oldPassword, newPassword string) error {
+func (a *Authentication) UpdateProfile(oldUsername, oldPassword string, newUsername, newPassword *string) error {
 	var admin model.Admin
 
 	if err := a.db.First(&admin, "username = ?", oldUsername).Error; err != nil {
@@ -83,14 +90,18 @@ func (a *Authentication) UpdateProfile(oldUsername, newUsername, oldPassword, ne
 		return errors.New("password mismatch")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		a.logger.Error("failed to hash new password", zap.Error(err))
-		return err
+	if newUsername != nil {
+		admin.Username = *newUsername
 	}
 
-	admin.Username = newUsername
-	admin.Password = string(hashedPassword)
+	if newPassword != nil {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			a.logger.Error("failed to hash new password", zap.Error(err))
+			return err
+		}
+		admin.Password = string(hashedPassword)
+	}
 
 	if err := a.db.Save(&admin).Error; err != nil {
 		a.logger.Error("failed to update user profile", zap.Error(err))

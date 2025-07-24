@@ -31,7 +31,7 @@ func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationSe
 	syncController := NewSyncController(syncService)
 	userController := NewUserController(peerService, peerConfigService, peerQrCodeService)
 
-	setupAuthenticationRoutes(router, authController)
+	setupAuthenticationRoutes(router, jwtConfig, authController)
 	setupServerRoutes(router, jwtConfig, serverController)
 	setupInterfaceRoutes(router, mwpClients, jwtConfig, wgInterfaceController)
 	setupPeerRoutes(router, mwpClients, jwtConfig, wgPeerController)
@@ -40,11 +40,11 @@ func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationSe
 	setupUserRoutes(router, userController)
 }
 
-func setupAuthenticationRoutes(router *echo.Group, authController *AuthController) {
+func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, authController *AuthController) {
 	authGroup := router.Group("/auth")
 
 	authGroup.POST("/login", authController.Login)
-	router.PUT("/profile", authController.UpdateProfile)
+	authGroup.PUT("/profile", authController.UpdateProfile, echojwt.WithConfig(jwtConfig))
 }
 
 func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverController *ServerController) {

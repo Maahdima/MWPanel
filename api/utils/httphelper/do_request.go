@@ -14,7 +14,7 @@ import (
 )
 
 type Config struct {
-	BaseURL            string        // The base URL for all requests, e.g., "http://192.168.88.1/rest"
+	BaseURL            string        // The base URL for all requests, e.g., "http://127.0.0.1/rest"
 	Username           string        // Username for Basic Authentication.
 	Password           string        // Password for Basic Authentication.
 	InsecureSkipVerify bool          // If true, the client will skip TLS certificate verification. Equivalent to 'curl -k'.
@@ -33,7 +33,7 @@ func NewClient(config Config) (*Client, error) {
 		return nil, fmt.Errorf("BaseURL is a required configuration field")
 	}
 	if config.Timeout == 0 {
-		config.Timeout = 30 * time.Second
+		config.Timeout = 5 * time.Second
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -87,7 +87,7 @@ func (c *Client) Do(req *http.Request, respBody interface{}) error {
 	}
 
 	if err := json.Unmarshal(body, respBody); err != nil {
-		logger.Error("Unmarshaling response body failed", zap.String("body", string(body)), zap.Error(err))
+		logger.Error("Unmarshalling response body failed", zap.String("body", string(body)), zap.Error(err))
 		return err
 	}
 

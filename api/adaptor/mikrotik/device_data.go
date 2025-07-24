@@ -106,7 +106,7 @@ func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 	return &dnsConfig, nil
 }
 
-func (a *Adaptor) FetchIPv4Addresses(c context.Context) (*[]IPAddress, error) {
+func (a *Adaptor) FetchIPv4Addresses(c context.Context) ([]IPAddress, error) {
 	var ipv4Address []IPAddress
 
 	httpClient := a.mwpClients.GetClient(nil)
@@ -120,5 +120,5 @@ func (a *Adaptor) FetchIPv4Addresses(c context.Context) (*[]IPAddress, error) {
 		return nil, err
 	}
 
-	return &ipv4Address, nil
+	return ipv4Address, nil
 }
