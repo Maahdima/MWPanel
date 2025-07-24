@@ -24,7 +24,11 @@ export function PasswordField({ name, label, placeholder, control }: Props) {
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <PasswordInput {...field} placeholder={placeholder} />
+            <PasswordInput
+              className='bg-input/30'
+              {...field}
+              placeholder={placeholder}
+            />
           </FormControl>
           <FormMessage />
         </FormItem>

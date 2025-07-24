@@ -36,8 +36,8 @@ export const deviceDataSchema = z.object({
   }),
   DeviceIPv4Address: z.nullable(
     z.object({
-      ipv4: z.string(),
-      isp: z.string(),
+      ipv4: z.string().optional(),
+      isp: z.string().optional(),
     })
   ),
   DNSConfig: z.nullable(

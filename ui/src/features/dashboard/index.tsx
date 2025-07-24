@@ -14,6 +14,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import DeviceInfo from '@/features/dashboard/components/device-info.tsx'
 import DeviceResource from '@/features/dashboard/components/device-resource.tsx'
 import RecentlyOnlineUsers from '@/features/dashboard/components/online-users.tsx'
+import { PeersChart } from '@/features/dashboard/components/peers-chart.tsx'
 import OnlineUsersSkeleton from '@/features/dashboard/components/skeletons/online-users.skeleton.tsx'
 import DeviceStatsSkeleton from '@/features/dashboard/components/skeletons/statistics.skeleton.tsx'
 import { StatsCard } from '@/features/dashboard/components/stats-card.tsx'
@@ -105,6 +106,9 @@ export default function Dashboard() {
                 <DeviceResource stats={deviceData} />
               )}
 
+              {/*TODO: skeleton*/}
+              <PeersChart />
+
               {isDeviceLoading ? (
                 <OnlineUsersSkeleton />
               ) : (
@@ -112,9 +116,9 @@ export default function Dashboard() {
                   peers={deviceData?.PeerInfo?.recent_online_peers ?? []}
                 />
               )}
-            </div>
 
-            <ChartAreaInteractive />
+              <ChartAreaInteractive />
+            </div>
           </TabsContent>
         </Tabs>
       </Main>

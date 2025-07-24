@@ -42,7 +42,14 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const response = await loginMutation(data)
 
     if (response) {
+      const admin = {
+        user_id: response.user_id,
+        username: response.username,
+      }
+
       authStore.auth.setAccessToken(response.access_token)
+      authStore.auth.setAdmin(admin)
+      
       form.reset()
 
       router.navigate({ to: '/' })

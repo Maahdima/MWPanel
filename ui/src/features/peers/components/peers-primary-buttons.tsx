@@ -26,7 +26,7 @@ export function PeersPrimaryButtons({
         disabled={isPeersSyncing}
         onClick={syncPeers}
       >
-        <span>{isPeersSyncing ? 'Syncing...' : 'Sync Peers'}</span>{' '}
+        <span>Sync Peers</span>
         {isPeersSyncing ? (
           <Loader2Icon className='animate-spin' />
         ) : (
@@ -39,7 +39,7 @@ export function PeersPrimaryButtons({
         disabled={isPeersListRefetching}
         onClick={refetchPeersList}
       >
-        <span>{isPeersListRefetching ? 'Please wait' : 'Refresh'}</span>{' '}
+        <span>Refresh</span>
         {isPeersListRefetching ? (
           <Loader2Icon className='animate-spin' />
         ) : (

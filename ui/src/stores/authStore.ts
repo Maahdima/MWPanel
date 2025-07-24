@@ -1,17 +1,15 @@
 import Cookies from 'js-cookie'
 import { create } from 'zustand'
 
-interface AuthUser {
-  accountNo: string
-  email: string
-  role: string[]
-  exp: number
+interface AuthAdmin {
+  user_id: number
+  username: string
 }
 
 interface AuthState {
   auth: {
-    user: AuthUser | null
-    setUser: (user: AuthUser | null) => void
+    admin: AuthAdmin | null
+    setAdmin: (admin: AuthAdmin | null) => void
     accessToken: string
     setAccessToken: (accessToken: string) => void
     resetAccessToken: () => void
@@ -24,9 +22,9 @@ export const useAuthStore = create<AuthState>()((set) => {
   const initToken = cookieState ? cookieState : ''
   return {
     auth: {
-      user: null,
-      setUser: (user) =>
-        set((state) => ({ ...state, auth: { ...state.auth, user } })),
+      admin: null,
+      setAdmin: (admin) =>
+        set((state) => ({ ...state, auth: { ...state.auth, admin } })),
       accessToken: initToken,
       setAccessToken: (accessToken) =>
         set((state) => {
@@ -43,11 +41,9 @@ export const useAuthStore = create<AuthState>()((set) => {
           Cookies.remove('access_token')
           return {
             ...state,
-            auth: { ...state.auth, user: null, accessToken: '' },
+            auth: { ...state.auth, admin: null, accessToken: '' },
           }
         }),
     },
   }
 })
-
-// export const useAuth = () => useAuthStore((state) => state.auth)

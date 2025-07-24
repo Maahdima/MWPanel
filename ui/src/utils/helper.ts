@@ -41,7 +41,7 @@ export function buildDeviceStats(
   ]
 }
 
-export function getAvatarInitials(name: string): string {
+export function getAvatarInitials(name: string | undefined): string {
   if (!name) return ''
 
   const cleaned = name.trim().replace(/\s+/g, ' ')

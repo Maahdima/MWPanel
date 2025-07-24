@@ -1,4 +1,4 @@
-import { IconUserShield } from '@tabler/icons-react'
+import { IconRoute } from '@tabler/icons-react'
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +13,8 @@ import { sidebarData } from './data/sidebar-data'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>
-      <SidebarHeader className='flex-row justify-center pt-5'>
-        <IconUserShield />
+      <SidebarHeader className='flex-row items-center justify-center pt-5'>
+        <IconRoute />
         <h1 className='text-2xl font-bold tracking-tight'>MWPanel</h1>
       </SidebarHeader>
       <SidebarContent>
