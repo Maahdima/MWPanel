@@ -41,6 +41,7 @@ func NewConfigGenerator(db *gorm.DB) *ConfigGenerator {
 
 func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) {
 	var peer model.Peer
+
 	if err = c.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.logger.Error("peer not found in database", zap.Uint("id", id))
@@ -57,6 +58,7 @@ func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) 
 
 func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, err error) {
 	var peer model.Peer
+
 	if err = c.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.logger.Error("peer not found in database", zap.String("uuid", uuid))
@@ -92,14 +94,15 @@ func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {
 	return nil
 }
 
-func (q *ConfigGenerator) RemovePeerConfig(id uint) error {
+func (c *ConfigGenerator) RemovePeerConfig(id uint) error {
 	var peer model.Peer
-	if err := q.db.First(&peer, "id = ?", id).Error; err != nil {
+
+	if err := c.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			q.logger.Error("peer not found in database", zap.Uint("id", id))
+			c.logger.Error("peer not found in database", zap.Uint("id", id))
 			return err
 		}
-		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+		c.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
 		return err
 	}
 
@@ -107,7 +110,7 @@ func (q *ConfigGenerator) RemovePeerConfig(id uint) error {
 
 	err := os.Remove(configPath)
 	if err != nil {
-		q.logger.Error("failed to remove Config file", zap.String("path", configPath), zap.Error(err))
+		c.logger.Error("failed to remove Config file", zap.String("path", configPath), zap.Error(err))
 		return err
 	}
 

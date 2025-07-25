@@ -43,6 +43,7 @@ func NewQRCodeGenerator(db *gorm.DB) *QRCodeGenerator {
 
 func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) {
 	var peer model.Peer
+
 	if err = q.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.Uint("id", id))
@@ -59,6 +60,7 @@ func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) 
 
 func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err error) {
 	var peer model.Peer
+
 	if err = q.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.String("uuid", uuid))
@@ -102,6 +104,7 @@ func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 
 func (q *QRCodeGenerator) RemovePeerQRCode(id uint) error {
 	var peer model.Peer
+
 	if err := q.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.Uint("id", id))

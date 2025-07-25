@@ -32,13 +32,14 @@ type WgPeer struct {
 	logger          *zap.Logger
 }
 
-func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Scheduler, queue *Queue, configGenerator *ConfigGenerator) *WgPeer {
+func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Scheduler, queue *Queue, configGenerator *ConfigGenerator, qrCodeGenerator *QRCodeGenerator) *WgPeer {
 	return &WgPeer{
 		db:              db,
 		mikrotikAdaptor: mikrotikAdaptor,
 		scheduler:       scheduler,
 		queue:           queue,
 		configGenerator: configGenerator,
+		qrCodeGenerator: qrCodeGenerator,
 		logger:          zap.L().Named("WgPeerService"),
 	}
 }
@@ -313,6 +314,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		PersistentKeepalive: timeString,
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
+		ExpireTime:          req.ExpireTime,
 		TrafficLimit:        &trafficLimit,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
@@ -443,6 +445,7 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 	}
 
 	onlinePeersCount := len(allOnlinePeers)
+	offlinePeersCount := len(peers) - onlinePeersCount - len(disabledPeers)
 
 	sort.Slice(allOnlinePeers, func(i, j int) bool {
 		return allOnlinePeers[i].duration < allOnlinePeers[j].duration
@@ -463,7 +466,7 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 		RecentOnlinePeers: &wgPeers,
 		TotalPeers:        len(peers),
 		OnlinePeers:       onlinePeersCount,
-		OfflinePeers:      len(peers) - onlinePeersCount,
+		OfflinePeers:      offlinePeersCount,
 		DisabledPeers:     len(disabledPeers),
 	}, nil
 }

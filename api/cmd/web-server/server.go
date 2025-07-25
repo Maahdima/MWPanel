@@ -27,7 +27,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
 	serverService := service.NewServerService(db, mwpClients, mikrotikAdaptor)
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor)
-	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator)
+	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator, qrCodeGenerator)
 	deviceDataService := service.NewDeviceData(db, mikrotikAdaptor, serverService, interfaceService, peerService)
 	syncService := service.NewSyncService(db, mikrotikAdaptor, configGenerator, qrCodeGenerator)
 
