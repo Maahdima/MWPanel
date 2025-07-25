@@ -36,7 +36,11 @@ export function GenerateKeyField({ control, setValue }: Props) {
             <FormItem className='w-full'>
               <FormLabel>Private Key</FormLabel>
               <FormControl>
-                <PasswordInput {...field} placeholder='Private key' />
+                <PasswordInput
+                  className='bg-input/30'
+                  {...field}
+                  placeholder='Private key'
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

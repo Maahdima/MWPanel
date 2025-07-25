@@ -48,7 +48,8 @@ const statsCards = [
 ]
 
 export default function Dashboard() {
-  const { data: deviceData, isLoading: isDeviceLoading } = useDeviceDataQuery()
+  const { data: deviceData, isLoading: isDeviceDataLoading } =
+    useDeviceDataQuery()
 
   return (
     <>
@@ -87,29 +88,31 @@ export default function Dashboard() {
                     title={card.title}
                     icon={card.icon}
                     value={value}
-                    isLoading={isDeviceLoading}
+                    isLoading={isDeviceDataLoading}
                   />
                 )
               })}
             </div>
 
             <div className='grid grid-cols-1 gap-4 lg:grid-cols-7'>
-              {isDeviceLoading ? (
+              {isDeviceDataLoading ? (
                 <DeviceStatsSkeleton type='base' />
               ) : (
                 <DeviceInfo stats={deviceData} />
               )}
 
-              {isDeviceLoading ? (
+              {isDeviceDataLoading ? (
                 <DeviceStatsSkeleton type='resource' />
               ) : (
                 <DeviceResource stats={deviceData?.DeviceInfo} />
               )}
 
-              {/*TODO: skeleton*/}
-              <PeersChart stats={deviceData?.PeerInfo} />
+              <PeersChart
+                isLoading={isDeviceDataLoading}
+                stats={deviceData?.PeerInfo}
+              />
 
-              {isDeviceLoading ? (
+              {isDeviceDataLoading ? (
                 <OnlineUsersSkeleton />
               ) : (
                 <RecentlyOnlineUsers

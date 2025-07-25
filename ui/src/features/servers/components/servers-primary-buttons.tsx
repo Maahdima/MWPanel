@@ -24,7 +24,7 @@ export function ServersPrimaryButtons({
         disabled={isServersListRefetching}
         onClick={refetchServersList}
       >
-        <span>{isServersListRefetching ? 'Please wait' : 'Refresh'}</span>{' '}
+        <span>Refresh</span>
         {isServersListRefetching ? (
           <Loader2Icon className='animate-spin' />
         ) : (

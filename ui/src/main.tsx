@@ -37,11 +37,6 @@ const handleGlobalHttpError = (error: unknown) => {
       toast.error('Access denied!', { duration: 5000 })
       router.navigate({ to: '/403', replace: true })
     }
-
-    if (status === 500) {
-      toast.error('Internal Server Error!', { duration: 5000 })
-      router.navigate({ to: '/500' })
-    }
   }
 }
 

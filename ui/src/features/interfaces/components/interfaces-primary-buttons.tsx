@@ -26,7 +26,7 @@ export function InterfacesPrimaryButtons({
         disabled={isInterfacesSyncing}
         onClick={syncInterfaces}
       >
-        <span>{isInterfacesSyncing ? 'Syncing...' : 'Sync Interfaces'}</span>{' '}
+        <span>Sync Interfaces</span>
         {isInterfacesSyncing ? (
           <Loader2Icon className='animate-spin' />
         ) : (
@@ -39,7 +39,7 @@ export function InterfacesPrimaryButtons({
         disabled={isInterfacesListRefetching}
         onClick={refetchInterfacesList}
       >
-        <span>{isInterfacesListRefetching ? 'Please wait' : 'Refresh'}</span>{' '}
+        <span>Refresh</span>
         {isInterfacesListRefetching ? (
           <Loader2Icon className='animate-spin' />
         ) : (
