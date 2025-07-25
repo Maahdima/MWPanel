@@ -13,13 +13,14 @@ import (
 )
 
 type AppConfig struct {
-	Mode             string
-	Host             string
-	Port             string
-	ConsoleLogFormat string
-	DataDirPath      string
-	UIAssetsFs       fs.FS
-	PeerFilesDir     string
+	Mode               string
+	Host               string
+	Port               string
+	ConsoleLogFormat   string
+	DataDirPath        string
+	UIAssetsFs         fs.FS
+	PeerFilesDir       string
+	TrafficJobInterval string
 }
 
 type DBConfig struct {
@@ -34,6 +35,11 @@ type DBConfig struct {
 type AdminConfig struct {
 	Username string
 	Password string
+}
+
+type AuthConfig struct {
+	AccessTokenTTL  string
+	RefreshTokenTTL string
 }
 
 func init() {
@@ -71,13 +77,14 @@ func GetAppConfig() AppConfig {
 	}
 
 	return AppConfig{
-		Mode:             getEnv("MODE", "production"),
-		Host:             getEnv("SERVER_HOST", "0.0.0.0"),
-		Port:             getEnv("SERVER_PORT", "3000"),
-		ConsoleLogFormat: getEnv("CONSOLE_LOG_FORMAT", "plain"),
-		UIAssetsFs:       echo.MustSubFS(ui.GetUIAssets(), "dist"),
-		PeerFilesDir:     getEnv("PEER_FILES_DIR", filepath.Join(dataDir, "peer-files")),
-		DataDirPath:      dataDir,
+		Mode:               getEnv("MODE", "production"),
+		Host:               getEnv("SERVER_HOST", "0.0.0.0"),
+		Port:               getEnv("SERVER_PORT", "3000"),
+		ConsoleLogFormat:   getEnv("CONSOLE_LOG_FORMAT", "plain"),
+		UIAssetsFs:         echo.MustSubFS(ui.GetUIAssets(), "dist"),
+		PeerFilesDir:       getEnv("PEER_FILES_DIR", filepath.Join(dataDir, "peer-files")),
+		DataDirPath:        dataDir,
+		TrafficJobInterval: getEnv("TRAFFIC_JOB_INTERVAL", "300"),
 	}
 }
 
@@ -104,5 +111,12 @@ func GetAdminConfig() AdminConfig {
 	return AdminConfig{
 		Username: getEnv("ADMIN_USERNAME", "mwpadmin"),
 		Password: getEnv("ADMIN_PASSWORD", "mwpadmin"),
+	}
+}
+
+func GetAuthConfig() AuthConfig {
+	return AuthConfig{
+		AccessTokenTTL:  getEnv("AUTH_ACCESS_TOKEN_TTL", "900"),
+		RefreshTokenTTL: getEnv("AUTH_REFRESH_TOKEN_TTL", "86400"),
 	}
 }

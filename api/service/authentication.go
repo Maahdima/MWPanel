@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -9,28 +10,40 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 var (
-	// TODO : read from config environment variables
-	accessSecret  = []byte("access_secret")
-	refreshSecret = []byte("refresh_secret")
-
-	accessTokenTTL  = time.Minute * 15
-	refreshTokenTTL = time.Hour * 24 * 7
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 )
 
+func init() {
+	authCfg := config.GetAuthConfig()
+
+	accessTTL, _ := strconv.Atoi(authCfg.AccessTokenTTL)
+	refreshTTL, _ := strconv.Atoi(authCfg.RefreshTokenTTL)
+
+	accessTokenTTL = time.Duration(accessTTL) * time.Second
+	refreshTokenTTL = time.Duration(refreshTTL) * time.Second
+}
+
 type Authentication struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db            *gorm.DB
+	AccessSecret  []byte
+	RefreshSecret []byte
+	logger        *zap.Logger
 }
 
 func NewAuthentication(db *gorm.DB) *Authentication {
 	return &Authentication{
-		db:     db,
-		logger: zap.L().Named("AuthenticationService"),
+		db:            db,
+		AccessSecret:  []byte(utils.RandomString(24)),
+		RefreshSecret: []byte(utils.RandomString(24)),
+		logger:        zap.L().Named("AuthenticationService"),
 	}
 }
 
@@ -117,7 +130,7 @@ func (a *Authentication) generateAccessToken(username string) (string, error) {
 		"exp": time.Now().Add(accessTokenTTL).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(accessSecret)
+	return token.SignedString(a.AccessSecret)
 }
 
 func (a *Authentication) generateRefreshToken(username string) (string, error) {
@@ -126,5 +139,5 @@ func (a *Authentication) generateRefreshToken(username string) (string, error) {
 		"exp": time.Now().Add(refreshTokenTTL).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(refreshSecret)
+	return token.SignedString(a.RefreshSecret)
 }

@@ -9,12 +9,12 @@ import (
 )
 
 type WireGuardInterface struct {
-	ID         string  `json:".id"`
+	ID         string  `json:".id,omitempty"`
 	Disabled   string  `json:"disabled,omitempty"`
 	Comment    *string `json:"comment,omitempty"`
 	ListenPort string  `json:"listen-port,omitempty"`
 	MTU        string  `json:"mtu,omitempty"`
-	Name       string  `json:"name"`
+	Name       string  `json:"name,omitempty"`
 	PrivateKey string  `json:"private-key,omitempty"`
 	PublicKey  string  `json:"public-key,omitempty"`
 	Running    *string `json:"running,omitempty"`

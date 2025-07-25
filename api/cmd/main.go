@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
@@ -49,8 +50,10 @@ func main() {
 
 	// Start the traffic calculation job
 	go func() {
-		// TODO : get checker interval from config
-		for range time.Tick(30 * time.Second) {
+		appCfg := config.GetAppConfig()
+
+		trafficJobInterval, _ := strconv.Atoi(appCfg.TrafficJobInterval)
+		for range time.Tick(time.Duration(trafficJobInterval) * time.Second) {
 			httpClient := mwpClients.GetClient(nil)
 			if httpClient != nil {
 				trafficCalculator.CalculateTraffic()

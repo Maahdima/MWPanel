@@ -1,8 +1,12 @@
 package common
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -34,30 +38,63 @@ func (c *MwpClients) IsConnected(serverName *string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	if serverName == nil {
-		var server model.Server
+	var server model.Server
+	var name string
 
+	if serverName == nil {
 		if err := c.db.First(&server).Error; err != nil {
 			c.logger.Error("Failed to fetch server from database", zap.Error(err))
 			return false
 		}
-
-		serverName = &server.Name
-
-		return true
-	}
-
-	if client, ok := c.clients[utils.DerefString(serverName)]; ok && client != nil {
-		// TODO : if client connected return true
-		if true {
-			return true
-		}
-		zap.L().Error("client is not connected", zap.String("serverName", utils.DerefString(serverName)))
+		name = server.Name
 	} else {
-		zap.L().Error("client not found in mwp clients", zap.String("serverName", utils.DerefString(serverName)))
+		name = utils.DerefString(serverName)
+
+		if err := c.db.Where("name = ?", name).First(&server).Error; err != nil {
+			c.logger.Error("Failed to fetch server by name", zap.String("serverName", name), zap.Error(err))
+			return false
+		}
 	}
 
-	return false
+	client, ok := c.clients[name]
+	if !ok || client == nil {
+		c.logger.Error("Client not found in mwp clients", zap.String("serverName", name))
+		return false
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
+
+	uri := fmt.Sprintf("http://%s:%d/rest/system/identity", server.IPAddress, server.APIPort)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, uri, nil)
+	if err != nil {
+		c.logger.Error("Failed to create request to mikrotik REST API", zap.String("serverName", name), zap.Error(err))
+		return false
+	}
+
+	req.SetBasicAuth(server.Username, server.Password)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		c.logger.Error("HTTP request to mikrotik REST API failed", zap.String("serverName", name), zap.Error(err))
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.logger.Error("Unexpected status code from mikrotik REST API",
+			zap.String("serverName", name),
+			zap.Int("status", resp.StatusCode))
+		return false
+	}
+
+	return true
 }
 
 // GetClient Get client for a specific server

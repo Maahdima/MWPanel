@@ -15,9 +15,8 @@ import (
 func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator, syncService *service.SyncService) {
 	router := app.Group("/api")
 
-	// TODO : read from config environment variables
 	jwtConfig := echojwt.Config{
-		SigningKey: []byte("access_secret"),
+		SigningKey: authenticationService.AccessSecret,
 		ErrorHandler: func(c echo.Context, err error) error {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 		},
