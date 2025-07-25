@@ -9,7 +9,7 @@ interface AuthAdmin {
 interface AuthState {
   auth: {
     admin: AuthAdmin | null
-    setAdmin: (admin: AuthAdmin | null) => void
+    setAdmin: (admin: AuthAdmin) => void
     accessToken: string
     setAccessToken: (accessToken: string) => void
     resetAccessToken: () => void
@@ -24,7 +24,10 @@ export const useAuthStore = create<AuthState>()((set) => {
     auth: {
       admin: null,
       setAdmin: (admin) =>
-        set((state) => ({ ...state, auth: { ...state.auth, admin } })),
+        set((state) => {
+          Cookies.set('username', admin?.username)
+          return { ...state, auth: { ...state.auth, admin } }
+        }),
       accessToken: initToken,
       setAccessToken: (accessToken) =>
         set((state) => {
@@ -39,6 +42,7 @@ export const useAuthStore = create<AuthState>()((set) => {
       reset: () =>
         set((state) => {
           Cookies.remove('access_token')
+          Cookies.remove('username')
           return {
             ...state,
             auth: { ...state.auth, admin: null, accessToken: '' },

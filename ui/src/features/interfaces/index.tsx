@@ -9,6 +9,7 @@ import { interfacesColumns } from '@/features/interfaces/components/interfaces-c
 import { InterfacesDialogs } from '@/features/interfaces/components/interfaces-dialogs.tsx'
 import { InterfacesPrimaryButtons } from '@/features/interfaces/components/interfaces-primary-buttons.tsx'
 import InterfacesProvider from '@/features/interfaces/context/interfaces-context.tsx'
+import { DataTableSkeleton } from '@/features/shared-components/table/data-table-skeleton.tsx'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 
 export default function Interfaces() {
@@ -48,8 +49,7 @@ export default function Interfaces() {
 
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-y-0 lg:space-x-12'>
           {isInterfacesListLoading ? (
-            // TODO : skeleton
-            <p>Loading...</p>
+            <DataTableSkeleton columns={6} rows={2} />
           ) : (
             <DataTable
               data={interfacesList ?? []}

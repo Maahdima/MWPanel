@@ -7,6 +7,7 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { peersColumns } from '@/features/peers/components/peers-columns.tsx'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
+import { DataTableSkeleton } from '../shared-components/table/data-table-skeleton.tsx'
 import { PeersDialogs } from './components/peers-dialogs.tsx'
 import { PeersPrimaryButtons } from './components/peers-primary-buttons.tsx'
 import PeersProvider from './context/peers-context.tsx'
@@ -50,8 +51,7 @@ export default function Peers() {
 
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-y-0 lg:space-x-12'>
           {isPeersListLoading ? (
-            // TODO : skeleton
-            <p>Loading...</p>
+            <DataTableSkeleton columns={5} />
           ) : (
             <DataTable data={peersList ?? []} columns={peersColumns} />
           )}

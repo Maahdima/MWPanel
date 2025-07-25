@@ -8,6 +8,7 @@ import { serversColumns } from '@/features/servers/components/servers-columns.ts
 import { ServersDialogs } from '@/features/servers/components/servers-dialogs.tsx'
 import { ServersPrimaryButtons } from '@/features/servers/components/servers-primary-buttons.tsx'
 import ServersProvider from '@/features/servers/context/servers-context.tsx'
+import { DataTableSkeleton } from '@/features/shared-components/table/data-table-skeleton.tsx'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 
 export default function Servers() {
@@ -45,8 +46,7 @@ export default function Servers() {
 
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-y-0 lg:space-x-12'>
           {isServersListLoading ? (
-            // TODO : skeleton
-            <p>Loading...</p>
+            <DataTableSkeleton columns={7} rows={1} />
           ) : (
             <DataTable data={serversList ?? []} columns={serversColumns} />
           )}

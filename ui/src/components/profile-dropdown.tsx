@@ -1,3 +1,4 @@
+import Cookies from 'js-cookie'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { getAvatarInitials } from '@/utils/helper.ts'
@@ -25,7 +26,7 @@ export function ProfileDropdown() {
           <Avatar className='h-8 w-8'>
             <AvatarImage src='/avatars/01.png' alt='@shadcn' />
             <AvatarFallback>
-              {getAvatarInitials(authStore.auth.admin?.username)}
+              {getAvatarInitials(Cookies.get('username'))}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -34,7 +35,7 @@ export function ProfileDropdown() {
         <DropdownMenuLabel className='font-normal'>
           <div className='flex flex-col space-y-1'>
             <p className='flex items-center text-sm leading-none font-bold'>
-              User: {authStore.auth.admin?.username}
+              User: {Cookies.get('username')}
             </p>
           </div>
         </DropdownMenuLabel>
