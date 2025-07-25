@@ -417,12 +417,14 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 		return nil, fmt.Errorf("failed to fetch wireguard peers from Mikrotik: %w", err)
 	}
 
-	var peerList []struct {
+	type peerWithDuration struct {
 		peer     mikrotik.WireGuardPeer
 		duration time.Duration
 	}
 
-	var wgPeers []schema.RecentOnlinePeers
+	var allOnlinePeers []peerWithDuration
+	var disabledPeers []mikrotik.WireGuardPeer
+
 	for _, peer := range peers {
 		if peer.LastHandshake != nil {
 			duration, err := time.ParseDuration(*peer.LastHandshake)
@@ -430,32 +432,39 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
 				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
 			}
-			peerList = append(peerList, struct {
-				peer     mikrotik.WireGuardPeer
-				duration time.Duration
-			}{peer, duration})
+			allOnlinePeers = append(allOnlinePeers, peerWithDuration{
+				peer:     peer,
+				duration: duration,
+			})
+		}
+		if peer.Disabled == "true" {
+			disabledPeers = append(disabledPeers, peer)
 		}
 	}
 
-	sort.Slice(peerList, func(i, j int) bool {
-		return peerList[i].duration < peerList[j].duration
+	onlinePeersCount := len(allOnlinePeers)
+
+	sort.Slice(allOnlinePeers, func(i, j int) bool {
+		return allOnlinePeers[i].duration < allOnlinePeers[j].duration
 	})
 
-	count := 0
-	for _, item := range peerList {
-		wgPeers = append(wgPeers, schema.RecentOnlinePeers{
-			Name:     item.peer.Name,
-			LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05")})
-		count++
-		if count == 5 {
+	var wgPeers []schema.RecentOnlinePeers
+	for i, item := range allOnlinePeers {
+		if i >= 5 {
 			break
 		}
+		wgPeers = append(wgPeers, schema.RecentOnlinePeers{
+			Name:     item.peer.Name,
+			LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05"),
+		})
 	}
 
 	return &schema.PeerStatsResponse{
 		RecentOnlinePeers: &wgPeers,
 		TotalPeers:        len(peers),
-		OnlinePeers:       count,
+		OnlinePeers:       onlinePeersCount,
+		OfflinePeers:      len(peers) - onlinePeersCount,
+		DisabledPeers:     len(disabledPeers),
 	}, nil
 }
 
