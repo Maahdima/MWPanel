@@ -19,6 +19,8 @@ export const deviceDataSchema = z.object({
     recent_online_peers: z.nullable(z.array(recentOnlinePeerSchema)),
     total_peers: z.number(),
     online_peers: z.number(),
+    offline_peers: z.number(),
+    disabled_peers: z.number(),
   }),
   DeviceIdentity: z.object({
     identity: z.string(),

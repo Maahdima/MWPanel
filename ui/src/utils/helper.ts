@@ -11,25 +11,22 @@ function formatGB(bytes: string | number | undefined): string | null {
 }
 
 export function buildDeviceStats(
-  stats: DeviceData | undefined
+  stats: DeviceData['DeviceInfo'] | undefined
 ): { label: string; value: string }[] {
-  const deviceInfo = stats?.DeviceInfo
-
-  const uptime = getValueOrNA(deviceInfo?.uptime)
-  const cpuLoad =
-    deviceInfo?.cpu_load != null ? `${deviceInfo.cpu_load}%` : 'N/A'
+  const uptime = getValueOrNA(stats?.uptime)
+  const cpuLoad = stats?.cpu_load != null ? `${stats.cpu_load}%` : 'N/A'
 
   const memoryUsed = formatGB(
-    Number(deviceInfo?.total_memory) - Number(deviceInfo?.free_memory)
+    Number(stats?.total_memory) - Number(stats?.free_memory)
   )
-  const memoryTotal = formatGB(deviceInfo?.total_memory)
+  const memoryTotal = formatGB(stats?.total_memory)
   const memoryValue =
     memoryUsed && memoryTotal ? `${memoryUsed}/${memoryTotal} GB` : 'N/A'
 
   const diskUsed = formatGB(
-    Number(deviceInfo?.total_disk) - Number(deviceInfo?.free_disk)
+    Number(stats?.total_disk) - Number(stats?.free_disk)
   )
-  const diskTotal = formatGB(deviceInfo?.total_disk)
+  const diskTotal = formatGB(stats?.total_disk)
   const diskValue =
     diskUsed && diskTotal ? `${diskUsed}/${diskTotal} GB` : 'N/A'
 

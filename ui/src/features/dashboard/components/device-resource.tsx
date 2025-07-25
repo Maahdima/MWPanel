@@ -2,11 +2,11 @@ import { DeviceData } from '@/schema/dashboard.ts'
 import { buildDeviceStats } from '@/utils/helper.ts'
 import { Card, CardContent } from '@/components/ui/card'
 
-interface DeviceResourceProps {
-  stats: DeviceData | undefined
+interface Props {
+  stats: DeviceData['DeviceInfo'] | undefined
 }
 
-export default function DeviceResource({ stats }: DeviceResourceProps) {
+export default function DeviceResource({ stats }: Props) {
   const items = buildDeviceStats(stats)
 
   return (

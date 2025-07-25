@@ -8,6 +8,7 @@ export const useUpdatePeerStatusMutation = () => {
     mutationFn: updatePeerStatus,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['peers_list'] })
+      queryClient.invalidateQueries({ queryKey: ['device_data'] })
     },
   })
 }

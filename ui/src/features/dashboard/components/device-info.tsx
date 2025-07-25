@@ -1,11 +1,11 @@
 import { DeviceData } from '@/schema/dashboard.ts'
 import { Card, CardContent } from '@/components/ui/card'
 
-interface DeviceInfoProps {
+interface Props {
   stats: DeviceData | undefined
 }
 
-export default function DeviceInfo({ stats }: DeviceInfoProps) {
+export default function DeviceInfo({ stats }: Props) {
   const items = [
     { label: 'Identity', value: stats?.DeviceIdentity.identity },
     {

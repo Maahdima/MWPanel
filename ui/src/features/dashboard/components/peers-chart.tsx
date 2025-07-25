@@ -1,39 +1,54 @@
 'use client'
 
+import { DeviceData } from '@/schema/dashboard.ts'
 import { Pie, PieChart } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
 
-const chartData = [
-  { status: 'online', count: 15, fill: 'var(--color-online)' },
-  { status: 'offline', count: 40, fill: 'var(--color-offline)' },
-  { status: 'disabled', count: 5, fill: 'var(--color-disabled)' },
-]
+type PeerStatus = 'online' | 'offline' | 'disabled'
 
-const chartConfig = {
-  peers: {
-    label: 'Peers',
-  },
+const chartConfig: Record<PeerStatus, { label: string; color: string }> = {
   online: {
     label: 'Online',
-    color: 'var(--chart-2)',
+    color: '#22c55e', // green-500
   },
   offline: {
     label: 'Offline',
-    color: 'var(--chart-5)',
+    color: '#ef4444', // red-500
   },
   disabled: {
     label: 'Disabled',
-    color: 'var(--chart-3)',
+    color: '#facc15', // yellow-400
   },
-} satisfies ChartConfig
+}
 
-export function PeersChart() {
+interface Props {
+  stats: DeviceData['PeerInfo'] | undefined
+}
+
+export function PeersChart({ stats }: Props) {
+  const chartData: { status: PeerStatus; count: number; fill: string }[] = [
+    {
+      status: 'online',
+      count: stats?.online_peers ?? 0,
+      fill: chartConfig.online.color,
+    },
+    {
+      status: 'offline',
+      count: stats?.offline_peers ?? 0,
+      fill: chartConfig.offline.color,
+    },
+    {
+      status: 'disabled',
+      count: stats?.disabled_peers ?? 0,
+      fill: chartConfig.disabled.color,
+    },
+  ]
+
   return (
     <Card className='col-span-1 flex flex-col lg:col-span-2'>
       <CardHeader className='items-center pb-0'>

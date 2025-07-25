@@ -103,11 +103,11 @@ export default function Dashboard() {
               {isDeviceLoading ? (
                 <DeviceStatsSkeleton type='resource' />
               ) : (
-                <DeviceResource stats={deviceData} />
+                <DeviceResource stats={deviceData?.DeviceInfo} />
               )}
 
               {/*TODO: skeleton*/}
-              <PeersChart />
+              <PeersChart stats={deviceData?.PeerInfo} />
 
               {isDeviceLoading ? (
                 <OnlineUsersSkeleton />
