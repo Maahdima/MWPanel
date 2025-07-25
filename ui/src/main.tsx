@@ -15,14 +15,42 @@ import { ThemeProvider } from './context/theme-context'
 import './index.css'
 import { routeTree } from './routeTree.gen'
 
+export const router = createRouter({
+  routeTree,
+  context: {} as { queryClient: QueryClient },
+  defaultPreload: 'intent',
+  defaultPreloadStaleTime: 0,
+})
+
+// Global HTTP error handler
+const handleGlobalHttpError = (error: unknown) => {
+  if (error instanceof AxiosError) {
+    const status = error.response?.status ?? 0
+
+    if (status === 401) {
+      toast.error('Session expired!', { duration: 5000 })
+      useAuthStore.getState().auth.reset()
+      router.navigate({ to: '/sign-in' })
+    }
+
+    if (status === 403) {
+      toast.error('Access denied!', { duration: 5000 })
+      router.navigate({ to: '/403', replace: true })
+    }
+
+    if (status === 500) {
+      toast.error('Internal Server Error!', { duration: 5000 })
+      router.navigate({ to: '/500' })
+    }
+  }
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        // eslint-disable-next-line no-console
-        if (import.meta.env.DEV) console.log({ failureCount, error })
-
-        if (failureCount >= 0 && import.meta.env.DEV) return false
+        if (import.meta.env.DEV)
+          if (failureCount >= 0 && import.meta.env.DEV) return false
         if (failureCount > 3 && import.meta.env.PROD) return false
 
         return !(
@@ -31,56 +59,28 @@ const queryClient = new QueryClient({
         )
       },
       refetchOnWindowFocus: import.meta.env.PROD,
-      staleTime: 10 * 1000, // 10s
+      staleTime: 10 * 1000,
     },
     mutations: {
       onError: (error) => {
+        handleGlobalHttpError(error)
         handleServerError(error)
 
-        if (error instanceof AxiosError) {
-          if (error.response?.status === 304) {
-            toast.error('Content not modified!', { duration: 5000 })
-          }
+        if (error instanceof AxiosError && error.response?.status === 304) {
+          toast.error('Content not modified!', { duration: 5000 })
         }
       },
     },
   },
   queryCache: new QueryCache({
-    onError: (error) => {
-      if (error instanceof AxiosError) {
-        if (error.response?.status === 401) {
-          toast.error('Session expired!', { duration: 5000 })
-          useAuthStore.getState().auth.reset()
-          router.navigate({ to: '/sign-in' })
-        }
-        if (error.response?.status === 500) {
-          toast.error('Internal Server Error!', { duration: 5000 })
-          router.navigate({ to: '/500' })
-        }
-        if (error.response?.status === 403) {
-          router.navigate({ to: '/403', replace: true })
-        }
-      }
-    },
+    onError: handleGlobalHttpError,
   }),
 })
 
-// Create a new router instance
-const router = createRouter({
-  routeTree,
+router.update({
   context: { queryClient },
-  defaultPreload: 'intent',
-  defaultPreloadStaleTime: 0,
 })
 
-// Register the router instance for type safety
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-}
-
-// Render the app
 const rootElement = document.getElementById('root')!
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)

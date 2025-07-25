@@ -11,11 +11,11 @@ import {
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
-  user: {
-    name: 'maahdima',
-    email: 'maahdima@gmail.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
+  // user: {
+  //   name: 'maahdima',
+  //   email: 'maahdima@gmail.com',
+  //   avatar: '/avatars/shadcn.jpg',
+  // },
   navGroups: [
     {
       title: 'General',

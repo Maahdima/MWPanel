@@ -1,30 +1,11 @@
-import * as React from 'react'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import * as React from 'react';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export const description = 'An interactive area chart'
 
+// TODO : implement this
 const chartData = [
   { date: '2024-04-01', desktop: 222, mobile: 150 },
   { date: '2024-04-02', desktop: 97, mobile: 180 },
@@ -154,10 +135,9 @@ export function ChartAreaInteractive() {
     <Card className='col-span-1 pt-0 lg:col-span-5'>
       <CardHeader className='flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row'>
         <div className='grid flex-1 gap-1'>
-          <CardTitle>Area Chart - Interactive</CardTitle>
-          <CardDescription>
-            Showing total visitors for the last 3 months
-          </CardDescription>
+          <CardTitle>
+            <h2 className='mb-4 text-lg font-semibold'>Daily Traffic Usage</h2>
+          </CardTitle>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger

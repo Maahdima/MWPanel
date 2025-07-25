@@ -1,10 +1,11 @@
 import { LinkProps } from '@tanstack/react-router'
 
-interface User {
-  name: string
-  email: string
-  avatar: string
-}
+
+// interface User {
+//   name: string
+//   email: string
+//   avatar: string
+// }
 
 interface BaseNavItem {
   title: string
@@ -30,7 +31,7 @@ interface NavGroup {
 }
 
 interface SidebarData {
-  user: User
+  // user: User
   navGroups: NavGroup[]
 }
 
