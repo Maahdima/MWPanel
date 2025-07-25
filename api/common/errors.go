@@ -3,5 +3,6 @@ package common
 import "errors"
 
 var (
-	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrPeerNotFound  = errors.New("insufficient balance")
+	ErrPeerNotShared = errors.New("peer is not shared")
 )

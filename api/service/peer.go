@@ -182,8 +182,7 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 
 	isSharable := utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
 	if !isSharable {
-		// TODO: return 404
-		return nil, fmt.Errorf("peer is not shared")
+		return nil, common.ErrPeerNotShared
 	}
 
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
@@ -376,7 +375,6 @@ func (w *WgPeer) DeletePeer(id uint) error {
 	var peer model.Peer
 	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
 		w.logger.Error("failed to find peer in database", zap.Error(err))
-		// TODO: write all errors with fmt.errorf for better error handling
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
@@ -393,7 +391,17 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("failed to delete wireguard peer: %w", err)
 	}
 
-	// TODO : delete peer config and QR code files
+	err := w.qrCodeGenerator.RemovePeerQRCode(id)
+	if err != nil {
+		w.logger.Error("failed to remove QR Code file", zap.Error(err))
+		return err
+	}
+
+	err = w.configGenerator.RemovePeerConfig(id)
+	if err != nil {
+		w.logger.Error("failed to remove peer config", zap.Error(err))
+		return err
+	}
 
 	if err := w.db.Unscoped().Delete(&peer).Error; err != nil {
 		w.logger.Error("failed to delete peer from database", zap.Error(err))

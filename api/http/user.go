@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/service"
 )
@@ -37,7 +38,7 @@ func (u *UserController) GetUserDetails(ctx echo.Context) error {
 
 	stats, err := u.peerService.GetPeerDetails(uuid)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
 				Status:     "error",
@@ -67,7 +68,7 @@ func (u *UserController) GetUserConfig(ctx echo.Context) error {
 
 	config, err := u.peerConfigService.GetUserConfig(uuid)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
 				Status:     "error",
@@ -94,7 +95,7 @@ func (u *UserController) GetUserQRCode(ctx echo.Context) error {
 
 	qrCode, err := u.peerQrCodeService.GetUserQRCode(uuid)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
 				Status:     "error",

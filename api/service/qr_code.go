@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/utils"
@@ -69,8 +70,7 @@ func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err err
 
 	isSharable := utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
 	if !isSharable {
-		// TODO: return 404
-		return "", fmt.Errorf("peer is not shared")
+		return "", common.ErrPeerNotShared
 	}
 
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
@@ -95,6 +95,28 @@ func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 
 	if err = qrc.Save(w); err != nil {
 		fmt.Printf("could not save image: %v", err)
+	}
+
+	return nil
+}
+
+func (q *QRCodeGenerator) RemovePeerQRCode(id uint) error {
+	var peer model.Peer
+	if err := q.db.First(&peer, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			q.logger.Error("peer not found in database", zap.Uint("id", id))
+			return err
+		}
+		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+		return err
+	}
+
+	qrcodePath := fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
+
+	err := os.Remove(qrcodePath)
+	if err != nil {
+		q.logger.Error("failed to remove QRCode", zap.String("path", qrcodePath), zap.Error(err))
+		return err
 	}
 
 	return nil

@@ -12,7 +12,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationService *service.Authentication, serverService *service.Server, interfaceService *service.WgInterface, peerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, deviceDataService *service.DeviceData, trafficCalculator *traffic.Calculator, syncService *service.SyncService) {
+func SetupMwpAPI(
+	app *echo.Echo,
+	mwpClients *common.MwpClients,
+	authenticationService *service.Authentication,
+	serverService *service.Server,
+	interfaceService *service.WgInterface,
+	peerService *service.WgPeer,
+	peerConfigService *service.ConfigGenerator,
+	peerQrCodeService *service.QRCodeGenerator,
+	deviceDataService *service.DeviceData,
+	trafficCalculator *traffic.Calculator,
+	syncService *service.SyncService,
+) {
 	router := app.Group("/api")
 
 	jwtConfig := echojwt.Config{
@@ -41,9 +53,11 @@ func SetupMwpAPI(app *echo.Echo, mwpClients *common.MwpClients, authenticationSe
 
 func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, authController *AuthController) {
 	authGroup := router.Group("/auth")
-
 	authGroup.POST("/login", authController.Login)
-	authGroup.PUT("/profile", authController.UpdateProfile, echojwt.WithConfig(jwtConfig))
+
+	authProtected := authGroup.Group("")
+	authProtected.Use(echojwt.WithConfig(jwtConfig))
+	authProtected.PUT("/profile", authController.UpdateProfile)
 }
 
 func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverController *ServerController) {
@@ -52,7 +66,6 @@ func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverContr
 
 	serverGroup.GET("", serverController.GetServers)
 	serverGroup.POST("", serverController.CreateServer)
-	//serverGroup.GET("/server/:id", serverController.GetServerByID)
 	serverGroup.POST("/:id/status", serverController.UpdateServerStatus)
 	serverGroup.PATCH("/:id", serverController.UpdateServer)
 	serverGroup.DELETE("/:id", serverController.DeleteServer)
@@ -60,14 +73,16 @@ func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverContr
 
 func setupInterfaceRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, wgInterfaceController *WgInterfaceController) {
 	interfaceGroup := router.Group("/interface")
-	interfaceGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	interfaceGroup.Use(echojwt.WithConfig(jwtConfig))
 
-	interfaceGroup.GET("", wgInterfaceController.GetInterfaces)
-	interfaceGroup.POST("", wgInterfaceController.CreateInterface)
-	interfaceGroup.POST("/:id/status", wgInterfaceController.UpdateInterfaceStatus)
-	interfaceGroup.PATCH("/:id", wgInterfaceController.UpdateInterface)
-	interfaceGroup.DELETE("/:id", wgInterfaceController.DeleteInterface)
-	//interfaceGroup.GET("/wg-interface/:id", wgInterfaceController.GetWgInterfaceByID)
+	secured := interfaceGroup.Group("")
+	secured.Use(middleware.ClientConnectionMiddleware(mwpClients))
+
+	secured.GET("", wgInterfaceController.GetInterfaces)
+	secured.POST("", wgInterfaceController.CreateInterface)
+	secured.POST("/:id/status", wgInterfaceController.UpdateInterfaceStatus)
+	secured.PATCH("/:id", wgInterfaceController.UpdateInterface)
+	secured.DELETE("/:id", wgInterfaceController.DeleteInterface)
 }
 
 func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, wgPeerController *WgPeerController) {
@@ -75,32 +90,42 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerGroup.Use(echojwt.WithConfig(jwtConfig))
 
 	peerGroup.GET("/keys", wgPeerController.GetPeerKeys)
-	peerGroup.GET("", wgPeerController.GetPeers, middleware.ClientConnectionMiddleware(mwpClients))
-	peerGroup.POST("", wgPeerController.CreatePeer, middleware.ClientConnectionMiddleware(mwpClients))
 	peerGroup.GET("/:id/share", wgPeerController.GetPeerShareStatus)
 	peerGroup.PATCH("/:id/share/status", wgPeerController.UpdatePeerShareStatus)
 	peerGroup.PUT("/:id/share/expire", wgPeerController.UpdatePeerShareExpire)
-	peerGroup.PATCH("/:id/status", wgPeerController.UpdatePeerStatus, middleware.ClientConnectionMiddleware(mwpClients))
-	peerGroup.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage, middleware.ClientConnectionMiddleware(mwpClients))
-	peerGroup.PUT("/:id", wgPeerController.UpdatePeer, middleware.ClientConnectionMiddleware(mwpClients))
-	peerGroup.DELETE("/:id", wgPeerController.DeletePeer, middleware.ClientConnectionMiddleware(mwpClients))
 	peerGroup.GET("/:id/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:id/qrcode", wgPeerController.GetPeerQRCode)
+
+	peerSecured := peerGroup.Group("")
+	peerSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
+
+	peerSecured.GET("", wgPeerController.GetPeers)
+	peerSecured.POST("", wgPeerController.CreatePeer)
+	peerSecured.PATCH("/:id/status", wgPeerController.UpdatePeerStatus)
+	peerSecured.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage)
+	peerSecured.PUT("/:id", wgPeerController.UpdatePeer)
+	peerSecured.DELETE("/:id", wgPeerController.DeletePeer)
 }
 
 func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, deviceInfoController *DeviceDataController) {
 	deviceGroup := router.Group("/device")
-	deviceGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	deviceGroup.Use(echojwt.WithConfig(jwtConfig))
 
-	deviceGroup.GET("/stats", deviceInfoController.GetDeviceInfo)
+	deviceSecured := deviceGroup.Group("")
+	deviceSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
+
+	deviceSecured.GET("/stats", deviceInfoController.GetDeviceInfo)
 }
 
 func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, syncController *SyncController) {
 	syncGroup := router.Group("/sync")
-	syncGroup.Use(echojwt.WithConfig(jwtConfig), middleware.ClientConnectionMiddleware(mwpClients))
+	syncGroup.Use(echojwt.WithConfig(jwtConfig))
 
-	syncGroup.POST("/peers", syncController.SyncPeers)
-	syncGroup.POST("/interfaces", syncController.SyncInterfaces)
+	syncSecured := syncGroup.Group("")
+	syncSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
+
+	syncSecured.POST("/peers", syncController.SyncPeers)
+	syncSecured.POST("/interfaces", syncController.SyncInterfaces)
 }
 
 func setupUserRoutes(router *echo.Group, userController *UserController) {

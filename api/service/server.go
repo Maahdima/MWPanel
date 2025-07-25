@@ -105,7 +105,6 @@ func (s *Server) GetServers() (*[]schema.ServerResponse, error) {
 	for _, server := range servers {
 		var serverStatus schema.ServerStatus
 
-		// TODO : call the specific server's API to check its status
 		_, err := s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
 		if err != nil {
 			serverStatus = schema.NotAvailableServer

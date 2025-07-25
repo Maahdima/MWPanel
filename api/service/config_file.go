@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/utils"
@@ -67,8 +68,7 @@ func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, err err
 
 	utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
 	if !peer.IsShared {
-		// TODO: return 404
-		return "", fmt.Errorf("peer is not shared")
+		return "", common.ErrPeerNotShared
 	}
 
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
@@ -87,6 +87,28 @@ func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {
 
 	if _, err := file.WriteString(config); err != nil {
 		return fmt.Errorf("failed to write config to file: %w", err)
+	}
+
+	return nil
+}
+
+func (q *ConfigGenerator) RemovePeerConfig(id uint) error {
+	var peer model.Peer
+	if err := q.db.First(&peer, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			q.logger.Error("peer not found in database", zap.Uint("id", id))
+			return err
+		}
+		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+		return err
+	}
+
+	configPath := fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
+
+	err := os.Remove(configPath)
+	if err != nil {
+		q.logger.Error("failed to remove Config file", zap.String("path", configPath), zap.Error(err))
+		return err
 	}
 
 	return nil

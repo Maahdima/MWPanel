@@ -200,7 +200,6 @@ func (d *DeviceData) getDNSConfig() (*schema.DNSConfig, error) {
 	}
 
 	return &schema.DNSConfig{
-		// TODO : check this
 		DnsServer: dns.Servers + dns.DynamicServers,
 	}, nil
 }
