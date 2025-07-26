@@ -56,7 +56,7 @@ export function InterfaceSelect<T extends FieldValues>({
                   setValue('listen_port' as Path<T>, selected.listen_port)
                 }
               }}
-              defaultValue={field.value}
+              value={field.value}
             >
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Select interface' />

@@ -69,7 +69,7 @@ export function PeersConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-xl'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader className='text-left'>
           <DialogTitle>Configuration</DialogTitle>
           <DialogDescription>Copy the configuration below.</DialogDescription>
@@ -90,7 +90,7 @@ export function PeersConfigDialog({
 
           {!isLoading && configText && (
             <Button
-              variant='ghost'
+              variant='outline'
               size='sm'
               onClick={handleCopy}
               className='absolute top-2 right-2'

@@ -66,7 +66,7 @@ export default function PeerConfigCard({
                 <code>{configText}</code>
               </pre>
               <Button
-                variant='ghost'
+                variant='outline'
                 size='sm'
                 onClick={handleCopy}
                 className='absolute top-2 right-2'
