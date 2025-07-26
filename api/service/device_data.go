@@ -155,7 +155,7 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 		Timeout:   5 * time.Second,
 	}
 
-	ipApiURL := fmt.Sprintf("http://ip-api.com/json/%s?fields=status,message,country,city,isp", "37.255.200.79")
+	ipApiURL := fmt.Sprintf("http://ip-api.com/json/%s?fields=status,message,country,city,isp", server.IPAddress)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ipApiURL, nil)
 	if err != nil {
 		d.logger.Error("failed to create IP API request", zap.Error(err))

@@ -90,9 +90,15 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 }
 
 func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
-	privateKey, publicKey, err := w.GenerateKeys()
+	privKey, privateKey, err := wireguard.GeneratePrivateKey()
 	if err != nil {
-		w.logger.Error("failed to generate peer keys", zap.Error(err))
+		w.logger.Error("failed to generate private key", zap.Error(err))
+		return nil, err
+	}
+
+	publicKey, err := wireguard.GeneratePublicKey(privKey)
+	if err != nil {
+		w.logger.Error("failed to generate public key from private key", zap.Error(err))
 		return nil, err
 	}
 
@@ -297,7 +303,11 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	trafficLimit := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+	var trafficLimit *int64
+	if req.TrafficLimit != nil {
+		trafficLimitBytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+		trafficLimit = &trafficLimitBytes
+	}
 
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),
@@ -315,7 +325,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		SchedulerID:         schedulerId,
 		QueueID:             queueId,
 		ExpireTime:          req.ExpireTime,
-		TrafficLimit:        &trafficLimit,
+		TrafficLimit:        trafficLimit,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
 	}
@@ -469,22 +479,6 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 		OfflinePeers:      offlinePeersCount,
 		DisabledPeers:     len(disabledPeers),
 	}, nil
-}
-
-func (w *WgPeer) GenerateKeys() (privateKey, publicKey string, err error) {
-	privKey, privateKey, err := wireguard.GeneratePrivateKey()
-	if err != nil {
-		w.logger.Error("failed to generate private key", zap.Error(err))
-		return
-	}
-
-	publicKey, err = wireguard.GeneratePublicKey(privKey)
-	if err != nil {
-		w.logger.Error("failed to generate public key from private key", zap.Error(err))
-		return "", "", err
-	}
-
-	return
 }
 
 func (w *WgPeer) updateMikrotikPeer(peerID string, req *schema.UpdatePeerRequest) error {
