@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/dropdown-menu.tsx'
 import { useServers } from '@/features/servers/context/servers-context.tsx'
 
-interface ServersTableRowActionsProps {
+interface Props {
   row: Row<Server>
 }
 
-export function ServersTableRowActions({ row }: ServersTableRowActionsProps) {
+export function ServersTableRowActions({ row }: Props) {
   const { setOpen, setCurrentRow } = useServers()
   return (
     <>

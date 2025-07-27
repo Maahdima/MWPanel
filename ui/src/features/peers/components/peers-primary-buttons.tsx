@@ -1,9 +1,4 @@
-import {
-  IconCloudDown,
-  IconLinkPlus,
-  IconRefresh,
-  IconUserPlus,
-} from '@tabler/icons-react'
+import { IconCloudDown, IconRefresh, IconUserPlus } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
@@ -57,13 +52,6 @@ export function PeersPrimaryButtons({
       {/*<Button variant='outline' className='space-x-1' disabled={true}>*/}
       {/*  <span>Import</span> <IconDownload size={18} />*/}
       {/*</Button>*/}
-      <Button
-        variant='outline'
-        className='border-sky-600 text-sky-600! hover:bg-sky-600/10 focus-visible:border-sky-600 focus-visible:ring-sky-600/20 dark:border-sky-400 dark:text-sky-400! dark:hover:bg-sky-400/10 dark:focus-visible:border-sky-400 dark:focus-visible:ring-sky-400/40'
-      >
-        Configure IP Pool
-        <IconLinkPlus />
-      </Button>
       <Button className='space-x-1' onClick={() => setOpen('add')}>
         <span>Add New Peer</span> <IconUserPlus size={18} />
       </Button>

@@ -49,7 +49,7 @@ export function ProfileDropdown() {
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to='/settings/appearance'>
-              Settings
+              Appearance
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
@@ -61,7 +61,7 @@ export function ProfileDropdown() {
             navigate({ to: '/sign-in' })
           }}
         >
-          Log out
+          Logout
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

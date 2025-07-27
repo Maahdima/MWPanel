@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void
 }
 
-export function InterfaceForm({ currentRow, onClose }: Props) {
+export function PoolForm({ currentRow, onClose }: Props) {
   const isEdit = Boolean(currentRow)
   const { mutateAsync: createInterface } = useCreateInterfaceMutation()
   const { mutateAsync: updateInterface } = useUpdateInterfaceMutation()
@@ -48,8 +48,8 @@ export function InterfaceForm({ currentRow, onClose }: Props) {
     }
     form.reset()
     const toastMessage = isEdit
-      ? 'Interface updated successfully.'
-      : 'Interface created successfully.'
+      ? 'Pool updated successfully.'
+      : 'Pool created successfully.'
     toast.success(toastMessage, { duration: 5000 })
     onClose()
   }
@@ -57,7 +57,7 @@ export function InterfaceForm({ currentRow, onClose }: Props) {
   return (
     <Form {...form}>
       <form
-        id='interface-form'
+        id='pool-form'
         onSubmit={form.handleSubmit(onSubmit)}
         className='space-y-4'
       >
@@ -70,12 +70,22 @@ export function InterfaceForm({ currentRow, onClose }: Props) {
           {
             name: 'name',
             label: 'Name',
-            placeholder: 'Interface Name',
+            placeholder: 'Server Name',
           },
           {
-            name: 'listen_port',
+            name: 'ip_address',
+            label: 'IP Address',
+            placeholder: 'e.g., 185.51.200.10',
+          },
+          {
+            name: 'api_port',
             label: 'API Port',
-            placeholder: 'e.g., 13231',
+            placeholder: 'e.g., 80',
+          },
+          {
+            name: 'username',
+            label: 'Username',
+            placeholder: 'Mikrotik Username',
           },
         ].map(({ name, label, placeholder }) => (
           <SimpleField

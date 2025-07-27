@@ -6,13 +6,13 @@ import { PeerFormFields } from '@/features/peers/components/peer-form/peer-form-
 import { PeerFormSkeleton } from '@/features/peers/components/peer-form/peer-form-skeleton.tsx'
 import { usePeerForm } from '@/features/peers/components/peer-form/use-peer-form.tsx'
 
-interface PeerFormProps {
+interface Props {
   currentRow?: Partial<CreatePeerRequest>
   onClose: () => void
   setIsLoading?: (loading: boolean) => void
 }
 
-export function PeerForm({ currentRow, onClose }: PeerFormProps) {
+export function PeerForm({ currentRow, onClose }: Props) {
   const { form, onSubmit, isDefaultsReady } = usePeerForm({
     currentRow,
     onClose,

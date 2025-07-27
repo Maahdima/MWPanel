@@ -1,7 +1,7 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
 import { IconEdit, IconTrash } from '@tabler/icons-react'
-import { Interface } from '@/schema/interfaces.ts'
+import { Server } from '@/schema/servers.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   DropdownMenu,
@@ -11,14 +11,14 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx'
-import { useInterfaces } from '@/features/interfaces/context/interfaces-context.tsx'
+import { usePools } from '@/features/pools/context/pools-context.tsx'
 
 interface Props {
-  row: Row<Interface>
+  row: Row<Server>
 }
 
-export function InterfacesTableRowActions({ row }: Props) {
-  const { setOpen, setCurrentRow } = useInterfaces()
+export function PoolsTableRowActions({ row }: Props) {
+  const { setOpen, setCurrentRow } = usePools()
   return (
     <>
       <DropdownMenu modal={false}>
@@ -38,7 +38,7 @@ export function InterfacesTableRowActions({ row }: Props) {
               setOpen('edit')
             }}
           >
-            Edit Interface
+            Edit Pool
             <DropdownMenuShortcut>
               <IconEdit size={16} />
             </DropdownMenuShortcut>
@@ -51,7 +51,7 @@ export function InterfacesTableRowActions({ row }: Props) {
             }}
             className='text-red-500!'
           >
-            Delete Interface
+            Delete Pool
             <DropdownMenuShortcut>
               <IconTrash size={16} />
             </DropdownMenuShortcut>

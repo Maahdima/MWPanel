@@ -20,11 +20,11 @@ import {
 } from '@/components/ui/dropdown-menu.tsx'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
 
-interface PeersTableRowActionsProps {
+interface Props {
   row: Row<Peer>
 }
 
-export function PeersTableRowActions({ row }: PeersTableRowActionsProps) {
+export function PeersTableRowActions({ row }: Props) {
   const { setOpen, setCurrentRow } = usePeers()
   return (
     <>

@@ -2,6 +2,7 @@ import {
   IconCloudComputing,
   IconHelp,
   IconLayoutDashboard,
+  IconLinkPlus,
   IconPalette,
   IconSettings,
   IconTool,
@@ -34,6 +35,11 @@ export const sidebarData: SidebarData = {
           title: 'Interfaces',
           url: '/interfaces',
           icon: IconTransferVertical,
+        },
+        {
+          title: 'Pools',
+          url: '/pools',
+          icon: IconLinkPlus,
         },
         {
           title: 'Peers',

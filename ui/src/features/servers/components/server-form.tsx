@@ -14,7 +14,7 @@ import { Form } from '@/components/ui/form'
 import { PasswordField } from '@/features/shared-components/password-field.tsx'
 import { SimpleField } from '@/features/shared-components/simple-field.tsx'
 
-interface ServerFormProps {
+interface Props {
   createServer: (data: CreateServerRequest) => Promise<void>
   updateServer: (data: UpdateServerRequest) => Promise<void>
   currentRow?: Partial<CreateServerRequest>
@@ -26,7 +26,7 @@ export function ServerForm({
   updateServer,
   currentRow,
   onClose,
-}: ServerFormProps) {
+}: Props) {
   const isEdit = Boolean(currentRow)
 
   const form = useForm<CreateServerRequest>({

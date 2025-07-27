@@ -23,6 +23,7 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedServersIndexRouteImport } from './routes/_authenticated/servers/index'
+import { Route as AuthenticatedPoolsIndexRouteImport } from './routes/_authenticated/pools/index'
 import { Route as AuthenticatedPeersIndexRouteImport } from './routes/_authenticated/peers/index'
 import { Route as AuthenticatedInterfacesIndexRouteImport } from './routes/_authenticated/interfaces/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
@@ -101,6 +102,11 @@ const AuthenticatedServersIndexRoute =
     path: '/servers/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPoolsIndexRoute = AuthenticatedPoolsIndexRouteImport.update({
+  id: '/pools/',
+  path: '/pools/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPeersIndexRoute = AuthenticatedPeersIndexRouteImport.update({
   id: '/peers/',
   path: '/peers/',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
+  '/pools': typeof AuthenticatedPoolsIndexRoute
   '/servers': typeof AuthenticatedServersIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
+  '/pools': typeof AuthenticatedPoolsIndexRoute
   '/servers': typeof AuthenticatedServersIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/interfaces/': typeof AuthenticatedInterfacesIndexRoute
   '/_authenticated/peers/': typeof AuthenticatedPeersIndexRoute
+  '/_authenticated/pools/': typeof AuthenticatedPoolsIndexRoute
   '/_authenticated/servers/': typeof AuthenticatedServersIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/interfaces'
     | '/peers'
+    | '/pools'
     | '/servers'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/interfaces'
     | '/peers'
+    | '/pools'
     | '/servers'
     | '/settings'
   id:
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/_authenticated/help-center/'
     | '/_authenticated/interfaces/'
     | '/_authenticated/peers/'
+    | '/_authenticated/pools/'
     | '/_authenticated/servers/'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
@@ -368,6 +380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedServersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pools/': {
+      id: '/_authenticated/pools/'
+      path: '/pools'
+      fullPath: '/pools'
+      preLoaderRoute: typeof AuthenticatedPoolsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/peers/': {
       id: '/_authenticated/peers/'
       path: '/peers'
@@ -430,6 +449,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedInterfacesIndexRoute: typeof AuthenticatedInterfacesIndexRoute
   AuthenticatedPeersIndexRoute: typeof AuthenticatedPeersIndexRoute
+  AuthenticatedPoolsIndexRoute: typeof AuthenticatedPoolsIndexRoute
   AuthenticatedServersIndexRoute: typeof AuthenticatedServersIndexRoute
 }
 
@@ -439,6 +459,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedInterfacesIndexRoute: AuthenticatedInterfacesIndexRoute,
   AuthenticatedPeersIndexRoute: AuthenticatedPeersIndexRoute,
+  AuthenticatedPoolsIndexRoute: AuthenticatedPoolsIndexRoute,
   AuthenticatedServersIndexRoute: AuthenticatedServersIndexRoute,
 }
 
