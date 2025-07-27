@@ -1,6 +1,7 @@
 'use client'
 
-import { Control, FieldValues, Path } from 'react-hook-form'
+import { Control } from 'react-hook-form'
+import { Interface } from '@/schema/interfaces.ts'
 import {
   FormControl,
   FormField,
@@ -18,25 +19,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-interface InterfaceSelectProps<T extends FieldValues> {
-  name: Path<T>
+interface Props {
+  name: 'interface_id'
   label: string
-  control: Control<T>
-  setValue: (name: Path<T>, value: any) => void
-  options: Array<{ interface_id: string; name: string; listen_port: string }>
+  control: Control<any>
+  setValue: (name: 'interface_id', value: number) => void
+  options: Array<Interface>
   isLoading?: boolean
   error?: unknown
 }
 
-export function InterfaceSelect<T extends FieldValues>({
+export function InterfaceSelect({
   name,
   label,
   control,
-  setValue,
   options,
   isLoading,
   error,
-}: InterfaceSelectProps<T>) {
+}: Props) {
   return (
     <FormField
       control={control}
@@ -46,17 +46,15 @@ export function InterfaceSelect<T extends FieldValues>({
           <FormLabel>{label}</FormLabel>
           <FormControl>
             <Select
-              onValueChange={(selectedName) => {
-                field.onChange(selectedName)
+              onValueChange={(selectedId) => {
                 const selected = options.find(
-                  (opt) => opt.name === selectedName
+                  (opt) => opt.id.toString() === selectedId
                 )
                 if (selected) {
-                  setValue('interface_id' as Path<T>, selected.interface_id)
-                  setValue('listen_port' as Path<T>, selected.listen_port)
+                  field.onChange(selected.id) // sets form field interface_id = selected.id
                 }
               }}
-              value={field.value}
+              value={field.value?.toString()}
             >
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Select interface' />
@@ -78,7 +76,7 @@ export function InterfaceSelect<T extends FieldValues>({
                     </SelectItem>
                   ) : (
                     options.map((item) => (
-                      <SelectItem key={item.name} value={item.name}>
+                      <SelectItem key={item.id} value={item.id.toString()}>
                         {item.name}
                       </SelectItem>
                     ))

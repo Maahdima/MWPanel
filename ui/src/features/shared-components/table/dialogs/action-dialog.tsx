@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
 import { InterfaceForm } from '@/features/interfaces/components/interface-form.tsx'
+import { PoolForm } from '@/features/ip-pools/components/pool-form.tsx'
 import { PeerForm } from '@/features/peers/components/peer-form/peer-form.tsx'
-import { PoolForm } from '@/features/pools/components/pool-form.tsx'
 import { ServerForm } from '@/features/servers/components/server-form.tsx'
 
 interface Props<T> {

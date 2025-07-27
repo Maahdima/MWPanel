@@ -23,13 +23,13 @@ export const createServer = async (
 }
 
 export const updateServerStatus = async (id: number): Promise<void> => {
-  await axiosInstance.post(`/server/${id}/status`)
+  await axiosInstance.patch(`/server/${id}/status`)
 }
 
 export const updateServer = async (
   server: Partial<Server>
 ): Promise<Server> => {
-  const { data } = await axiosInstance.patch(`/server/${server.id}`, server)
+  const { data } = await axiosInstance.put(`/server/${server.id}`, server)
   const parsed = ServerResponseSchema.parse(data)
   return parsed.data
 }

@@ -10,7 +10,7 @@ import {
   UpdatePeerSchema,
 } from '@/schema/peers'
 import { toast } from 'sonner'
-import { fetchPeerKeys } from '@/api/peers'
+import { fetchPeerCredentials } from '@/api/peers.ts'
 import { useCreatePeerMutation } from '@/hooks/peers/useCreatePeerMutation'
 import { useUpdatePeerMutation } from '@/hooks/peers/useUpdatePeerMutation'
 import { usePeerDefaults } from '@/features/peers/components/peer-form/use-peer-defaults.tsx'
@@ -58,10 +58,12 @@ export function usePeerForm({
     const generateKeys = async () => {
       if (!isEdit && !hasGeneratedKeys.current) {
         hasGeneratedKeys.current = true
-        const { private_key, public_key } = await fetchPeerKeys()
+        const { private_key, public_key, allowed_address } =
+          await fetchPeerCredentials()
         form.setValue('private_key', private_key)
         form.setValue('public_key', public_key)
-        setIsDefaultsReady(true) // mark as ready after keys generated
+        form.setValue('allowed_address', allowed_address)
+        setIsDefaultsReady(true)
       }
     }
 

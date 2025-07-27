@@ -1,7 +1,7 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
 import { IconEdit, IconTrash } from '@tabler/icons-react'
-import { Server } from '@/schema/servers.ts'
+import { IPPool } from '@/schema/ip-pool.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   DropdownMenu,
@@ -11,10 +11,10 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx'
-import { usePools } from '@/features/pools/context/pools-context.tsx'
+import { usePools } from '@/features/ip-pools/context/pools-context.tsx'
 
 interface Props {
-  row: Row<Server>
+  row: Row<IPPool>
 }
 
 export function PoolsTableRowActions({ row }: Props) {

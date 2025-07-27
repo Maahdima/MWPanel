@@ -1,11 +1,11 @@
-import { useDeleteServerMutation } from '@/hooks/servers/useDeleteServerMutation.ts'
-import { usePools } from '@/features/pools/context/pools-context.tsx'
+import { useDeleteIPPoolMutation } from '@/hooks/ip-pool/useDeleteIPPoolMutation.ts'
+import { usePools } from '@/features/ip-pools/context/pools-context.tsx'
 import { ActionDialog } from '@/features/shared-components/table/dialogs/action-dialog.tsx'
 import { DeleteEntityDialog } from '@/features/shared-components/table/dialogs/delete-entity-dialog.tsx'
 
 export function PoolsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = usePools()
-  const { mutateAsync } = useDeleteServerMutation()
+  const { mutateAsync } = useDeleteIPPoolMutation()
 
   const handleClose = (type: typeof open) => () => {
     setOpen(type)

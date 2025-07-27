@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table.tsx'
 import { interfacesColumns } from '@/features/interfaces/components/interfaces-columns.tsx'
+import { poolsColumns } from '@/features/ip-pools/components/pools-columns.tsx'
 import { serversColumns } from '@/features/servers/components/servers-columns.tsx'
 import { DataTablePagination } from '@/features/shared-components/table/data-table-pagination.tsx'
 import { DataTableToolbar } from '@/features/shared-components/table/data-table-toolbar.tsx'
@@ -75,7 +76,9 @@ export function DataTable<T>({ columns, data }: DataTableProps<T>) {
             ? 'Servers'
             : columns === interfacesColumns
               ? 'Interfaces'
-              : 'Peers'
+              : columns === poolsColumns
+                ? 'Pools'
+                : 'Peers'
         }
         table={table}
       />

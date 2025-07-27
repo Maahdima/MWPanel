@@ -54,10 +54,9 @@ export function usePeerDefaults({
 
       form.reset((prev) => ({
         ...prev,
-        interface_name: defaultInterface.name || '',
-        interface_id: defaultInterface.interface_id || '',
-        listen_port: defaultInterface.listen_port || '',
-        endpoint: defaultServer.ip_address || '',
+        interface_name: defaultInterface.name,
+        interface_id: defaultInterface.id,
+        endpoint: defaultServer.ip_address,
         persistent_keepalive: '00:00:25',
       }))
 

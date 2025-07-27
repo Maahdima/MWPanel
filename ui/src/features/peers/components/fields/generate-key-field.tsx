@@ -2,7 +2,7 @@
 
 import { Control, UseFormSetValue } from 'react-hook-form'
 import { CreatePeerRequest } from '@/schema/peers.ts'
-import { fetchPeerKeys } from '@/api/peers.ts'
+import { fetchPeerCredentials } from '@/api/peers.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   FormControl,
@@ -21,9 +21,11 @@ interface Props {
 
 export function GenerateKeyField({ control, setValue }: Props) {
   const onGenerateKeys = async () => {
-    const { private_key, public_key } = await fetchPeerKeys()
+    const { private_key, public_key, allowed_address } =
+      await fetchPeerCredentials()
     setValue('private_key', private_key)
     setValue('public_key', public_key)
+    setValue('allowed_address', allowed_address)
   }
 
   return (

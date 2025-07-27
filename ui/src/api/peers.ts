@@ -2,8 +2,8 @@ import {
   CreatePeerRequest,
   CreatePeerSchema,
   Peer,
-  PeerKeys,
-  PeerKeysResponseSchema,
+  PeerCredentials,
+  PeerCredentialsResponseSchema,
   PeerResponseSchema,
   PeerShare,
   PeerShareResponseSchema,
@@ -60,9 +60,9 @@ export const deletePeer = async (id: number): Promise<void> => {
   await axiosInstance.delete(`/peer/${id}`)
 }
 
-export const fetchPeerKeys = async (): Promise<PeerKeys> => {
-  const { data } = await axiosInstance.get('/peer/keys')
-  const parsed = PeerKeysResponseSchema.parse(data)
+export const fetchPeerCredentials = async (): Promise<PeerCredentials> => {
+  const { data } = await axiosInstance.get('/peer/credentials')
+  const parsed = PeerCredentialsResponseSchema.parse(data)
   return parsed.data
 }
 
@@ -75,7 +75,7 @@ export const fetchPeerShareStatus = async (id: number): Promise<PeerShare> => {
 export const updatePeerShareExpire = async (
   peer: UpdatePeerShareExpireRequest
 ): Promise<void> => {
-  await axiosInstance.put(`/peer/${peer.id}/share/expire`, peer)
+  await axiosInstance.patch(`/peer/${peer.id}/share/expire`, peer)
 }
 
 export const resetPeerUsage = async (id: number): Promise<void> => {

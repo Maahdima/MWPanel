@@ -1,23 +1,23 @@
-import { useServersListQuery } from '@/hooks/servers/useServersListQuery.ts'
+import { useIPPoolsListQuery } from '@/hooks/ip-pool/useIPPoolsListQuery.ts'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { poolsColumns } from '@/features/pools/components/pools-columns.tsx'
-import { PoolsDialogs } from '@/features/pools/components/pools-dialogs.tsx'
-import { PoolsPrimaryButtons } from '@/features/pools/components/pools-primary-buttons.tsx'
-import PoolsProvider from '@/features/pools/context/pools-context.tsx'
+import { poolsColumns } from '@/features/ip-pools/components/pools-columns.tsx'
+import { PoolsDialogs } from '@/features/ip-pools/components/pools-dialogs.tsx'
+import { PoolsPrimaryButtons } from '@/features/ip-pools/components/pools-primary-buttons.tsx'
+import PoolsProvider from '@/features/ip-pools/context/pools-context.tsx'
 import { DataTableSkeleton } from '@/features/shared-components/table/data-table-skeleton.tsx'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 
 export default function Pools() {
   const {
-    data: serversList,
-    isLoading: isServersListLoading,
-    refetch: refetchServersList,
-    isRefetching: isServersListRefetching,
-  } = useServersListQuery()
+    data: ipPoolsList,
+    isLoading: isIPPoolsListLoading,
+    refetch: refetchIPPoolsList,
+    isRefetching: isIPPoolsListRefetching,
+  } = useIPPoolsListQuery()
 
   return (
     <PoolsProvider>
@@ -38,16 +38,16 @@ export default function Pools() {
             </p>
           </div>
           <PoolsPrimaryButtons
-            refetchServersList={refetchServersList}
-            isServersListRefetching={isServersListRefetching}
+            refetchIPPoolsList={refetchIPPoolsList}
+            isIPPoolsListRefetching={isIPPoolsListRefetching}
           />
         </div>
 
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-y-0 lg:space-x-12'>
-          {isServersListLoading ? (
+          {isIPPoolsListLoading ? (
             <DataTableSkeleton columns={7} rows={1} />
           ) : (
-            <DataTable data={serversList ?? []} columns={poolsColumns} />
+            <DataTable data={ipPoolsList ?? []} columns={poolsColumns} />
           )}
         </div>
       </Main>

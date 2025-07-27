@@ -7,7 +7,7 @@ import { DataTableViewOptions } from './data-table-view-options.tsx'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
-  type: 'Servers' | 'Interfaces' | 'Peers'
+  type: 'Servers' | 'Interfaces' | 'Pools' | 'Peers'
 }
 
 const serverStatusOptions = [
@@ -45,7 +45,7 @@ export function DataTableToolbar<TData>({
           className='h-8 w-[150px] lg:w-[250px]'
         />
         <div className='flex gap-x-2'>
-          {table.getColumn('status') && (
+          {type !== 'Pools' && table.getColumn('status') && (
             <DataTableFacetedFilter
               column={table.getColumn('status')}
               title='Status'

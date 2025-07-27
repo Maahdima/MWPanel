@@ -28,9 +28,10 @@ export const PeerSchema = z.object({
 
 export const PeersSchema = z.array(PeerSchema).nullable()
 
-export const PeerKeysSchema = z.object({
+export const PeerCredentialsSchema = z.object({
   private_key: z.string(),
   public_key: z.string(),
+  allowed_address: z.string(),
 })
 
 export const PeerShareSchema = z.object({
@@ -51,22 +52,22 @@ export const PeerStatsSchema = z.object({
 
 export const PeerResponseSchema = createApiResponseSchema(PeerSchema)
 export const PeersResponseSchema = createApiResponseSchema(PeersSchema)
-export const PeerKeysResponseSchema = createApiResponseSchema(PeerKeysSchema)
+export const PeerCredentialsResponseSchema = createApiResponseSchema(
+  PeerCredentialsSchema
+)
 export const PeerShareResponseSchema = createApiResponseSchema(PeerShareSchema)
 export const PeerStatsResponseSchema = createApiResponseSchema(PeerStatsSchema)
 
 export const CreatePeerSchema = z.object({
   comment: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
-  interface_id: z.string().min(1, 'Interface ID is required'),
-  interface_name: z.string().min(1, 'Interface Name is required'),
+  interface_id: z.number().min(1, 'Interface ID is required'),
   private_key: z.string().min(1, 'Private Key is required'),
   public_key: z.string().min(1, 'Public Key is required'),
   allowed_address: z.string().min(1, 'Allowed Address is required'),
   preshared_key: z.string().optional().nullable(),
   persistent_keepalive: z.string().optional().nullable(),
   endpoint: z.string().min(1, 'Endpoint is required'),
-  listen_port: z.string().min(1, 'Listen Port is required'),
   expire_time: z.string().optional().nullable(),
   traffic_limit: z.string().optional().nullable(),
   download_bandwidth: z.string().optional().nullable(),
@@ -100,6 +101,6 @@ export type UpdatePeerShareExpireRequest = z.infer<
 >
 export type PeerResponse = z.infer<typeof PeerResponseSchema>
 export type PeersResponse = z.infer<typeof PeersResponseSchema>
-export type PeerKeys = z.infer<typeof PeerKeysSchema>
+export type PeerCredentials = z.infer<typeof PeerCredentialsSchema>
 export type PeerShare = z.infer<typeof PeerShareSchema>
 export type PeerStats = z.infer<typeof PeerStatsSchema>

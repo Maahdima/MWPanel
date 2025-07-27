@@ -24,13 +24,13 @@ export const createInterface = async (
 }
 
 export const updateInterfaceStatus = async (id: number): Promise<void> => {
-  await axiosInstance.post(`/interface/${id}/status`)
+  await axiosInstance.patch(`/interface/${id}/status`)
 }
 
 export const updateInterface = async (
   wgInterface: UpdateInterfaceRequest
 ): Promise<Interface> => {
-  const { data } = await axiosInstance.patch(
+  const { data } = await axiosInstance.put(
     `/interface/${wgInterface.id}`,
     wgInterface
   )

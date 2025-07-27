@@ -43,7 +43,7 @@ export function PeerFormFields({ form, isEdit }: PeerFormFieldsProps) {
       {!isEdit && (
         <>
           <InterfaceSelect
-            name='interface_name'
+            name='interface_id'
             label='Interface'
             control={form.control}
             setValue={form.setValue}
