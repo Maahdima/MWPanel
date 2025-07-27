@@ -12,8 +12,7 @@ var (
 type CreatePeerRequest struct {
 	Comment             *string `json:"comment,omitempty"`
 	Name                string  `json:"name" validate:"required"`
-	InterfaceId         string  `json:"interface_id" validate:"required"`
-	Interface           string  `json:"interface_name" validate:"required"`
+	InterfaceId         uint    `json:"interface_id" validate:"required"`
 	PrivateKey          string  `json:"private_key" validate:"required"`
 	PublicKey           string  `json:"public_key" validate:"required"`
 	AllowedAddress      string  `json:"allowed_address" validate:"required"`
@@ -43,9 +42,10 @@ type UpdatePeerShareExpireRequest struct {
 	ExpireTime *string `json:"expire_time"`
 }
 
-type PeerKeyResponse struct {
-	PublicKey  string `json:"public_key"`
-	PrivateKey string `json:"private_key"`
+type PeerCredentialsResponse struct {
+	PublicKey      string `json:"public_key"`
+	PrivateKey     string `json:"private_key"`
+	AllowedAddress string `json:"allowed_address"`
 }
 
 type PeerDetailsResponse struct {

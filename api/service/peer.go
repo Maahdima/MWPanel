@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sort"
 	"strconv"
 	"time"
@@ -89,7 +90,7 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 	return nil
 }
 
-func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
+func (w *WgPeer) GetPeerCredentials() (*schema.PeerCredentialsResponse, error) {
 	privKey, privateKey, err := wireguard.GeneratePrivateKey()
 	if err != nil {
 		w.logger.Error("failed to generate private key", zap.Error(err))
@@ -102,9 +103,31 @@ func (w *WgPeer) GetPeerKeys() (*schema.PeerKeyResponse, error) {
 		return nil, err
 	}
 
-	return &schema.PeerKeyResponse{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
+	var lastPeer model.Peer
+	if err := w.db.Order("created_at DESC").First(&lastPeer).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		w.logger.Error("failed to get last created peer from database", zap.Error(err))
+		return nil, fmt.Errorf("failed to get last created peer: %w", err)
+	}
+
+	ip, _, err := net.ParseCIDR(lastPeer.AllowedAddress)
+	if err != nil {
+		w.logger.Error("failed to parse allowed address", zap.String("allowed_address", lastPeer.AllowedAddress), zap.Error(err))
+		return nil, fmt.Errorf("failed to parse allowed address: %w", err)
+	}
+
+	ip = ip.To4()
+	if ip == nil {
+		w.logger.Error("invalid IPv4 address", zap.String("allowed_address", lastPeer.AllowedAddress))
+		return nil, fmt.Errorf("invalid IPv4 address: %s", lastPeer.AllowedAddress)
+	}
+
+	ip[3]++
+	incrementedIP := fmt.Sprintf("%s/32", ip.String())
+
+	return &schema.PeerCredentialsResponse{
+		PrivateKey:     privateKey,
+		PublicKey:      publicKey,
+		AllowedAddress: incrementedIP,
 	}, nil
 }
 
@@ -113,7 +136,7 @@ func (w *WgPeer) GetPeerShareStatus(id uint) (*schema.PeerShareStatusResponse, e
 	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.logger.Error("peer not found in database", zap.Uint("id", id))
-			return nil, fmt.Errorf("peer not found: %w", err)
+			return nil, gorm.ErrRecordNotFound
 		}
 		w.logger.Error("failed to find peer in database", zap.Error(err))
 		return nil, err
@@ -249,30 +272,16 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 }
 
 func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse, error) {
-	wgInterface, err := w.mikrotikAdaptor.FetchWgInterface(context.Background(), req.InterfaceId)
+	iface, err := w.getInterface(req.InterfaceId)
 	if err != nil {
 		return nil, err
 	}
 
-	var existingPeer model.Peer
-	if err := w.db.Where("allowed_address = ?", req.AllowedAddress).First(&existingPeer).Error; err == nil {
-		return nil, fmt.Errorf("allowed address %s is already in use by peer %s", req.AllowedAddress, existingPeer.Name)
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		w.logger.Error("failed to check allowed address uniqueness", zap.Error(err))
+	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress); err != nil {
 		return nil, err
 	}
 
-	wgPeer := &mikrotik.WireGuardPeer{
-		Comment:        req.Comment,
-		Name:           req.Name,
-		AllowedAddress: req.AllowedAddress,
-		Interface:      req.Interface,
-		PresharedKey:   req.PresharedKey,
-		PrivateKey:     &req.PrivateKey,
-		PublicKey:      req.PublicKey,
-	}
-
-	mtPeer, err := w.mikrotikAdaptor.CreateWgPeer(context.Background(), *wgPeer)
+	mtPeer, err := w.createMikrotikPeer(req, iface.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -287,70 +296,17 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	var timeString = common.DefaultKeepalive
-	if req.PersistentKeepAlive != nil {
-		parsedTime, err := timehelper.ParseTime(*req.PersistentKeepAlive)
-		if err != nil {
-			w.logger.Error("failed to parse persistent keepalive time", zap.Error(err))
-			return nil, err
-		}
-		timeString = strconv.Itoa(parsedTime)
-	}
-
-	disabled, err := strconv.ParseBool(mtPeer.Disabled)
-	if err != nil {
-		w.logger.Error("failed to parse disabled field from Mikrotik peer", zap.Error(err))
-		return nil, err
-	}
-
-	var trafficLimit *int64
-	if req.TrafficLimit != nil {
-		trafficLimitBytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
-		trafficLimit = &trafficLimitBytes
-	}
-
-	dbPeer := model.Peer{
-		UUID:                uuid.New().String(),
-		PeerID:              mtPeer.ID,
-		Disabled:            disabled,
-		Comment:             mtPeer.Comment,
-		Name:                mtPeer.Name,
-		PrivateKey:          *mtPeer.PrivateKey,
-		PublicKey:           mtPeer.PublicKey,
-		Interface:           mtPeer.Interface,
-		AllowedAddress:      mtPeer.AllowedAddress,
-		Endpoint:            req.Endpoint,
-		EndpointPort:        wgInterface.ListenPort,
-		PersistentKeepalive: timeString,
-		SchedulerID:         schedulerId,
-		QueueID:             queueId,
-		ExpireTime:          req.ExpireTime,
-		TrafficLimit:        trafficLimit,
-		DownloadBandwidth:   req.DownloadBandwidth,
-		UploadBandwidth:     req.UploadBandwidth,
-	}
-	if err := w.db.Create(&dbPeer).Error; err != nil {
-		w.logger.Error("failed to create peer in database", zap.Error(err))
-		return nil, err
-	}
-
-	configData := fmt.Sprintf(wireguard.Template, req.PrivateKey, dbPeer.AllowedAddress, common.DefaultDns, wgInterface.PublicKey, dbPeer.Endpoint, dbPeer.EndpointPort, common.AllowedIpsIncludeLocal, dbPeer.PersistentKeepalive)
-
-	err = w.configGenerator.BuildPeerConfig(
-		configData,
-		dbPeer.UUID,
-	)
+	dbPeer, err := w.buildAndStoreDbPeer(req, iface, mtPeer, schedulerId, queueId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.qrCodeGenerator.BuildPeerQRCode(configData, dbPeer.UUID)
-	if err != nil {
+	if err := w.generatePeerAssets(req.PrivateKey, dbPeer, iface.PublicKey); err != nil {
 		return nil, err
 	}
 
-	transformedPeer := w.transformPeerToResponse(dbPeer)
-	return &transformedPeer, nil
+	resp := w.transformPeerToResponse(dbPeer)
+	return &resp, nil
 }
 
 func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.PeerResponse, error) {
@@ -424,61 +380,171 @@ func (w *WgPeer) DeletePeer(id uint) error {
 }
 
 func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
-	peers, err := w.mikrotikAdaptor.FetchWgPeers(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch wireguard peers from Mikrotik: %w", err)
+	var dbPeers []model.Peer
+	if err := w.db.Find(&dbPeers).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Warn("no peers found in database")
+			return &schema.PeerStatsResponse{}, nil
+		}
+		w.logger.Error("failed to fetch peers from database", zap.Error(err))
+		return nil, fmt.Errorf("fetch peers from database: %w", err)
 	}
 
 	type peerWithDuration struct {
-		peer     mikrotik.WireGuardPeer
+		peer     *mikrotik.WireGuardPeer
 		duration time.Duration
 	}
 
-	var allOnlinePeers []peerWithDuration
-	var disabledPeers []mikrotik.WireGuardPeer
+	var (
+		allOnlinePeers []peerWithDuration
+		disabledPeers  []mikrotik.WireGuardPeer
+	)
 
-	for _, peer := range peers {
+	for _, dbPeer := range dbPeers {
+		peer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), dbPeer.PeerID)
+		if err != nil {
+			w.logger.Error("failed to fetch peer from mikrotik", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
+			return nil, fmt.Errorf("fetch peer %s from mikrotik: %w", dbPeer.PeerID, err)
+		}
+
+		if peer.Disabled == "true" {
+			disabledPeers = append(disabledPeers, *peer)
+			continue
+		}
+
 		if peer.LastHandshake != nil {
 			duration, err := time.ParseDuration(*peer.LastHandshake)
 			if err != nil {
-				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
-				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
+				w.logger.Error("invalid last handshake duration", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
+				continue
 			}
 			allOnlinePeers = append(allOnlinePeers, peerWithDuration{
 				peer:     peer,
 				duration: duration,
 			})
 		}
-		if peer.Disabled == "true" {
-			disabledPeers = append(disabledPeers, peer)
-		}
 	}
 
 	onlinePeersCount := len(allOnlinePeers)
-	offlinePeersCount := len(peers) - onlinePeersCount - len(disabledPeers)
+	offlinePeersCount := len(dbPeers) - onlinePeersCount - len(disabledPeers)
 
 	sort.Slice(allOnlinePeers, func(i, j int) bool {
 		return allOnlinePeers[i].duration < allOnlinePeers[j].duration
 	})
 
-	var wgPeers []schema.RecentOnlinePeers
-	for i, item := range allOnlinePeers {
-		if i >= 5 {
-			break
-		}
-		wgPeers = append(wgPeers, schema.RecentOnlinePeers{
+	var recentPeers []schema.RecentOnlinePeers
+	for _, item := range allOnlinePeers[:min(5, len(allOnlinePeers))] {
+		recentPeers = append(recentPeers, schema.RecentOnlinePeers{
 			Name:     item.peer.Name,
 			LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05"),
 		})
 	}
 
 	return &schema.PeerStatsResponse{
-		RecentOnlinePeers: &wgPeers,
-		TotalPeers:        len(peers),
+		RecentOnlinePeers: &recentPeers,
+		TotalPeers:        len(dbPeers),
 		OnlinePeers:       onlinePeersCount,
 		OfflinePeers:      offlinePeersCount,
 		DisabledPeers:     len(disabledPeers),
 	}, nil
+}
+
+func (w *WgPeer) getInterface(id uint) (model.Interface, error) {
+	var iface model.Interface
+	if err := w.db.First(&iface, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Error("interface not found", zap.Uint("interfaceId", id))
+			return iface, fmt.Errorf("interface %d not found", id)
+		}
+		w.logger.Error("db error while fetching interface", zap.Error(err))
+		return iface, err
+	}
+	return iface, nil
+}
+
+func (w *WgPeer) ensureAllowedAddressIsUnique(address string) error {
+	var existing model.Peer
+	if err := w.db.Where("allowed_address = ?", address).First(&existing).Error; err == nil {
+		return fmt.Errorf("allowed address %s is already in use by peer %s", address, existing.Name)
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		w.logger.Error("allowed address lookup failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (w *WgPeer) createMikrotikPeer(req *schema.CreatePeerRequest, ifaceName string) (*mikrotik.WireGuardPeer, error) {
+	peer := &mikrotik.WireGuardPeer{
+		Comment:        req.Comment,
+		Name:           req.Name,
+		AllowedAddress: req.AllowedAddress,
+		Interface:      ifaceName,
+		PresharedKey:   req.PresharedKey,
+		PrivateKey:     &req.PrivateKey,
+		PublicKey:      req.PublicKey,
+	}
+	return w.mikrotikAdaptor.CreateWgPeer(context.Background(), *peer)
+}
+
+func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.Interface, mtPeer *mikrotik.WireGuardPeer, schedulerId, queueId *string) (model.Peer, error) {
+	keepalive := common.DefaultKeepalive
+	if req.PersistentKeepAlive != nil {
+		parsed, err := timehelper.ParseTime(*req.PersistentKeepAlive)
+		if err != nil {
+			w.logger.Error("invalid keepalive", zap.Error(err))
+			return model.Peer{}, err
+		}
+		keepalive = strconv.Itoa(parsed)
+	}
+
+	disabled, err := strconv.ParseBool(mtPeer.Disabled)
+	if err != nil {
+		w.logger.Error("invalid mikrotik disabled field", zap.Error(err))
+		return model.Peer{}, err
+	}
+
+	var trafficLimit *int64
+	if req.TrafficLimit != nil {
+		bytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+		trafficLimit = &bytes
+	}
+
+	dbPeer := model.Peer{
+		UUID:                uuid.New().String(),
+		PeerID:              mtPeer.ID,
+		Disabled:            disabled,
+		Comment:             mtPeer.Comment,
+		Name:                mtPeer.Name,
+		PrivateKey:          *mtPeer.PrivateKey,
+		PublicKey:           mtPeer.PublicKey,
+		Interface:           mtPeer.Interface,
+		AllowedAddress:      mtPeer.AllowedAddress,
+		Endpoint:            req.Endpoint,
+		EndpointPort:        iface.ListenPort,
+		PersistentKeepalive: keepalive,
+		SchedulerID:         schedulerId,
+		QueueID:             queueId,
+		ExpireTime:          req.ExpireTime,
+		TrafficLimit:        trafficLimit,
+		DownloadBandwidth:   req.DownloadBandwidth,
+		UploadBandwidth:     req.UploadBandwidth,
+	}
+
+	if err := w.db.Create(&dbPeer).Error; err != nil {
+		w.logger.Error("failed to persist peer", zap.Error(err))
+		return model.Peer{}, err
+	}
+
+	return dbPeer, nil
+}
+
+func (w *WgPeer) generatePeerAssets(privateKey string, peer model.Peer, ifacePubKey string) error {
+	peerConfig := fmt.Sprintf(wireguard.Template, privateKey, peer.AllowedAddress, common.DefaultDns, ifacePubKey, peer.Endpoint, peer.EndpointPort, common.AllowedIpsIncludeLocal, peer.PersistentKeepalive)
+
+	if err := w.configGenerator.BuildPeerConfig(peerConfig, peer.UUID); err != nil {
+		return err
+	}
+	return w.qrCodeGenerator.BuildPeerQRCode(peerConfig, peer.UUID)
 }
 
 func (w *WgPeer) updateMikrotikPeer(peerID string, req *schema.UpdatePeerRequest) error {

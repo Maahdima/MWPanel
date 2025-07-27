@@ -9,4 +9,6 @@ type Interface struct {
 	PrivateKey  string  `gorm:"type:varchar(255);not null"`
 	PublicKey   string  `gorm:"type:varchar(255);not null"`
 	ListenPort  string  `gorm:"type:varchar(10);not null"`
+
+	IPPool *IPPool `gorm:"foreignKey:InterfaceID"`
 }

@@ -18,6 +18,7 @@ func SetupMwpAPI(
 	authenticationService *service.Authentication,
 	serverService *service.Server,
 	interfaceService *service.WgInterface,
+	ipPoolService *service.IPPool,
 	peerService *service.WgPeer,
 	peerConfigService *service.ConfigGenerator,
 	peerQrCodeService *service.QRCodeGenerator,
@@ -37,6 +38,7 @@ func SetupMwpAPI(
 	authController := NewAuthController(authenticationService)
 	serverController := NewServerController(serverService)
 	wgInterfaceController := NewWgInterfaceController(interfaceService)
+	ipPoolController := NewIPPoolController(ipPoolService)
 	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService, trafficCalculator)
 	deviceInfoController := NewDeviceDataController(deviceDataService)
 	syncController := NewSyncController(syncService)
@@ -45,6 +47,7 @@ func SetupMwpAPI(
 	setupAuthenticationRoutes(router, jwtConfig, authController)
 	setupServerRoutes(router, jwtConfig, serverController)
 	setupInterfaceRoutes(router, mwpClients, jwtConfig, wgInterfaceController)
+	setupIPPoolRoutes(router, jwtConfig, ipPoolController)
 	setupPeerRoutes(router, mwpClients, jwtConfig, wgPeerController)
 	setupDeviceInfoRoutes(router, mwpClients, jwtConfig, deviceInfoController)
 	setupSyncRoutes(router, mwpClients, jwtConfig, syncController)
@@ -66,8 +69,8 @@ func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverContr
 
 	serverGroup.GET("", serverController.GetServers)
 	serverGroup.POST("", serverController.CreateServer)
-	serverGroup.POST("/:id/status", serverController.UpdateServerStatus)
-	serverGroup.PATCH("/:id", serverController.UpdateServer)
+	serverGroup.PATCH("/:id/status", serverController.UpdateServerStatus)
+	serverGroup.PUT("/:id", serverController.UpdateServer)
 	serverGroup.DELETE("/:id", serverController.DeleteServer)
 }
 
@@ -80,19 +83,29 @@ func setupInterfaceRoutes(router *echo.Group, mwpClients *common.MwpClients, jwt
 
 	secured.GET("", wgInterfaceController.GetInterfaces)
 	secured.POST("", wgInterfaceController.CreateInterface)
-	secured.POST("/:id/status", wgInterfaceController.UpdateInterfaceStatus)
-	secured.PATCH("/:id", wgInterfaceController.UpdateInterface)
+	secured.PATCH("/:id/status", wgInterfaceController.UpdateInterfaceStatus)
+	secured.PUT("/:id", wgInterfaceController.UpdateInterface)
 	secured.DELETE("/:id", wgInterfaceController.DeleteInterface)
+}
+
+func setupIPPoolRoutes(router *echo.Group, jwtConfig echojwt.Config, ipPpolController *IPPoolController) {
+	ipPoolGroup := router.Group("/ip-pool")
+	ipPoolGroup.Use(echojwt.WithConfig(jwtConfig))
+
+	ipPoolGroup.GET("", ipPpolController.GetIPPools)
+	ipPoolGroup.POST("", ipPpolController.CreateIPPool)
+	ipPoolGroup.PUT("/:id", ipPpolController.UpdateIPPool)
+	ipPoolGroup.DELETE("/:id", ipPpolController.DeleteIPPool)
 }
 
 func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, wgPeerController *WgPeerController) {
 	peerGroup := router.Group("/peer")
 	peerGroup.Use(echojwt.WithConfig(jwtConfig))
 
-	peerGroup.GET("/keys", wgPeerController.GetPeerKeys)
+	peerGroup.GET("/credentials", wgPeerController.GetPeerCredentials)
 	peerGroup.GET("/:id/share", wgPeerController.GetPeerShareStatus)
 	peerGroup.PATCH("/:id/share/status", wgPeerController.UpdatePeerShareStatus)
-	peerGroup.PUT("/:id/share/expire", wgPeerController.UpdatePeerShareExpire)
+	peerGroup.PATCH("/:id/share/expire", wgPeerController.UpdatePeerShareExpire)
 	peerGroup.GET("/:id/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:id/qrcode", wgPeerController.GetPeerQRCode)
 

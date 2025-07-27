@@ -32,20 +32,20 @@ func NewWgPeerController(PeerService *service.WgPeer, peerConfigService *service
 	}
 }
 
-func (c *WgPeerController) GetPeerKeys(ctx echo.Context) error {
-	keys, err := c.peerService.GetPeerKeys()
+func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {
+	credentials, err := c.peerService.GetPeerCredentials()
 	if err != nil {
-		c.logger.Error("failed to get wireguard peer keys", zap.Error(err))
+		c.logger.Error("failed to get wireguard peer credentials", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
-			Message:    "failed to retrieve wireguard peer keys: " + err.Error(),
+			Message:    "failed to retrieve wireguard peer credentials: " + err.Error(),
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerKeyResponse]{
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerCredentialsResponse]{
 		BasicResponse: schema.OkBasicResponse,
-		Data:          *keys,
+		Data:          *credentials,
 	})
 }
 

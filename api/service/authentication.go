@@ -53,7 +53,7 @@ func (a *Authentication) Login(username, password string) (*schema.LoginResponse
 	if err := a.db.First(&admin, "username = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("user not found", zap.String("username", username))
-			return nil, errors.New("user not found")
+			return nil, gorm.ErrRecordNotFound
 		}
 		a.logger.Error("failed to query user from database", zap.Error(err))
 		return nil, err
@@ -92,7 +92,7 @@ func (a *Authentication) UpdateProfile(oldUsername, oldPassword string, newUsern
 	if err := a.db.First(&admin, "username = ?", oldUsername).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("user not found", zap.String("username", oldUsername))
-			return errors.New("user not found")
+			return gorm.ErrRecordNotFound
 		}
 		a.logger.Error("failed to query user from database", zap.Error(err))
 		return err
