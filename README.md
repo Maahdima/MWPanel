@@ -1,6 +1,6 @@
-# MWP (Mikrotik WireGuard Portal)
+# MWP (Mikrotik WireGuard Panel)
 
-A modern web portal for managing Mikrotik WireGuard VPN peers, built with **Go**, **React**, and **TypeScript**. Easily
+A modern web panel for managing Mikrotik WireGuard VPN peers, built with **Go**, **React**, and **TypeScript**. Easily
 create, update, share, and monitor WireGuard peers with a user-friendly interface and robust backend.
 
 ---
