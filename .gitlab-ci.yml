@@ -2,13 +2,13 @@ stages:
   - build-node
   - build-go
   - build-docker
-  - publish-docker
+  - publish-image
 
 variables:
   IMAGE_NAME: ${OCI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
   IMAGE_NAME_LATEST: ${OCI_REGISTRY_IMAGE}:latest
-  GHCR_IMAGE_NAME: ghcr.io/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_REF_SLUG}
-  GHCR_IMAGE_NAME_LATEST: ghcr.io/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:latest
+  GHCR_IMAGE_NAME: ghcr.io/${CI_PROJECT_NAMESPACE,,}/${CI_PROJECT_NAME,,}:${CI_COMMIT_REF_SLUG}
+  GHCR_IMAGE_NAME_LATEST: ghcr.io/${CI_PROJECT_NAMESPACE,,}/${CI_PROJECT_NAME,,}:latest
   BUILD_NAME: "${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}@${CI_COMMIT_SHORT_SHA}"
 
 build-node:
@@ -135,8 +135,8 @@ build-docker-arm64:
   tags:
     - saas-linux-small-arm64
 
-publish-docker:
-  stage: publish-docker
+publish-image:
+  stage: publish-image
   image: docker:cli
   services:
     - docker:dind
@@ -161,7 +161,7 @@ publish-docker:
     - IMAGE_DIGEST_AMD64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_AMD64}.json)
     - IMAGE_DIGEST_ARM64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_ARM64}.json)
 
-    # Push to primary registry
+    # Push to primary registry (Docker Hub/GitLab Registry)
     - docker manifest create "${IMAGE_NAME}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
     - docker manifest push "${IMAGE_NAME}"
     - docker manifest create "${IMAGE_NAME_LATEST}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
