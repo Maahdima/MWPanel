@@ -28,19 +28,14 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 - 🚀 Create, update, and delete WireGuard peers
 - 🔒 Secure key generation and management
 - 📊 Real-time peer status and usage statistics
-- ⏱️ Automatic peer expiration and traffic limits
+- ⏱️ Automatic peer expiration time (TTL)
+- Traffic Limitations and auto-expiration
+- Bandwidth Limitation for upload and download
 - 📤 Share peer configs via secure links and QR codes
 - 🛠️ Mikrotik RouterOS API integration
-- 💬 Multi-language and customizable themes *(coming soon!)*
-- 🖥️ Responsive React + Tailwind UI
-
----
-
-## Screenshots
-
-| Dashboard                                    | Peer Details                                       | Share Link                                     |
-|----------------------------------------------|----------------------------------------------------|------------------------------------------------|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Peer Details](docs/screenshots/peer-details.png) | ![Share Link](docs/screenshots/share-link.png) |
+- Multi-Server support (for future)
+- 🔑 API token authentication
+- 🖥️ Responsive React + Golang backend
 
 ---
 
@@ -50,17 +45,17 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 
 - **Go** 1.20 or later
 - **Node.js** 18 or later
-- **npm** or **yarn**
+- **pnpm**
 - Mikrotik RouterOS device with API access
 - PostgreSQL or SQLite (depending on backend config)
 
 ---
 
-### Backend Setup
+### Project Setup
 
 ```bash
 git clone https://github.com/maahdima/mwp.git
-cd mwp/api
+cd mwp
 
 cp .env.example .env
 # Edit .env with your Mikrotik credentials and DB settings
@@ -70,18 +65,6 @@ go run main.go
 ```
 
 ---
-
-### Frontend Setup
-
-```bash
-cd ../web
-
-cp .env.example .env
-# Edit .env with your backend URL
-
-npm install
-npm run dev
-```
 
 Visit `http://localhost:3000` in your browser.
 
@@ -98,12 +81,6 @@ MIKROTIK_PORT=8728
 MIKROTIK_USER=admin
 MIKROTIK_PASSWORD=yourpassword
 DB_URL=postgres://user:pass@localhost:5432/mwp?sslmode=disable
-```
-
-### Frontend `.env`
-
-```env
-VITE_API_URL=http://localhost:8080
 ```
 
 ---
@@ -145,14 +122,37 @@ MWP is configured using environment variables. Create a `.env` file in the root 
 - [x] QR code + link sharing for peer configs
 - [x] Automatic TTL + traffic expiration
 - [x] Stats dashboard (last handshake, usage)
+- [x] Mikrotik backup/sync mechanism
 - [x] API token authentication
-- [ ] Multi-user support with RBAC
-- [ ] Mobile PWA version
-- [ ] Email notifications (expiration warnings)
-- [ ] Theme customization (light/dark)
-- [ ] Docker support for full stack deployment
-- [ ] Mikrotik backup/sync mechanism
+- [x] Theme customization (light/dark)
+- [x] Docker support
+- [x] Single Binary Build
+- [ ] Telegram Bot support for notifications
+- [ ] Multi-server support
 
+---
+
+## Screenshots
+
+### Dashboard-1
+
+![Dashboard](docs/screenshots/dashboard-1.png)
+
+### Dashboard-2
+
+![Dashboard](docs/screenshots/dashboard-2.png)
+
+### Peers Page
+
+![Peers Page](docs/screenshots/peers.png)
+
+### Craete Peer
+
+![Peers Page](docs/screenshots/create-peer.png)
+
+### Share Peer
+
+![Share Peer](docs/screenshots/share.png)
 ---
 
 ## Contributing
@@ -187,4 +187,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Contact
 
 Created by [Maahdima](https://github.com/maahdima) – feel free to reach out via GitHub issues or pull requests.
----

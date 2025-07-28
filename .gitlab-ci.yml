@@ -165,9 +165,7 @@ publish-ghcr:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
     - when: never
   before_script:
-    # Login to your original registry to pull the image
     - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
-    # Login to GHCR to push the image
     - docker login --username "${GHCR_USERNAME}" --password "${GHCR_TOKEN}" "${GHCR_REGISTRY}"
   script:
     - docker pull "${IMAGE_NAME}"
