@@ -1,7 +1,10 @@
 import {
   CreatePeerRequest,
   CreatePeerSchema,
+  FetchPeerAllowedAddress,
   Peer,
+  PeerAllowedAddress,
+  PeerAllowedAddressResponseSchema,
   PeerCredentials,
   PeerCredentialsResponseSchema,
   PeerResponseSchema,
@@ -58,6 +61,14 @@ export const updatePeer = async (peer: UpdatePeerRequest): Promise<Peer> => {
 
 export const deletePeer = async (id: number): Promise<void> => {
   await axiosInstance.delete(`/peer/${id}`)
+}
+
+export const fetchPeerAllowedAddress = async (
+  iface: FetchPeerAllowedAddress
+): Promise<PeerAllowedAddress> => {
+  const { data } = await axiosInstance.post(`/peer/allowed-address`, iface)
+  const parsed = PeerAllowedAddressResponseSchema.parse(data)
+  return parsed.data
 }
 
 export const fetchPeerCredentials = async (): Promise<PeerCredentials> => {

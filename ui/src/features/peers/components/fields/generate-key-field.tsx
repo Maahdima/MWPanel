@@ -21,11 +21,9 @@ interface Props {
 
 export function GenerateKeyField({ control, setValue }: Props) {
   const onGenerateKeys = async () => {
-    const { private_key, public_key, allowed_address } =
-      await fetchPeerCredentials()
+    const { private_key, public_key } = await fetchPeerCredentials()
     setValue('private_key', private_key)
     setValue('public_key', public_key)
-    setValue('allowed_address', allowed_address)
   }
 
   return (

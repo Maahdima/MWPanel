@@ -58,11 +58,9 @@ export function usePeerForm({
     const generateKeys = async () => {
       if (!isEdit && !hasGeneratedKeys.current) {
         hasGeneratedKeys.current = true
-        const { private_key, public_key, allowed_address } =
-          await fetchPeerCredentials()
+        const { private_key, public_key } = await fetchPeerCredentials()
         form.setValue('private_key', private_key)
         form.setValue('public_key', public_key)
-        form.setValue('allowed_address', allowed_address)
         setIsDefaultsReady(true)
       }
     }

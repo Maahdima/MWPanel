@@ -28,10 +28,13 @@ export const PeerSchema = z.object({
 
 export const PeersSchema = z.array(PeerSchema).nullable()
 
+export const PeerAllowedAddressSchema = z.object({
+  allowed_address: z.string(),
+})
+
 export const PeerCredentialsSchema = z.object({
   private_key: z.string(),
   public_key: z.string(),
-  allowed_address: z.string(),
 })
 
 export const PeerShareSchema = z.object({
@@ -52,11 +55,18 @@ export const PeerStatsSchema = z.object({
 
 export const PeerResponseSchema = createApiResponseSchema(PeerSchema)
 export const PeersResponseSchema = createApiResponseSchema(PeersSchema)
+export const PeerAllowedAddressResponseSchema = createApiResponseSchema(
+  PeerAllowedAddressSchema
+)
 export const PeerCredentialsResponseSchema = createApiResponseSchema(
   PeerCredentialsSchema
 )
 export const PeerShareResponseSchema = createApiResponseSchema(PeerShareSchema)
 export const PeerStatsResponseSchema = createApiResponseSchema(PeerStatsSchema)
+
+export const FetchPeerAllowedAddressSchema = z.object({
+  interface_id: z.number().int().positive(),
+})
 
 export const CreatePeerSchema = z.object({
   comment: z.string().optional().nullable(),
@@ -94,6 +104,9 @@ export const UpdatePeerShareExpireSchema = z.object({
 
 export type Peer = z.infer<typeof PeerSchema>
 export type PeerStatus = z.infer<typeof PeerStatusEnum>
+export type FetchPeerAllowedAddress = z.infer<
+  typeof FetchPeerAllowedAddressSchema
+>
 export type CreatePeerRequest = z.infer<typeof CreatePeerSchema>
 export type UpdatePeerRequest = z.infer<typeof UpdatePeerSchema>
 export type UpdatePeerShareExpireRequest = z.infer<
@@ -101,6 +114,7 @@ export type UpdatePeerShareExpireRequest = z.infer<
 >
 export type PeerResponse = z.infer<typeof PeerResponseSchema>
 export type PeersResponse = z.infer<typeof PeersResponseSchema>
+export type PeerAllowedAddress = z.infer<typeof PeerAllowedAddressSchema>
 export type PeerCredentials = z.infer<typeof PeerCredentialsSchema>
 export type PeerShare = z.infer<typeof PeerShareSchema>
 export type PeerStats = z.infer<typeof PeerStatsSchema>
