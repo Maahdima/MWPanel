@@ -7,6 +7,8 @@ stages:
 variables:
   IMAGE_NAME: ${OCI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
   IMAGE_NAME_LATEST: ${OCI_REGISTRY_IMAGE}:latest
+  GHCR_IMAGE_NAME: ghcr.io/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_REF_SLUG}
+  GHCR_IMAGE_NAME_LATEST: ghcr.io/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:latest
   BUILD_NAME: "${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}@${CI_COMMIT_SHORT_SHA}"
 
 build-node:
@@ -94,6 +96,11 @@ build-go:
     - when: never
   before_script:
     - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
+    # Login to GHCR if credentials are provided
+    - |
+      if [ -n "${GHCR_USERNAME}" ] && [ -n "${GHCR_TOKEN}" ]; then
+        docker login --username "${GHCR_USERNAME}" --password "${GHCR_TOKEN}" ghcr.io
+      fi
     - docker buildx create --name docker-container --driver docker-container --bootstrap --use
   script:
     - docker buildx build .
@@ -145,10 +152,26 @@ publish-docker:
   before_script:
     - apk add jq
     - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
+    # Login to GHCR if credentials are provided
+    - |
+      if [ -n "${GHCR_USERNAME}" ] && [ -n "${GHCR_TOKEN}" ]; then
+        docker login --username "${GHCR_USERNAME}" --password "${GHCR_TOKEN}" ghcr.io
+      fi
   script:
     - IMAGE_DIGEST_AMD64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_AMD64}.json)
     - IMAGE_DIGEST_ARM64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_ARM64}.json)
+
+    # Push to primary registry
     - docker manifest create "${IMAGE_NAME}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
     - docker manifest push "${IMAGE_NAME}"
     - docker manifest create "${IMAGE_NAME_LATEST}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
     - docker manifest push "${IMAGE_NAME_LATEST}"
+
+    # Push to GHCR if credentials are provided
+    - |
+      if [ -n "${GHCR_USERNAME}" ] && [ -n "${GHCR_TOKEN}" ]; then
+        docker manifest create "${GHCR_IMAGE_NAME}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
+        docker manifest push "${GHCR_IMAGE_NAME}"
+        docker manifest create "${GHCR_IMAGE_NAME_LATEST}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
+        docker manifest push "${GHCR_IMAGE_NAME_LATEST}"
+      fi
