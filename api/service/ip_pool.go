@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -177,16 +178,29 @@ func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainin
 		return 0, 0, 0, fmt.Errorf("end IP cannot be before start IP")
 	}
 
-	var usedIPCount int64
+	var peers []model.Peer
 	if err := s.db.Model(&model.Peer{}).
-		Where("allowed_address >= ? AND allowed_address <= ?", startIP.String(), endIP.String()).
-		Count(&usedIPCount).Error; err != nil {
-		s.logger.Error("failed to count peers in IP pool range", zap.Error(err))
+		Find(&peers).Error; err != nil {
+		s.logger.Error("failed to fetch peers", zap.Error(err))
 		return 0, 0, 0, err
 	}
 
+	usedIPCount := 0
+	poolStartUint32 := utils.IPToUint32(startIP)
+	poolEndUint32 := utils.IPToUint32(endIP)
+
+	for _, peer := range peers {
+		ipStr := strings.Split(peer.AllowedAddress, "/")[0]
+		if ip := net.ParseIP(ipStr); ip != nil {
+			ipUint32 := utils.IPToUint32(ip)
+			if ipUint32 >= poolStartUint32 && ipUint32 <= poolEndUint32 {
+				usedIPCount++
+			}
+		}
+	}
+
 	totalIPs = int(end - start + 1)
-	usedIPs = int(usedIPCount)
+	usedIPs = usedIPCount
 	remainingIPs = totalIPs - usedIPs
 
 	if remainingIPs < 0 {

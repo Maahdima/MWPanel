@@ -49,6 +49,35 @@ func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {
 	})
 }
 
+func (c *WgPeerController) GetNewPeerAllowedAddress(ctx echo.Context) error {
+	var req schema.NewPeerAllowedAddressRequest
+
+	if err := ctx.Bind(&req); err != nil {
+		c.logger.Warn("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	if err := ctx.Validate(&req); err != nil {
+		c.logger.Warn("failed to validate request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	allowedAddress, err := c.peerService.GetNewPeerAllowedAddress(req.InterfaceId)
+	if err != nil {
+		c.logger.Error("failed to get wireguard peer allowed addresses", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve wireguard peer allowed addresses: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.NewPeerAllowedAddressResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          *allowedAddress,
+	})
+}
+
 func (c *WgPeerController) GetPeers(ctx echo.Context) error {
 	peers, err := c.peerService.GetPeers()
 	if err != nil {

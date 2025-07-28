@@ -102,6 +102,7 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerGroup := router.Group("/peer")
 	peerGroup.Use(echojwt.WithConfig(jwtConfig))
 
+	peerGroup.POST("/allowed-address", wgPeerController.GetNewPeerAllowedAddress)
 	peerGroup.GET("/credentials", wgPeerController.GetPeerCredentials)
 	peerGroup.GET("/:id/share", wgPeerController.GetPeerShareStatus)
 	peerGroup.PATCH("/:id/share/status", wgPeerController.UpdatePeerShareStatus)

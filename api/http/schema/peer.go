@@ -9,6 +9,14 @@ var (
 	SuspendedPeer PeerStatus = "suspended"
 )
 
+type NewPeerAllowedAddressRequest struct {
+	InterfaceId uint `json:"interface_id" validate:"required"`
+}
+
+type NewPeerAllowedAddressResponse struct {
+	AllowedAddress string `json:"allowed_address"`
+}
+
 type CreatePeerRequest struct {
 	Comment             *string `json:"comment,omitempty"`
 	Name                string  `json:"name" validate:"required"`
@@ -43,9 +51,8 @@ type UpdatePeerShareExpireRequest struct {
 }
 
 type PeerCredentialsResponse struct {
-	PublicKey      string `json:"public_key"`
-	PrivateKey     string `json:"private_key"`
-	AllowedAddress string `json:"allowed_address"`
+	PublicKey  string `json:"public_key"`
+	PrivateKey string `json:"private_key"`
 }
 
 type PeerDetailsResponse struct {

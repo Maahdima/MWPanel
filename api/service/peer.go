@@ -1,12 +1,14 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -103,31 +105,85 @@ func (w *WgPeer) GetPeerCredentials() (*schema.PeerCredentialsResponse, error) {
 		return nil, err
 	}
 
-	var lastPeer model.Peer
-	if err := w.db.Order("created_at DESC").First(&lastPeer).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		w.logger.Error("failed to get last created peer from database", zap.Error(err))
-		return nil, fmt.Errorf("failed to get last created peer: %w", err)
+	return &schema.PeerCredentialsResponse{
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+	}, nil
+}
+
+func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllowedAddressResponse, error) {
+	var iface model.Interface
+
+	if err := w.db.Preload("IPPool").First(&iface, "id = ?", interfaceId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Error("interface not found in database", zap.Uint("interfaceId", interfaceId))
+			return nil, fmt.Errorf("interface %d not found", interfaceId)
+		}
+		w.logger.Error("failed to query interface from database", zap.Error(err))
+		return nil, err
 	}
 
-	ip, _, err := net.ParseCIDR(lastPeer.AllowedAddress)
+	if iface.IPPool == nil {
+		w.logger.Warn("no IP pool associated with interface", zap.Uint("interfaceId", interfaceId))
+		return &schema.NewPeerAllowedAddressResponse{
+			AllowedAddress: "",
+		}, nil
+	}
+
+	startIP := net.ParseIP(strings.TrimSuffix(iface.IPPool.StartIP, "/32")).To4()
+	endIP := net.ParseIP(strings.TrimSuffix(iface.IPPool.EndIP, "/32")).To4()
+
+	if startIP == nil || endIP == nil {
+		w.logger.Error("invalid IP pool format",
+			zap.String("start_ip", iface.IPPool.StartIP),
+			zap.String("end_ip", iface.IPPool.EndIP))
+		return nil, fmt.Errorf("invalid IP pool format")
+	}
+
+	var lastPeer model.Peer
+	err := w.db.Order("allowed_address DESC").First(&lastPeer, "interface = ?", iface.Name).Error
 	if err != nil {
-		w.logger.Error("failed to parse allowed address", zap.String("allowed_address", lastPeer.AllowedAddress), zap.Error(err))
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			w.logger.Error("failed to find last peer", zap.Error(err))
+			return nil, fmt.Errorf("failed to find last peer: %w", err)
+		}
+
+		w.logger.Info("no peers found for interface, assigning start IP", zap.Uint("interfaceId", interfaceId))
+		return &schema.NewPeerAllowedAddressResponse{
+			AllowedAddress: fmt.Sprintf("%s/32", startIP.String()),
+		}, nil
+	}
+
+	lastIP, _, err := net.ParseCIDR(lastPeer.AllowedAddress)
+	if err != nil {
+		w.logger.Error("invalid CIDR format in allowed address", zap.String("allowed_address", lastPeer.AllowedAddress), zap.Error(err))
 		return nil, fmt.Errorf("failed to parse allowed address: %w", err)
 	}
 
-	ip = ip.To4()
-	if ip == nil {
-		w.logger.Error("invalid IPv4 address", zap.String("allowed_address", lastPeer.AllowedAddress))
+	lastIP = lastIP.To4()
+	if lastIP == nil {
+		w.logger.Error("allowed address is not a valid IPv4", zap.String("allowed_address", lastPeer.AllowedAddress))
 		return nil, fmt.Errorf("invalid IPv4 address: %s", lastPeer.AllowedAddress)
 	}
 
-	ip[3]++
-	incrementedIP := fmt.Sprintf("%s/32", ip.String())
+	nextIP := make(net.IP, len(lastIP))
+	copy(nextIP, lastIP)
+	for i := len(nextIP) - 1; i >= 0; i-- {
+		nextIP[i]++
+		if nextIP[i] != 0 {
+			break
+		}
+	}
 
-	return &schema.PeerCredentialsResponse{
-		PrivateKey:     privateKey,
-		PublicKey:      publicKey,
-		AllowedAddress: incrementedIP,
+	if bytes.Compare(nextIP, endIP) > 0 {
+		w.logger.Error("IP pool exhausted or next IP out of range",
+			zap.String("next_ip", nextIP.String()),
+			zap.String("end_ip", endIP.String()))
+		return nil, fmt.Errorf("IP pool exhausted for interface %d", interfaceId)
+	}
+
+	return &schema.NewPeerAllowedAddressResponse{
+		AllowedAddress: fmt.Sprintf("%s/32", nextIP.String()),
 	}, nil
 }
 
