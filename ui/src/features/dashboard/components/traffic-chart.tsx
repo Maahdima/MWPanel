@@ -1,116 +1,132 @@
-import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import * as React from 'react'
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 // TODO : implement this
 const chartData = [
-  { date: '2024-04-01', desktop: 222, mobile: 150 },
-  { date: '2024-04-02', desktop: 97, mobile: 180 },
-  { date: '2024-04-03', desktop: 167, mobile: 120 },
-  { date: '2024-04-04', desktop: 242, mobile: 260 },
-  { date: '2024-04-05', desktop: 373, mobile: 290 },
-  { date: '2024-04-06', desktop: 301, mobile: 340 },
-  { date: '2024-04-07', desktop: 245, mobile: 180 },
-  { date: '2024-04-08', desktop: 409, mobile: 320 },
-  { date: '2024-04-09', desktop: 59, mobile: 110 },
-  { date: '2024-04-10', desktop: 261, mobile: 190 },
-  { date: '2024-04-11', desktop: 327, mobile: 350 },
-  { date: '2024-04-12', desktop: 292, mobile: 210 },
-  { date: '2024-04-13', desktop: 342, mobile: 380 },
-  { date: '2024-04-14', desktop: 137, mobile: 220 },
-  { date: '2024-04-15', desktop: 120, mobile: 170 },
-  { date: '2024-04-16', desktop: 138, mobile: 190 },
-  { date: '2024-04-17', desktop: 446, mobile: 360 },
-  { date: '2024-04-18', desktop: 364, mobile: 410 },
-  { date: '2024-04-19', desktop: 243, mobile: 180 },
-  { date: '2024-04-20', desktop: 89, mobile: 150 },
-  { date: '2024-04-21', desktop: 137, mobile: 200 },
-  { date: '2024-04-22', desktop: 224, mobile: 170 },
-  { date: '2024-04-23', desktop: 138, mobile: 230 },
-  { date: '2024-04-24', desktop: 387, mobile: 290 },
-  { date: '2024-04-25', desktop: 215, mobile: 250 },
-  { date: '2024-04-26', desktop: 75, mobile: 130 },
-  { date: '2024-04-27', desktop: 383, mobile: 420 },
-  { date: '2024-04-28', desktop: 122, mobile: 180 },
-  { date: '2024-04-29', desktop: 315, mobile: 240 },
-  { date: '2024-04-30', desktop: 454, mobile: 380 },
-  { date: '2024-05-01', desktop: 165, mobile: 220 },
-  { date: '2024-05-02', desktop: 293, mobile: 310 },
-  { date: '2024-05-03', desktop: 247, mobile: 190 },
-  { date: '2024-05-04', desktop: 385, mobile: 420 },
-  { date: '2024-05-05', desktop: 481, mobile: 390 },
-  { date: '2024-05-06', desktop: 498, mobile: 520 },
-  { date: '2024-05-07', desktop: 388, mobile: 300 },
-  { date: '2024-05-08', desktop: 149, mobile: 210 },
-  { date: '2024-05-09', desktop: 227, mobile: 180 },
-  { date: '2024-05-10', desktop: 293, mobile: 330 },
-  { date: '2024-05-11', desktop: 335, mobile: 270 },
-  { date: '2024-05-12', desktop: 197, mobile: 240 },
-  { date: '2024-05-13', desktop: 197, mobile: 160 },
-  { date: '2024-05-14', desktop: 448, mobile: 490 },
-  { date: '2024-05-15', desktop: 473, mobile: 380 },
-  { date: '2024-05-16', desktop: 338, mobile: 400 },
-  { date: '2024-05-17', desktop: 499, mobile: 420 },
-  { date: '2024-05-18', desktop: 315, mobile: 350 },
-  { date: '2024-05-19', desktop: 235, mobile: 180 },
-  { date: '2024-05-20', desktop: 177, mobile: 230 },
-  { date: '2024-05-21', desktop: 82, mobile: 140 },
-  { date: '2024-05-22', desktop: 81, mobile: 120 },
-  { date: '2024-05-23', desktop: 252, mobile: 290 },
-  { date: '2024-05-24', desktop: 294, mobile: 220 },
-  { date: '2024-05-25', desktop: 201, mobile: 250 },
-  { date: '2024-05-26', desktop: 213, mobile: 170 },
-  { date: '2024-05-27', desktop: 420, mobile: 460 },
-  { date: '2024-05-28', desktop: 233, mobile: 190 },
-  { date: '2024-05-29', desktop: 78, mobile: 130 },
-  { date: '2024-05-30', desktop: 340, mobile: 280 },
-  { date: '2024-05-31', desktop: 178, mobile: 230 },
-  { date: '2024-06-01', desktop: 178, mobile: 200 },
-  { date: '2024-06-02', desktop: 470, mobile: 410 },
-  { date: '2024-06-03', desktop: 103, mobile: 160 },
-  { date: '2024-06-04', desktop: 439, mobile: 380 },
-  { date: '2024-06-05', desktop: 88, mobile: 140 },
-  { date: '2024-06-06', desktop: 294, mobile: 250 },
-  { date: '2024-06-07', desktop: 323, mobile: 370 },
-  { date: '2024-06-08', desktop: 385, mobile: 320 },
-  { date: '2024-06-09', desktop: 438, mobile: 480 },
-  { date: '2024-06-10', desktop: 155, mobile: 200 },
-  { date: '2024-06-11', desktop: 92, mobile: 150 },
-  { date: '2024-06-12', desktop: 492, mobile: 420 },
-  { date: '2024-06-13', desktop: 81, mobile: 130 },
-  { date: '2024-06-14', desktop: 426, mobile: 380 },
-  { date: '2024-06-15', desktop: 307, mobile: 350 },
-  { date: '2024-06-16', desktop: 371, mobile: 310 },
-  { date: '2024-06-17', desktop: 475, mobile: 520 },
-  { date: '2024-06-18', desktop: 107, mobile: 170 },
-  { date: '2024-06-19', desktop: 341, mobile: 290 },
-  { date: '2024-06-20', desktop: 408, mobile: 450 },
-  { date: '2024-06-21', desktop: 169, mobile: 210 },
-  { date: '2024-06-22', desktop: 317, mobile: 270 },
-  { date: '2024-06-23', desktop: 480, mobile: 530 },
-  { date: '2024-06-24', desktop: 132, mobile: 180 },
-  { date: '2024-06-25', desktop: 141, mobile: 190 },
-  { date: '2024-06-26', desktop: 434, mobile: 380 },
-  { date: '2024-06-27', desktop: 448, mobile: 490 },
-  { date: '2024-06-28', desktop: 149, mobile: 200 },
-  { date: '2024-06-29', desktop: 103, mobile: 160 },
-  { date: '2024-06-30', desktop: 446, mobile: 400 },
+  { date: '2024-04-01', download: '222', upload: '150', total: '372' },
+  { date: '2024-04-02', download: 97, upload: 180, total: 277 },
+  { date: '2024-04-03', download: 167, upload: 120, total: 287 },
+  { date: '2024-04-04', download: 242, upload: 260, total: 502 },
+  { date: '2024-04-05', download: 373, upload: 290, total: 663 },
+  { date: '2024-04-06', download: 301, upload: 340, total: 641 },
+  { date: '2024-04-07', download: 245, upload: 180, total: 425 },
+  { date: '2024-04-08', download: 409, upload: 320, total: 729 },
+  { date: '2024-04-09', download: 59, upload: 110, total: 169 },
+  { date: '2024-04-10', download: 261, upload: 190, total: 451 },
+  { date: '2024-04-11', download: 327, upload: 350, total: 677 },
+  { date: '2024-04-12', download: 292, upload: 210, total: 502 },
+  { date: '2024-04-13', download: 342, upload: 380, total: 722 },
+  { date: '2024-04-14', download: 137, upload: 220, total: 357 },
+  { date: '2024-04-15', download: 120, upload: 170, total: 290 },
+  { date: '2024-04-16', download: 138, upload: 190, total: 328 },
+  { date: '2024-04-17', download: 446, upload: 360, total: 806 },
+  { date: '2024-04-18', download: 364, upload: 410, total: 774 },
+  { date: '2024-04-19', download: 243, upload: 180, total: 423 },
+  { date: '2024-04-20', download: 89, upload: 150, total: 239 },
+  { date: '2024-04-21', download: 137, upload: 200, total: 337 },
+  { date: '2024-04-22', download: 224, upload: 170, total: 394 },
+  { date: '2024-04-23', download: 138, upload: 230, total: 368 },
+  { date: '2024-04-24', download: 387, upload: 290, total: 677 },
+  { date: '2024-04-25', download: 215, upload: 250, total: 465 },
+  { date: '2024-04-26', download: 75, upload: 130, total: 205 },
+  { date: '2024-04-27', download: 383, upload: 420, total: 803 },
+  { date: '2024-04-28', download: 122, upload: 180, total: 302 },
+  { date: '2024-04-29', download: 315, upload: 240, total: 555 },
+  { date: '2024-04-30', download: 454, upload: 380, total: 834 },
+  { date: '2024-05-01', download: 165, upload: 220, total: 385 },
+  { date: '2024-05-02', download: 293, upload: 310, total: 603 },
+  { date: '2024-05-03', download: 247, upload: 190, total: 437 },
+  { date: '2024-05-04', download: 385, upload: 420, total: 805 },
+  { date: '2024-05-05', download: 481, upload: 390, total: 871 },
+  { date: '2024-05-06', download: 498, upload: 520, total: 1018 },
+  { date: '2024-05-07', download: 388, upload: 300, total: 688 },
+  { date: '2024-05-08', download: 149, upload: 210, total: 359 },
+  { date: '2024-05-09', download: 227, upload: 180, total: 407 },
+  { date: '2024-05-10', download: 293, upload: 330, total: 623 },
+  { date: '2024-05-11', download: 335, upload: 270, total: 605 },
+  { date: '2024-05-12', download: 197, upload: 240, total: 437 },
+  { date: '2024-05-13', download: 197, upload: 160, total: 357 },
+  { date: '2024-05-14', download: 448, upload: 490, total: 938 },
+  { date: '2024-05-15', download: 473, upload: 380, total: 853 },
+  { date: '2024-05-16', download: 338, upload: 400, total: 738 },
+  { date: '2024-05-17', download: 499, upload: 420, total: 919 },
+  { date: '2024-05-18', download: 315, upload: 350, total: 665 },
+  { date: '2024-05-19', download: 235, upload: 180, total: 415 },
+  { date: '2024-05-20', download: 177, upload: 230, total: 407 },
+  { date: '2024-05-21', download: 82, upload: 140, total: 222 },
+  { date: '2024-05-22', download: 81, upload: 120, total: 201 },
+  { date: '2024-05-23', download: 252, upload: 290, total: 542 },
+  { date: '2024-05-24', download: 294, upload: 220, total: 514 },
+  { date: '2024-05-25', download: 201, upload: 250, total: 451 },
+  { date: '2024-05-26', download: 213, upload: 170, total: 383 },
+  { date: '2024-05-27', download: 420, upload: 460, total: 880 },
+  { date: '2024-05-28', download: 233, upload: 190, total: 423 },
+  { date: '2024-05-29', download: 78, upload: 130, total: 208 },
+  { date: '2024-05-30', download: 340, upload: 280, total: 620 },
+  { date: '2024-05-31', download: 178, upload: 230, total: 408 },
+  { date: '2024-06-01', download: 178, upload: 200, total: 378 },
+  { date: '2024-06-02', download: 470, upload: 410, total: 880 },
+  { date: '2024-06-03', download: 103, upload: 160, total: 263 },
+  { date: '2024-06-04', download: 439, upload: 380, total: 819 },
+  { date: '2024-06-05', download: 88, upload: 140, total: 228 },
+  { date: '2024-06-06', download: 294, upload: 250, total: 544 },
+  { date: '2024-06-07', download: 323, upload: 370, total: 693 },
+  { date: '2024-06-08', download: 385, upload: 320, total: 705 },
+  { date: '2024-06-09', download: 438, upload: 480, total: 918 },
+  { date: '2024-06-10', download: 155, upload: 200, total: 355 },
+  { date: '2024-06-11', download: 92, upload: 150, total: 242 },
+  { date: '2024-06-12', download: 492, upload: 420, total: 912 },
+  { date: '2024-06-13', download: 81, upload: 130, total: 211 },
+  { date: '2024-06-14', download: 426, upload: 380, total: 806 },
+  { date: '2024-06-15', download: 307, upload: 350, total: 657 },
+  { date: '2024-06-16', download: 371, upload: 310, total: 681 },
+  { date: '2024-06-17', download: 475, upload: 520, total: 995 },
+  { date: '2024-06-18', download: 107, upload: 170, total: 277 },
+  { date: '2024-06-19', download: 341, upload: 290, total: 631 },
+  { date: '2024-06-20', download: 408, upload: 450, total: 858 },
+  { date: '2024-06-21', download: 169, upload: 210, total: 379 },
+  { date: '2024-06-22', download: 317, upload: 270, total: 587 },
+  { date: '2024-06-23', download: 480, upload: 530, total: 1010 },
+  { date: '2024-06-24', download: 132, upload: 180, total: 312 },
+  { date: '2024-06-25', download: 141, upload: 190, total: 331 },
+  { date: '2024-06-26', download: 434, upload: 380, total: 814 },
+  { date: '2024-06-27', download: 448, upload: 490, total: 938 },
+  { date: '2024-06-28', download: 149, upload: 200, total: 349 },
+  { date: '2024-06-29', download: 103, upload: 160, total: 263 },
+  { date: '2024-06-30', download: 446, upload: 400, total: 846 },
 ]
 
 const chartConfig = {
-  visitors: {
-    label: 'Visitors',
+  peers: {
+    label: 'Peers',
   },
-  desktop: {
-    label: 'Desktop',
+  download: {
+    label: 'Download',
     color: 'var(--chart-1)',
   },
-  mobile: {
-    label: 'Mobile',
+  upload: {
+    label: 'Upload',
     color: 'var(--chart-2)',
+  },
+  total: {
+    label: 'Total',
+    color: 'var(--chart-3)',
   },
 } satisfies ChartConfig
 
@@ -166,27 +182,39 @@ export function ChartAreaInteractive() {
         >
           <AreaChart data={filteredData}>
             <defs>
-              <linearGradient id='fillDesktop' x1='0' y1='0' x2='0' y2='1'>
+              <linearGradient id='fillDownload' x1='0' y1='0' x2='0' y2='1'>
                 <stop
                   offset='5%'
-                  stopColor='var(--color-desktop)'
+                  stopColor='var(--color-download)'
                   stopOpacity={0.8}
                 />
                 <stop
                   offset='95%'
-                  stopColor='var(--color-desktop)'
+                  stopColor='var(--color-download)'
                   stopOpacity={0.1}
                 />
               </linearGradient>
-              <linearGradient id='fillMobile' x1='0' y1='0' x2='0' y2='1'>
+              <linearGradient id='fillUpload' x1='0' y1='0' x2='0' y2='1'>
                 <stop
                   offset='5%'
-                  stopColor='var(--color-mobile)'
+                  stopColor='var(--color-upload)'
                   stopOpacity={0.8}
                 />
                 <stop
                   offset='95%'
-                  stopColor='var(--color-mobile)'
+                  stopColor='var(--color-upload)'
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
+              <linearGradient id='fillTotal' x1='0' y1='0' x2='0' y2='1'>
+                <stop
+                  offset='5%'
+                  stopColor='var(--color-total)'
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset='95%'
+                  stopColor='var(--color-total)'
                   stopOpacity={0.1}
                 />
               </linearGradient>
@@ -221,17 +249,24 @@ export function ChartAreaInteractive() {
               }
             />
             <Area
-              dataKey='mobile'
+              dataKey='upload'
               type='natural'
-              fill='url(#fillMobile)'
-              stroke='var(--color-mobile)'
+              fill='url(#fillUpload)'
+              stroke='var(--color-upload)'
               stackId='a'
             />
             <Area
-              dataKey='desktop'
+              dataKey='download'
               type='natural'
-              fill='url(#fillDesktop)'
-              stroke='var(--color-desktop)'
+              fill='url(#fillDownload)'
+              stroke='var(--color-download)'
+              stackId='a'
+            />
+            <Area
+              dataKey='total'
+              type='natural'
+              fill='url(#fillTotal)'
+              stroke='var(--color-total)'
               stackId='a'
             />
             <ChartLegend content={<ChartLegendContent payload={undefined} />} />
