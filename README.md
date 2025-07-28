@@ -11,14 +11,11 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 - [Screenshots](#screenshots)
 - [Getting-Started](#getting-started)
     - [Prerequisites](#prerequisites)
-    - [Backend Setup](#backend-setup)
-    - [Frontend Setup](#frontend-setup)
+    - [Project Setup](#project-setup)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [API Reference](#api-reference)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
-- [License](#license)
 - [Contact](#contact)
 
 ---
@@ -29,11 +26,11 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 - 🔒 Secure key generation and management
 - 📊 Real-time peer status and usage statistics
 - ⏱️ Automatic peer expiration time (TTL)
-- Traffic Limitations and auto-expiration
-- Bandwidth Limitation for upload and download
+- 😉Traffic Limitations and auto-expiration
+- 📉Bandwidth Limitation for upload and download
 - 📤 Share peer configs via secure links and QR codes
 - 🛠️ Mikrotik RouterOS API integration
-- Multi-Server support (for future)
+- ↕️Multi-Server support (for future)
 - 🔑 API token authentication
 - 🖥️ Responsive React + Golang backend
 
@@ -175,12 +172,6 @@ Contributions are welcome! 🎉
 5. Open a pull request
 
 > For major changes, please open an issue first to discuss what you’d like to change.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ---
 

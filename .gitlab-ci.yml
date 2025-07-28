@@ -158,15 +158,25 @@ publish-docker:
 
 publish-ghcr:
   stage: publish-ghcr
-  image: docker:cli-buildx
+  image: docker:cli
   services:
     - docker:dind
+  dependencies:
+    - build-docker-amd64
+    - build-docker-arm64
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
     - when: never
+  variables:
+    PLATFORM_AMD64: amd64
+    PLATFORM_ARM64: arm64
   before_script:
+    - apk add jq
     - docker login --username "${GHCR_USERNAME}" --password "${GHCR_TOKEN}" "${GHCR_REGISTRY}"
-    - docker login --username "${OCI_REGISTRY_USER}" --password "${OCI_REGISTRY_PASSWORD}" "${OCI_REGISTRY}"
   script:
-    - docker buildx imagetools create --tag "${GHCR_IMAGE}" "${IMAGE_NAME}"
-    - docker buildx imagetools create --tag "${GHCR_IMAGE_LATEST}" "${IMAGE_NAME_LATEST}"
+    - IMAGE_DIGEST_AMD64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_AMD64}.json)
+    - IMAGE_DIGEST_ARM64=$(jq -r '."containerimage.digest"' < docker/buildx-metadata-${PLATFORM_ARM64}.json)
+    - docker manifest create "${GHCR_IMAGE}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
+    - docker manifest push "${GHCR_IMAGE}"
+    - docker manifest create "${GHCR_IMAGE_LATEST}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_AMD64}" --amend "${OCI_REGISTRY_IMAGE}@${IMAGE_DIGEST_ARM64}"
+    - docker manifest push "${GHCR_IMAGE_LATEST}"

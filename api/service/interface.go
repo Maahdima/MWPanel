@@ -63,10 +63,10 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 
 	dbInterface := model.Interface{
 		InterfaceID: mtInterface.ID,
-		Comment:     req.Comment,
+		Comment:     wgInterface.Comment,
 		Name:        wgInterface.Name,
-		PrivateKey:  wgInterface.PrivateKey,
-		PublicKey:   wgInterface.PublicKey,
+		PrivateKey:  mtInterface.PrivateKey,
+		PublicKey:   mtInterface.PublicKey,
 		ListenPort:  wgInterface.ListenPort,
 	}
 
