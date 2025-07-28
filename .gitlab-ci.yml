@@ -158,7 +158,7 @@ publish-docker:
 
 publish-ghcr:
   stage: publish-ghcr
-  image: docker:cli-buildx
+  image: docker:cli
   services:
     - docker:dind
   dependencies:
