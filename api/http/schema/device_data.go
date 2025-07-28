@@ -1,5 +1,13 @@
 package schema
 
+type DailyTrafficUsageResponse struct {
+	InterfaceId   uint   `json:"interface_id"`
+	Date          string `json:"date"`
+	DownloadUsage string `json:"download"`
+	UploadUsage   string `json:"upload"`
+	TotalUsage    string `json:"total"`
+}
+
 type DeviceStatsResponse struct {
 	ServerInfo        *ServerStatsResponse
 	InterfaceInfo     *InterfaceStatsResponse

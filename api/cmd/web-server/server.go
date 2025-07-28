@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
-	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/http"

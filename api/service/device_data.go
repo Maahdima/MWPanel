@@ -16,6 +16,7 @@ import (
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 type IPApiResponse struct {
@@ -43,6 +44,29 @@ func NewDeviceData(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, serverService
 		peerService:      peerService,
 		logger:           zap.L().Named("DeviceDataService"),
 	}
+}
+
+func (d *DeviceData) GetDailyTrafficUsage() (*[]schema.DailyTrafficUsageResponse, error) {
+	var trafficData []model.Traffic
+
+	if err := d.db.Order("created_at ASC").Find(&trafficData).Error; err != nil {
+		d.logger.Error("failed to fetch daily traffic usage data", zap.Error(err))
+		return nil, err
+	}
+
+	var dailyTrafficUsages []schema.DailyTrafficUsageResponse
+	for _, data := range trafficData {
+		dailyUsage := schema.DailyTrafficUsageResponse{
+			Date:          time.Unix(int64(data.CreatedAt), 0).Format("2006-01-02"),
+			DownloadUsage: utils.BytesToGB(data.DownloadUsage),
+			UploadUsage:   utils.BytesToGB(data.UploadUsage),
+			TotalUsage:    utils.BytesToGB(data.TotalUsage),
+		}
+
+		dailyTrafficUsages = append(dailyTrafficUsages, dailyUsage)
+	}
+
+	return &dailyTrafficUsages, nil
 }
 
 func (d *DeviceData) GetDeviceData() (*schema.DeviceStatsResponse, error) {

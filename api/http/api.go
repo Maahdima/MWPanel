@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/http/middleware"
 	"github.com/maahdima/mwp/api/service"
@@ -129,6 +129,7 @@ func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jw
 	deviceSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
 
 	deviceSecured.GET("/stats", deviceInfoController.GetDeviceInfo)
+	deviceSecured.GET("/traffic", deviceInfoController.GetDailyTrafficUsage)
 }
 
 func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, syncController *SyncController) {

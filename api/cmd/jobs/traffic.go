@@ -2,6 +2,7 @@ package traffic
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"sync"
 
@@ -29,13 +30,18 @@ func NewTrafficCalculator(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor) *Calcu
 	}
 }
 
-func (c *Calculator) CalculateTraffic() {
+func (c *Calculator) CalculatePeerTraffic() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	var peers []model.Peer
 	if err := c.db.Find(&peers).Error; err != nil {
 		c.logger.Error("Failed to fetch peers from database", zap.Error(err))
+		return
+	}
+
+	if len(peers) == 0 {
+		c.logger.Info("No peers found, skipping traffic calculation")
 		return
 	}
 
@@ -78,7 +84,69 @@ func (c *Calculator) CalculateTraffic() {
 		}
 	}
 
-	c.logger.Info("Traffic calculation job completed")
+	c.logger.Info("Peer Traffic calculation job completed")
+}
+
+func (c *Calculator) CalculateDailyTraffic() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var interfaces []model.Interface
+	if err := c.db.Find(&interfaces).Error; err != nil {
+		c.logger.Error("Failed to fetch interfaces from database", zap.Error(err))
+		return
+	}
+
+	if len(interfaces) == 0 {
+		c.logger.Info("No interfaces found, skipping daily traffic calculation")
+		return
+	}
+
+	for _, iface := range interfaces {
+		wgInterface, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), iface.InterfaceID)
+		if err != nil {
+			c.logger.Error("Failed to fetch WireGuard interface", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+			continue
+		}
+
+		currentDownload := utils.ParseStringToInt(wgInterface.TransferTx)
+		currentUpload := utils.ParseStringToInt(wgInterface.TransferRx)
+		currentTotal := currentDownload + currentUpload
+
+		var lastTraffic model.Traffic
+		err = c.db.
+			Where("interface_id = ?", iface.ID).
+			Order("created_at DESC").
+			First(&lastTraffic).Error
+
+		var diffDownload, diffUpload, diffTotal int64
+		if err == nil {
+			diffDownload = currentDownload - lastTraffic.DownloadUsage
+			diffUpload = currentUpload - lastTraffic.UploadUsage
+			diffTotal = currentTotal - lastTraffic.TotalUsage
+		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+			diffDownload = currentDownload
+			diffUpload = currentUpload
+			diffTotal = currentTotal
+		} else {
+			c.logger.Error("Failed to fetch previous traffic record", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+			continue
+		}
+
+		newTraffic := model.Traffic{
+			InterfaceID:   iface.ID,
+			DownloadUsage: diffDownload,
+			UploadUsage:   diffUpload,
+			TotalUsage:    diffTotal,
+		}
+
+		if err := c.db.Create(&newTraffic).Error; err != nil {
+			c.logger.Error("Failed to save daily traffic data", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+			continue
+		}
+	}
+
+	c.logger.Info("Daily traffic calculation completed")
 }
 
 func (c *Calculator) ResetPeerUsage(id uint) error {

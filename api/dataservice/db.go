@@ -58,7 +58,7 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	err := db.Migrator().AutoMigrate(&model.Admin{}, &model.Server{}, &model.Interface{}, &model.IPPool{}, &model.Peer{})
+	err := db.Migrator().AutoMigrate(&model.Admin{}, &model.Server{}, &model.Interface{}, &model.IPPool{}, &model.Peer{}, &model.Traffic{})
 	if err != nil {
 		log.Panic("failed to auto migrate db: ", err)
 		return err

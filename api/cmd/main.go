@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-co-op/gocron/v2"
+
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
-	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/cmd/web-server"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
@@ -23,6 +25,8 @@ func init() {
 
 func main() {
 	logger := zap.L()
+
+	appCfg := config.GetAppConfig()
 
 	db, err := dataservice.ConnectDB(config.GetDBConfig())
 	if err != nil {
@@ -49,17 +53,31 @@ func main() {
 	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor)
 
 	// Start the traffic calculation job
-	go func() {
-		appCfg := config.GetAppConfig()
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		logger.Panic("Failed to create scheduler", zap.Error(err))
+	}
 
-		trafficJobInterval, _ := strconv.Atoi(appCfg.TrafficJobInterval)
-		for range time.Tick(time.Duration(trafficJobInterval) * time.Second) {
-			httpClient := mwpClients.GetClient(nil)
-			if httpClient != nil {
-				trafficCalculator.CalculateTraffic()
-			}
-		}
-	}()
+	trafficJobInterval, _ := strconv.Atoi(appCfg.TrafficJobInterval)
+
+	_, err = scheduler.NewJob(
+		gocron.DurationJob(
+			time.Duration(trafficJobInterval)*time.Second),
+		gocron.NewTask(trafficCalculator.CalculatePeerTraffic))
+	if err != nil {
+		logger.Panic("Failed to create peer traffic calculation job", zap.Error(err))
+	}
+
+	_, err = scheduler.NewJob(
+		gocron.DailyJob(
+			1, gocron.NewAtTimes(
+				gocron.NewAtTime(00, 00, 00))),
+		gocron.NewTask(trafficCalculator.CalculateDailyTraffic))
+	if err != nil {
+		logger.Panic("Failed to create daily traffic calculation job", zap.Error(err))
+	}
+
+	scheduler.Start()
 
 	// Start the HTTP server
 	if err := webserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator); err != nil {

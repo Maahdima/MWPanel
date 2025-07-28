@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/maahdima/mwp/api/cmd/traffic-job"
+	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/service"
 
