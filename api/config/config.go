@@ -61,21 +61,12 @@ func getEnv(key, defaultValue string) string {
 func GetAppConfig() AppConfig {
 	dataDir := getEnv("DATA_DIR", "")
 	if dataDir == "" {
-		userConfigDir, err := os.UserConfigDir()
-		if err == nil {
-			info, statErr := os.Stat(userConfigDir)
-			if statErr == nil && info.IsDir() {
-				dataDir = filepath.Join(userConfigDir, "mwp")
-			}
+		pwd, err := os.Getwd()
+		if err != nil {
+			log.Fatalf("Failed to get current working directory: %v", err)
 		}
 
-		if dataDir == "" {
-			exePath, err := os.Executable()
-			if err != nil {
-				log.Fatalf("Failed to get executable path: %v", err)
-			}
-			dataDir = filepath.Join(filepath.Dir(exePath), "mwp")
-		}
+		dataDir = filepath.Join(pwd, "mwp")
 	}
 
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
