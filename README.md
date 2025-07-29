@@ -46,7 +46,11 @@ the [Releases](https://github.com/Maahdima/MWPanel/releases/latest)
 page.
 
 > **Note**<br/>
-> Default port for the web panel is `3000` and default username and password for the admin account is `mwpadmin`.<br/>
+> Default port for the web panel is `3000`.<br/>
+> Default username and password for the admin account is `mwpadmin` (Always change the default username and password to
+> prevent hijacking).<br/>
+> The default username and password applies when the app runs for the first time, so you cant change it from the env
+> anymore after initial run (Still can change them from the gui panel).<br/>
 
 For Platform-specific instructions, see below.
 
@@ -94,6 +98,10 @@ docker run -d \
   -e ADMIN_PASSWORD=mwpadmin \
   maahdima/mwp:latest
 ```
+
+> **Note**<br/>
+> If docker registry is not accessible, you can use the github image registry (https://ghcr.io):
+> `https://ghcr.io/maahdima/mwp:latest`<br/>
 
 ### Docker Compose
 
@@ -152,19 +160,6 @@ Visit `http://localhost:3000` in your browser.
 
 ## Configuration
 
-### Backend `.env`
-
-```env
-API_PORT=8080
-MIKROTIK_HOST=192.168.88.1
-MIKROTIK_PORT=8728
-MIKROTIK_USER=admin
-MIKROTIK_PASSWORD=yourpassword
-DB_URL=postgres://user:pass@localhost:5432/mwp?sslmode=disable
-```
-
----
-
 ## Usage
 
 1. **Login** using Mikrotik credentials
@@ -181,18 +176,12 @@ DB_URL=postgres://user:pass@localhost:5432/mwp?sslmode=disable
 MWP is configured using environment variables. Create a `.env` file in the root project directory (for Docker) or in the
 `api` directory (for manual setup).
 
-| Variable                | Description                                          | Default                 | Required |
-|-------------------------|------------------------------------------------------|-------------------------|----------|
-| `MIKROTIK_HOST`         | The IP address or domain of your Mikrotik router.    | `""`                    | Yes      |
-| `MIKROTIK_PORT`         | The API port for your Mikrotik router.               | `8728`                  | Yes      |
-| `MIKROTIK_USER`         | The username for the Mikrotik API user.              | `""`                    | Yes      |
-| `MIKROTIK_PASSWORD`     | The password for the Mikrotik API user.              | `""`                    | Yes      |
-| `MIKROTIK_WG_INTERFACE` | The name of the WireGuard interface on your router.  | `wireguard1`            | Yes      |
-| `SERVER_PORT`           | The port for the backend Go API server.              | `8080`                  | No       |
-| `JWT_SECRET`            | A secret string for signing authentication tokens.   | `your-secret-key`       | Yes      |
-| `WEB_URL`               | The public URL of the frontend for generating links. | `http://localhost:3000` | No       |
-| `ADMIN_USER`            | The username for the portal's admin account.         | `admin`                 | No       |
-| `ADMIN_PASSWORD`        | The password for the portal's admin account.         | `admin`                 | No       |
+| Variable         | Description                                 | Default    | Required |
+|------------------|---------------------------------------------|------------|----------|
+| `SERVER_HOST`    | The ip address to listen on it.             | `0.0.0.0`  | No       |
+| `SERVER_PORT`    | The port for the backend Go API server.     | `3000`     | No       |
+| `ADMIN_USERNAME` | The username for the panel's admin account. | `mwpadmin` | No       |
+| `ADMIN_PASSWORD` | The password for the panel's admin account. | `mwpadmin` | No       |
 
 ---
 
