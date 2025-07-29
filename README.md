@@ -78,8 +78,8 @@ mwp
 
 #### Windows
 
-Download the latest binary release from [here](https://github.com/Maahdima/MWPanel/releases/latest) and run it by *
-*double-clicking the executable** or using PowerShell:
+Download the latest binary release from [here](https://github.com/Maahdima/MWPanel/releases/latest) and run it by
+**double-clicking the executable** or using PowerShell:
 
 ```powershell
 .\mwp.windows.amd64.exe
@@ -146,10 +146,15 @@ git clone https://github.com/maahdima/mwp.git
 cd mwp
 
 cp .env.example .env
-# Edit .env with your Mikrotik credentials and DB settings
+# Edit .env with desired settings
 
 go mod tidy
-go run main.go
+cd api
+go run cmd/main.go
+
+cd ui
+pnpm install
+pnpm run dev
 ```
 
 ---
