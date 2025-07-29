@@ -17,6 +17,7 @@ RUN set -eux && \
 
 # Setting workdir
 WORKDIR /var/www/mwp
+VOLUME /var/www/mwp
 
 # Copy binary file
 ARG TARGETOS
