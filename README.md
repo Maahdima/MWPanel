@@ -55,7 +55,7 @@ For Platform-specific instructions, see below.
 Download the latest binary release, install it, and run it:
 
 ```bash
-curl -fSsL -o mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.linux.$(uname -m)
+curl -fSLo mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.linux.$(uname -m)
 sudo install -v -o root -g root -m 755 mwp /usr/local/bin/mwp
 rm -f mwp
 mwp
@@ -66,7 +66,7 @@ mwp
 Download the latest binary release, install it, and run it:
 
 ```bash
-curl -fSsL -o mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.darwin.$(uname -m)
+curl -fSLo mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.darwin.$(uname -m)
 sudo install -v -o root -g root -m 755 mwp /usr/local/bin/mwp
 rm -f mwp
 mwp
