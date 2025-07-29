@@ -43,10 +43,7 @@ type AuthConfig struct {
 }
 
 func init() {
-	err := loadEnv()
-	if err != nil {
-		log.Println("Failed to load environment variables: " + err.Error())
-	}
+	_ = loadEnv()
 }
 
 func loadEnv() error {
