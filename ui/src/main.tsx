@@ -43,16 +43,7 @@ const handleGlobalHttpError = (error: unknown) => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error) => {
-        if (import.meta.env.DEV)
-          if (failureCount >= 0 && import.meta.env.DEV) return false
-        if (failureCount > 3 && import.meta.env.PROD) return false
-
-        return !(
-          error instanceof AxiosError &&
-          [401, 403].includes(error.response?.status ?? 0)
-        )
-      },
+      retry: false,
       refetchOnWindowFocus: import.meta.env.PROD,
       staleTime: 10 * 1000,
     },

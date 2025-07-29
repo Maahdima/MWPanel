@@ -45,10 +45,14 @@ Download the latest binary release for your platform from
 the [Releases](https://github.com/Maahdima/MWPanel/releases/latest)
 page.
 
-> **Note**<br/>
+> [!TIP]  
 > Default port for the web panel is `3000`.<br/>
+
+> [!CAUTION]  
 > Default username and password for the admin account is `mwpadmin` (Always change the default username and password to
 > prevent hijacking).<br/>
+
+> [!IMPORTANT]  
 > The default username and password applies when the app runs for the first time, so you cant change it from the env
 > anymore after initial run (Still can change them from the gui panel).<br/>
 
