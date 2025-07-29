@@ -10,6 +10,7 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Getting-Started](#getting-started)
+- [Build-From-Source](#build-from-source)
     - [Prerequisites](#prerequisites)
     - [Project Setup](#project-setup)
 - [Configuration](#configuration)
@@ -37,6 +38,88 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 ---
 
 ## Getting Started
+
+### Binary Releases
+
+Download the latest binary release for your platform from
+the [Releases](https://github.com/Maahdima/MWPanel/releases/latest)
+page.
+
+> **Note**<br/>
+> Default port for the web panel is `3000` and default username and password for the admin account is `mwpadmin`.<br/>
+
+For Platform-specific instructions, see below.
+
+#### Linux
+
+Download the latest binary release, install it, and run it:
+
+```bash
+curl -fSsL -o mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.linux.$(uname -m)
+sudo install -v -o root -g root -m 755 mwp /usr/local/bin/mwp
+rm -f mwp
+mwp
+```
+
+#### macOS
+
+Download the latest binary release, install it, and run it:
+
+```bash
+curl -fSsL -o mwp https://github.com/Maahdima/MWPanel/releases/latest/download/mwp.darwin.$(uname -m)
+sudo install -v -o root -g root -m 755 mwp /usr/local/bin/mwp
+rm -f mwp
+mwp
+```
+
+#### Windows
+
+Download the latest binary release from [here](https://github.com/Maahdima/MWPanel/releases/latest) and run it by *
+*double-clicking the executable** or using PowerShell:
+
+```powershell
+.\mwp.windows.amd64.exe
+```
+
+### Docker
+
+Run the following command to start MWP using Docker:
+
+```bash
+docker run -d \
+  --name mwp \
+  -p 3000:3000 \
+  -v mwp-data:/var/www/mwp \
+  -e ADMIN_USERNAME=mwpadmin \
+  -e ADMIN_PASSWORD=mwpadmin \
+  maahdima/mwp:latest
+```
+
+### Docker Compose
+
+Create a `docker-compose.yml` file with the following content:
+
+```yaml
+version: '3.8'
+services:
+  mwp:
+    image: maahdima/mwp:latest
+    ports:
+      - 3000:3000
+    environment:
+      ADMIN_USERNAME: mwpadmin
+      ADMIN_PASSWORD: mwpadmin
+    volumes:
+      - mwp-data:/var/www/mwp
+```
+
+Run the following command to start MWP using Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+## Build from Source
 
 ### Prerequisites
 
