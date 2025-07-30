@@ -106,7 +106,7 @@ build-go:
       --cache-to "type=inline"
       --build-arg "APP_COMMIT_SHA=${CI_COMMIT_SHA}"
       --provenance false
-      --output "type=image,oci-mediatypes=true,store=false,compression=zstd,compression-level=3,\"name=${OCI_REGISTRY_IMAGE}\",push=true,push-by-digest=true"
+      --output "type=image,oci-mediatypes=true,store=false,compression=gzip,compression-level=6,\"name=${OCI_REGISTRY_IMAGE}\",push=true,push-by-digest=true"
       --metadata-file "docker/buildx-metadata-${PLATFORM}.json"
   artifacts:
     name: "${BUILD_NAME}-build-docker-${PLATFORM}"

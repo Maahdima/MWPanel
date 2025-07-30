@@ -292,17 +292,18 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 }
 
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
-	var dbPeers []model.Peer
-	if err := w.db.Order("created_at ASC").Find(&dbPeers).Error; err != nil {
-		w.logger.Error("failed to get peers from database", zap.Error(err))
-		return nil, err
+	peers, err := w.mikrotikAdaptor.FetchWgPeers(context.Background())
+	if err != nil {
+		w.logger.Error("failed to fetch wireguard peers from Mikrotik", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch wireguard peers: %w", err)
 	}
 
 	var wgPeers []schema.PeerResponse
-	for _, dbPeer := range dbPeers {
-		peer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), dbPeer.PeerID)
-		if err != nil {
-			w.logger.Error("failed to fetch wireguard peer from Mikrotik", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
+	for _, peer := range peers {
+		var dbPeer model.Peer
+
+		if err := w.db.Find(&dbPeer, "peer_id = ?", peer.ID).Error; err != nil {
+			w.logger.Error("failed to get peer from database", zap.String("peer_id", peer.ID), zap.Error(err))
 			continue
 		}
 
@@ -310,7 +311,7 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 
 		var duration time.Duration
 		if peer.LastHandshake != nil {
-			duration, err = time.ParseDuration(*peer.LastHandshake)
+			duration, err = utils.ParseCustomDuration(*peer.LastHandshake)
 			if err != nil {
 				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
 				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
@@ -436,71 +437,82 @@ func (w *WgPeer) DeletePeer(id uint) error {
 }
 
 func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
+	peers, err := w.mikrotikAdaptor.FetchWgPeers(context.Background())
+	if err != nil {
+		w.logger.Error("failed to fetch peers from mikrotik", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch peers from mikrotik: %w", err)
+	}
+
 	var dbPeers []model.Peer
 	if err := w.db.Find(&dbPeers).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			w.logger.Warn("no peers found in database")
-			return &schema.PeerStatsResponse{}, nil
-		}
 		w.logger.Error("failed to fetch peers from database", zap.Error(err))
-		return nil, fmt.Errorf("fetch peers from database: %w", err)
+		return nil, fmt.Errorf("failed to fetch peers from database: %w", err)
+	}
+
+	dbPeerMap := make(map[string]model.Peer)
+	for _, p := range dbPeers {
+		dbPeerMap[p.PeerID] = p
 	}
 
 	type peerWithDuration struct {
-		peer     *mikrotik.WireGuardPeer
+		peer     mikrotik.WireGuardPeer
 		duration time.Duration
 	}
 
 	var (
-		allOnlinePeers []peerWithDuration
-		disabledPeers  []mikrotik.WireGuardPeer
+		onlinePeers   []peerWithDuration
+		disabledPeers []mikrotik.WireGuardPeer
 	)
 
-	for _, dbPeer := range dbPeers {
-		peer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), dbPeer.PeerID)
-		if err != nil {
-			w.logger.Error("failed to fetch peer from mikrotik", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
-			return nil, fmt.Errorf("fetch peer %s from mikrotik: %w", dbPeer.PeerID, err)
+	for _, peer := range peers {
+		dbPeer, exists := dbPeerMap[peer.ID]
+		if !exists {
+			w.logger.Warn("peer not found in database", zap.String("peerID", peer.ID))
+			continue
 		}
 
 		if peer.Disabled == "true" {
-			disabledPeers = append(disabledPeers, *peer)
+			disabledPeers = append(disabledPeers, peer)
 			continue
 		}
 
 		if peer.LastHandshake != nil {
-			duration, err := time.ParseDuration(*peer.LastHandshake)
+			duration, err := utils.ParseCustomDuration(*peer.LastHandshake)
 			if err != nil {
 				w.logger.Error("invalid last handshake duration", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
 				continue
 			}
-			allOnlinePeers = append(allOnlinePeers, peerWithDuration{
-				peer:     peer,
-				duration: duration,
-			})
+
+			if duration < 150*time.Second {
+				onlinePeers = append(onlinePeers, peerWithDuration{
+					peer:     peer,
+					duration: duration,
+				})
+			}
 		}
 	}
 
-	onlinePeersCount := len(allOnlinePeers)
-	offlinePeersCount := len(dbPeers) - onlinePeersCount - len(disabledPeers)
-
-	sort.Slice(allOnlinePeers, func(i, j int) bool {
-		return allOnlinePeers[i].duration < allOnlinePeers[j].duration
+	sort.Slice(onlinePeers, func(i, j int) bool {
+		return onlinePeers[i].duration < onlinePeers[j].duration
 	})
 
-	var recentPeers []schema.RecentOnlinePeers
-	for _, item := range allOnlinePeers[:min(5, len(allOnlinePeers))] {
+	recentCount := min(5, len(onlinePeers))
+	recentPeers := make([]schema.RecentOnlinePeers, 0, recentCount)
+
+	for _, item := range onlinePeers[:recentCount] {
+		lastSeenStr := utils.FormatDuration(item.duration)
+
 		recentPeers = append(recentPeers, schema.RecentOnlinePeers{
 			Name:     item.peer.Name,
-			LastSeen: time.Unix(int64(item.duration.Seconds()), 0).UTC().Format("15:04:05"),
+			LastSeen: lastSeenStr,
 		})
 	}
 
 	return &schema.PeerStatsResponse{
 		RecentOnlinePeers: &recentPeers,
 		TotalPeers:        len(dbPeers),
-		OnlinePeers:       onlinePeersCount,
-		OfflinePeers:      offlinePeersCount,
+		OnlinePeers:       len(onlinePeers),
+		OfflinePeers:      len(dbPeers) - len(onlinePeers) - len(disabledPeers),
 		DisabledPeers:     len(disabledPeers),
 	}, nil
 }

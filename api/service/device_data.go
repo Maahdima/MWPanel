@@ -213,7 +213,6 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	deviceIpData.ISP = respBody.ISP
 
 	return deviceIpData, err
-
 }
 
 func (d *DeviceData) getDNSConfig() (*schema.DNSConfig, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -25,6 +26,34 @@ func ParseStringToInt(s string) int64 {
 		return 0
 	}
 	return val
+}
+
+func ParseCustomDuration(s string) (time.Duration, error) {
+	re := regexp.MustCompile(`(\d+)([wdhms])`)
+	matches := re.FindAllStringSubmatch(s, -1)
+
+	var total time.Duration
+	for _, match := range matches {
+		num, err := strconv.Atoi(match[1])
+		if err != nil {
+			return 0, err
+		}
+		switch match[2] {
+		case "w":
+			total += time.Duration(num) * 7 * 24 * time.Hour
+		case "d":
+			total += time.Duration(num) * 24 * time.Hour
+		case "h":
+			total += time.Duration(num) * time.Hour
+		case "m":
+			total += time.Duration(num) * time.Minute
+		case "s":
+			total += time.Duration(num) * time.Second
+		default:
+			return 0, fmt.Errorf("unknown duration unit: %s", match[2])
+		}
+	}
+	return total, nil
 }
 
 func BytesToGB(b int64) string {
@@ -76,4 +105,16 @@ func IPToUint32(ip net.IP) uint32 {
 		return 0
 	}
 	return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
+}
+
+func FormatDuration(d time.Duration) string {
+	d = d.Truncate(time.Second)
+
+	h := d / time.Hour
+	d -= h * time.Hour
+	m := d / time.Minute
+	d -= m * time.Minute
+	s := d / time.Second
+
+	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
 }
