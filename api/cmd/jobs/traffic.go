@@ -103,14 +103,14 @@ func (c *Calculator) CalculateDailyTraffic() {
 	}
 
 	for _, iface := range interfaces {
-		wgInterface, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), iface.InterfaceID)
+		wgInterface, err := c.mikrotikAdaptor.FetchInterface(context.Background(), iface.InterfaceID)
 		if err != nil {
 			c.logger.Error("Failed to fetch WireGuard interface", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
 			continue
 		}
 
-		currentDownload := utils.ParseStringToInt(wgInterface.TransferTx)
-		currentUpload := utils.ParseStringToInt(wgInterface.TransferRx)
+		currentDownload := utils.ParseStringToInt(wgInterface.TxByte)
+		currentUpload := utils.ParseStringToInt(wgInterface.RxByte)
 		currentTotal := currentDownload + currentUpload
 
 		var lastTraffic model.Traffic

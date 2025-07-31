@@ -128,11 +128,18 @@ func (c *MwpClients) SetClient(serverData *schema.CreateServerRequest) {
 
 	apiPort := utils.ParseStringToInt(serverData.APIPort)
 
+	var protocol string
+	if serverData.IsSSL {
+		protocol = "https"
+	} else {
+		protocol = "http"
+	}
+
 	client, err := httphelper.NewClient(httphelper.Config{
-		BaseURL:            fmt.Sprintf("%s://%s:%d/rest", "http", serverData.IPAddress, apiPort),
+		BaseURL:            fmt.Sprintf("%s://%s:%d/rest", protocol, serverData.IPAddress, apiPort),
 		Username:           serverData.Username,
 		Password:           serverData.Password,
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: !serverData.IsSSL,
 	})
 	if err != nil {
 		c.logger.Panic("Failed to create HTTP client", zap.Error(err))

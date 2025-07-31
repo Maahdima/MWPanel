@@ -49,6 +49,7 @@ func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {
 	})
 }
 
+// TODO : fix this goes only till x.x.x.10
 func (c *WgPeerController) GetNewPeerAllowedAddress(ctx echo.Context) error {
 	var req schema.NewPeerAllowedAddressRequest
 

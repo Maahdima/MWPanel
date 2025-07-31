@@ -5,8 +5,9 @@ var (
 	DeviceIdentityPath = "/system/identity"
 	DeviceDnsPath      = "/ip/dns"
 	DeviceIPv4Path     = "/ip/address"
-	WGPeerPath         = "/interface/wireguard/peers"
+	InterfacePath      = "/interface"
 	WGInterfacePath    = "/interface/wireguard"
+	WGPeerPath         = "/interface/wireguard/peers"
 	QueuePath          = "/queue/simple"
 	SchedulerPath      = "/system/scheduler"
 )
