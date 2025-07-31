@@ -34,9 +34,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarFooter className='flex items-center justify-center p-4 text-white/80 shadow-inner'>
           <SidebarMenu>
             <SidebarMenuItem>
-              <div className='flex items-center justify-center gap-1 text-sm text-xs font-semibold'>
+              <div className='flex items-center justify-center gap-1 text-sm text-xs font-normal'>
                 <span>Made with</span>
-                <IconHeartFilled size='15' />
+                <IconHeartFilled size='13' />
                 <span>by</span>
                 <a
                   href='https://github.com/Maahdima'

@@ -18,6 +18,7 @@ export const CreateServerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   ip_address: z.string().min(1, 'IP Address is required'),
   api_port: z.string().min(1, 'Rest API Port is required'),
+  is_ssl: z.boolean(),
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 })

@@ -27,13 +27,13 @@ export function GenerateKeyField({ control, setValue }: Props) {
   }
 
   return (
-    <>
+    <div className='space-y-4'>
       <div className='flex items-end gap-2'>
         <FormField
           control={control}
           name='private_key'
           render={({ field }) => (
-            <FormItem className='w-full'>
+            <FormItem className='flex-grow'>
               <FormLabel>Private Key</FormLabel>
               <FormControl>
                 <PasswordInput
@@ -46,7 +46,12 @@ export function GenerateKeyField({ control, setValue }: Props) {
             </FormItem>
           )}
         />
-        <Button type='button' onClick={onGenerateKeys} variant='outline'>
+        <Button
+          type='button'
+          onClick={onGenerateKeys}
+          variant='outline'
+          className='self-end'
+        >
           Generate
         </Button>
       </div>
@@ -64,6 +69,6 @@ export function GenerateKeyField({ control, setValue }: Props) {
           </FormItem>
         )}
       />
-    </>
+    </div>
   )
 }

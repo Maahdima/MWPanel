@@ -11,14 +11,16 @@ import { TrafficInput } from '@/features/peers/components/fields/taffic-limit-fi
 import { SimpleField } from '@/features/shared-components/simple-field'
 
 interface PeerFormFieldsProps {
-  form: {
-    control: Control<CreatePeerRequest>
-    setValue: UseFormSetValue<CreatePeerRequest>
-  }
+  control: Control<CreatePeerRequest>
+  setValue: UseFormSetValue<CreatePeerRequest>
   isEdit: boolean
 }
 
-export function PeerFormFields({ form, isEdit }: PeerFormFieldsProps) {
+export function PeerFormFields({
+  control,
+  setValue,
+  isEdit,
+}: PeerFormFieldsProps) {
   const {
     data: interfacesList = [],
     isLoading: isInterfacesLoading,
@@ -26,65 +28,73 @@ export function PeerFormFields({ form, isEdit }: PeerFormFieldsProps) {
   } = useInterfacesListQuery()
 
   return (
-    <>
-      <SimpleField
-        name='comment'
-        label='Comment'
-        placeholder='Comment (optional)'
-        control={form.control}
-      />
+    <div className='grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2'>
       <SimpleField
         name='name'
         label='Name'
         placeholder='Peer Name'
-        control={form.control}
+        control={control}
+      />
+      <SimpleField
+        name='comment'
+        label='Comment'
+        placeholder='Comment (optional)'
+        control={control}
       />
 
       {!isEdit && (
-        <>
-          <InterfaceSelect
-            name='interface_id'
-            label='Interface'
-            control={form.control}
-            setValue={form.setValue}
-            options={interfacesList}
-            isLoading={isInterfacesLoading}
-            error={interfacesError}
-          />
-          <GenerateKeyField control={form.control} setValue={form.setValue} />
-          <SimpleField
-            name='endpoint'
-            label='Endpoint'
-            placeholder='e.g., 185.51.200.10'
-            control={form.control}
-          />
-        </>
+        <div className='md:col-span-2'>
+          <div className='grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2'>
+            <InterfaceSelect
+              name='interface_id'
+              label='Interface'
+              control={control}
+              setValue={setValue}
+              options={interfacesList}
+              isLoading={isInterfacesLoading}
+              error={interfacesError}
+            />
+            <SimpleField
+              name='endpoint'
+              label='Endpoint'
+              placeholder='e.g., 185.51.200.10'
+              control={control}
+            />
+            <div className='md:col-span-2'>
+              <GenerateKeyField control={control} setValue={setValue} />
+            </div>
+          </div>
+        </div>
       )}
 
       <SimpleField
         name='allowed_address'
         label='Allowed Address'
         placeholder='e.g., 10.0.0.2/32'
-        control={form.control}
+        control={control}
       />
       <SimpleField
         name='persistent_keepalive'
         label='Persistent Keepalive'
         placeholder='e.g., 00:00:25 (optional)'
-        control={form.control}
+        control={control}
       />
-      <TrafficInput control={form.control} />
-      <ExpireDateField control={form.control} />
-      <BandwidthField
-        name='download_bandwidth'
-        label='Download Bandwidth'
-        control={form.control}
-      />
-      <BandwidthField
-        name='upload_bandwidth'
-        label='Upload Bandwidth'
-        control={form.control}
-      />
-    </>
+
+      <TrafficInput control={control} />
+      <ExpireDateField control={control} />
+
+      <div className='space-y-4 md:col-span-2'>
+        <BandwidthField
+          name='download_bandwidth'
+          label='Download Bandwidth'
+          control={control}
+        />
+        <BandwidthField
+          name='upload_bandwidth'
+          label='Upload Bandwidth'
+          control={control}
+        />
+      </div>
+    </div>
   )
 }

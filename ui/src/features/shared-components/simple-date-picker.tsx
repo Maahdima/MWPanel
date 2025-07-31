@@ -10,7 +10,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-type SimpleDatepickerProps = {
+type Props = {
   value: string | null | undefined
   onChange: (value: string | null) => void
   placeholder?: string
@@ -22,7 +22,7 @@ export function SimpleDatepicker({
   onChange,
   placeholder = 'Pick a date (optional)',
   minDate = new Date(),
-}: SimpleDatepickerProps) {
+}: Props) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
