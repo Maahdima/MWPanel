@@ -62,15 +62,21 @@ func (c *Calculator) CalculatePeerTraffic() {
 
 		peer.DownloadUsage += deltaTx
 		peer.UploadUsage += deltaRx
-
 		peer.LastTx = currentTx
 		peer.LastRx = currentRx
 
-		totalBytes := peer.DownloadUsage + peer.UploadUsage
-		if peer.TrafficLimit != nil && totalBytes > *peer.TrafficLimit {
-			c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
+		updates := map[string]interface{}{
+			"download_usage": peer.DownloadUsage,
+			"upload_usage":   peer.UploadUsage,
+			"last_tx":        peer.LastTx,
+			"last_rx":        peer.LastRx,
+		}
 
+		if peer.TrafficLimit != nil && (peer.DownloadUsage+peer.UploadUsage) > *peer.TrafficLimit {
+			c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
 			peer.Disabled = true
+			updates["disabled"] = true
+
 			_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
 				Disabled: strconv.FormatBool(true),
 			})
@@ -79,7 +85,7 @@ func (c *Calculator) CalculatePeerTraffic() {
 			}
 		}
 
-		if err := c.db.Save(&peer).Error; err != nil {
+		if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
 			c.logger.Error("Failed to update peer usage in database", zap.String("peerID", peer.PeerID), zap.Error(err))
 		}
 	}

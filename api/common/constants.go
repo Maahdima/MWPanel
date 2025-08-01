@@ -26,7 +26,7 @@ var (
 )
 
 var (
-	QueueComment     = "Wg Bandwidth Queue: "
+	QueueComment     = "Wireguard Bandwidth Queue: "
 	QueueName        = "Bandwidth Limit: "
 	DefaultKeepalive = "25"
 )

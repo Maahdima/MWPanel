@@ -673,10 +673,10 @@ func (w *WgPeer) handleScheduler(peer *model.Peer, req *schema.UpdatePeerRequest
 		return w.scheduler.createScheduler(peer.PeerID, peer.Name, req.ExpireTime)
 	}
 
-	if req.ExpireTime != nil {
+	if req.ExpireTime != nil && peer.SchedulerID != nil {
 		err := w.scheduler.updateScheduler(peer.SchedulerID, req.ExpireTime)
 		if err != nil {
-			w.logger.Error("failed to update scheduler for WireGuard peer", zap.Error(err))
+			w.logger.Error("failed to update scheduler for wireguard peer", zap.Error(err))
 			return peer.SchedulerID, err
 		}
 	}
@@ -709,10 +709,12 @@ func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*
 		return newQueueID, nil
 	}
 
-	err := w.queue.updateQueue(queueID, download, upload)
-	if err != nil {
-		w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
-		return queueID, err
+	if !bandwidthsEqual(peer.DownloadBandwidth, download) || !bandwidthsEqual(peer.UploadBandwidth, upload) {
+		err := w.queue.updateQueue(queueID, download, upload)
+		if err != nil {
+			w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
+			return queueID, err
+		}
 	}
 
 	return queueID, nil
@@ -795,4 +797,14 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 	}
 
 	return peerStatus
+}
+
+func bandwidthsEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a != nil && b != nil {
+		return *a == *b
+	}
+	return false
 }
