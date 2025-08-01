@@ -47,7 +47,7 @@ export default function RecentlyOnlineUsers({ peers }: Props) {
                   <TableRow key={idx}>
                     <TableCell className='py-4 pl-6 font-medium'>
                       <div className='flex items-center gap-3'>
-                        <div className='flex h-9 w-9 items-center justify-center rounded-full bg-teal-800 text-sm font-bold text-white'>
+                        <div className='flex h-9 w-9 items-center justify-center rounded-full bg-sky-800 text-sm font-bold text-white'>
                           {getAvatarInitials(peer.name)}
                         </div>
                         <span>{peer.name}</span>

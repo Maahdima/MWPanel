@@ -154,40 +154,40 @@ export const peersColumns: ColumnDef<Peer>[] = [
           actionText='Confirm Reset'
           mutateAsync={handleResetUsage}
           trigger={
-            <div className='w-fit cursor-pointer text-nowrap'>
-              {peer.traffic_limit ? (
-                <div className='flex items-center justify-center space-x-1'>
-                  <Button className='h-6 w-6' variant='outline'>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <IconRestore className='h-1 w-1' />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Reset Usage</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Button>
-                  <Badge variant='default' className='rounded-sm bg-blue-400'>
-                    {peer.total_usage} GB/{peer.traffic_limit} GB
-                  </Badge>
+            <div className='min-w-[140px] text-nowrap'>
+              <div className='flex items-center gap-3'>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='text-muted-foreground hover:text-foreground h-8 w-8'
+                      aria-label='Reset Usage'
+                    >
+                      <IconRestore className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side='top' align='center'>
+                    <p>Reset Usage</p>
+                  </TooltipContent>
+                </Tooltip>
+                <div className='flex flex-col leading-tight'>
+                  <span className='text-foreground text-sm font-medium'>
+                    {peer.total_usage} GB
+                    {peer.traffic_limit && (
+                      <span className='text-muted-foreground text-sm'>
+                        {' / '}
+                        {peer.traffic_limit} GB
+                      </span>
+                    )}
+                  </span>
+                  {!peer.traffic_limit && (
+                    <span className='text-muted-foreground text-xs'>
+                      Unlimited
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div className='flex items-center justify-center space-x-1'>
-                  <Button className='h-6 w-6' variant='outline'>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <IconRestore className='h-1 w-1' />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Reset Usage</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Button>
-                  <Badge variant='default'>
-                    {peer.total_usage} GB/Unlimited
-                  </Badge>
-                </div>
-              )}
+              </div>
             </div>
           }
         />
@@ -206,15 +206,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
       const { expire_time } = row.original
       return (
         <div className='w-fit text-nowrap'>
-          {expire_time ? (
-            <Badge variant='default' className='rounded-sm bg-yellow-400'>
-              {expire_time}
-            </Badge>
-          ) : (
-            <Badge className='rounded-sm' variant='default'>
-              Never
-            </Badge>
-          )}
+          {expire_time ? expire_time : 'Never'}
         </div>
       )
     },
@@ -230,14 +222,24 @@ export const peersColumns: ColumnDef<Peer>[] = [
     cell: ({ row }) => {
       const { download_bandwidth, upload_bandwidth } = row.original
       return (
-        <div className='w-fit text-nowrap'>
+        <div className='w-fit min-w-[150px] text-nowrap'>
           {row.original ? (
-            <Badge variant='default' className='rounded-sm bg-purple-500'>
-              {download_bandwidth || 'Unlimited'}/
-              {upload_bandwidth || 'Unlimited'}
-            </Badge>
+            <div className='text-foreground flex items-center gap-2 text-sm'>
+              <div className='flex items-center gap-1'>
+                <span className='text-muted-foreground'>↓</span>
+                <span>{download_bandwidth || 'Unlimited'}</span>
+              </div>
+              <span className='text-muted-foreground'>/</span>
+              <div className='flex items-center gap-1'>
+                <span className='text-muted-foreground'>↑</span>
+                <span>{upload_bandwidth || 'Unlimited'}</span>
+              </div>
+            </div>
           ) : (
-            <Badge className='rounded-sm' variant='default'>
+            <Badge
+              variant='outline'
+              className='text-muted-foreground rounded-sm text-xs'
+            >
               Unlimited
             </Badge>
           )}
