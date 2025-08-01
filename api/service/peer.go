@@ -317,7 +317,7 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
 			}
 
-			if duration < 150*time.Second {
+			if peer.Disabled == "false" && duration < 150*time.Second {
 				wgPeer.IsOnline = true
 			}
 		}
