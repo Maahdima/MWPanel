@@ -12,7 +12,7 @@ type CreateServerRequest struct {
 	Name      string  `json:"name" validate:"required"`
 	IPAddress string  `json:"ip_address" validate:"required"`
 	APIPort   string  `json:"api_port" validate:"required"`
-	IsSSL     bool    `json:"is_ssl" validate:"required"`
+	IsSSL     *bool   `json:"is_ssl" validate:"required"`
 	Username  string  `json:"username" validate:"required"`
 	Password  string  `json:"password" validate:"required"`
 }

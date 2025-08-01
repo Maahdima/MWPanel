@@ -113,7 +113,6 @@ func (w *WgPeer) GetPeerCredentials() (*schema.PeerCredentialsResponse, error) {
 
 func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllowedAddressResponse, error) {
 	var iface model.Interface
-
 	if err := w.db.Preload("IPPool").First(&iface, "id = ?", interfaceId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.logger.Error("interface not found in database", zap.Uint("interfaceId", interfaceId))
@@ -125,9 +124,7 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 
 	if iface.IPPool == nil {
 		w.logger.Warn("no IP pool associated with interface", zap.Uint("interfaceId", interfaceId))
-		return &schema.NewPeerAllowedAddressResponse{
-			AllowedAddress: "",
-		}, nil
+		return &schema.NewPeerAllowedAddressResponse{AllowedAddress: ""}, nil
 	}
 
 	startIP := net.ParseIP(strings.TrimSuffix(iface.IPPool.StartIP, "/32")).To4()
@@ -140,30 +137,43 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 		return nil, fmt.Errorf("invalid IP pool format")
 	}
 
-	var lastPeer model.Peer
-	err := w.db.Order("allowed_address DESC").First(&lastPeer, "interface = ?", iface.Name).Error
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			w.logger.Error("failed to find last peer", zap.Error(err))
-			return nil, fmt.Errorf("failed to find last peer: %w", err)
-		}
+	var peers []model.Peer
+	if err := w.db.Find(&peers, "interface = ?", iface.Name).Error; err != nil {
+		w.logger.Error("failed to query peers from database", zap.Error(err))
+		return nil, fmt.Errorf("failed to find peers: %w", err)
+	}
 
+	var lastIP net.IP
+
+	if len(peers) == 0 {
 		w.logger.Info("no peers found for interface, assigning start IP", zap.Uint("interfaceId", interfaceId))
-		return &schema.NewPeerAllowedAddressResponse{
-			AllowedAddress: fmt.Sprintf("%s/32", startIP.String()),
-		}, nil
-	}
+		lastIP = make(net.IP, len(startIP))
+		copy(lastIP, startIP)
+		for i := len(lastIP) - 1; i >= 0; i-- {
+			lastIP[i]--
+			if lastIP[i] != 255 {
+				break
+			}
+		}
+	} else {
+		var highestIP net.IP
+		for _, peer := range peers {
+			currentIP, _, err := net.ParseCIDR(peer.AllowedAddress)
+			if err != nil {
+				w.logger.Warn("skipping peer with invalid allowed_address",
+					zap.String("allowed_address", peer.AllowedAddress), zap.Error(err))
+				continue
+			}
+			currentIP = currentIP.To4()
+			if currentIP == nil {
+				continue
+			}
 
-	lastIP, _, err := net.ParseCIDR(lastPeer.AllowedAddress)
-	if err != nil {
-		w.logger.Error("invalid CIDR format in allowed address", zap.String("allowed_address", lastPeer.AllowedAddress), zap.Error(err))
-		return nil, fmt.Errorf("failed to parse allowed address: %w", err)
-	}
-
-	lastIP = lastIP.To4()
-	if lastIP == nil {
-		w.logger.Error("allowed address is not a valid IPv4", zap.String("allowed_address", lastPeer.AllowedAddress))
-		return nil, fmt.Errorf("invalid IPv4 address: %s", lastPeer.AllowedAddress)
+			if highestIP == nil || bytes.Compare(currentIP, highestIP) > 0 {
+				highestIP = currentIP
+			}
+		}
+		lastIP = highestIP
 	}
 
 	nextIP := make(net.IP, len(lastIP))
@@ -302,7 +312,12 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 	for _, peer := range peers {
 		var dbPeer model.Peer
 
-		if err := w.db.Find(&dbPeer, "peer_id = ?", peer.ID).Error; err != nil {
+		if err := w.db.Where("peer_id = ?", peer.ID).First(&dbPeer).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				w.logger.Warn("peer found on Mikrotik but not in DB, skipping", zap.String("peer_id", peer.ID))
+				continue
+			}
+
 			w.logger.Error("failed to get peer from database", zap.String("peer_id", peer.ID), zap.Error(err))
 			continue
 		}
