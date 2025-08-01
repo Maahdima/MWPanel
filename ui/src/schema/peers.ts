@@ -112,8 +112,6 @@ export type UpdatePeerRequest = z.infer<typeof UpdatePeerSchema>
 export type UpdatePeerShareExpireRequest = z.infer<
   typeof UpdatePeerShareExpireSchema
 >
-export type PeerResponse = z.infer<typeof PeerResponseSchema>
-export type PeersResponse = z.infer<typeof PeersResponseSchema>
 export type PeerAllowedAddress = z.infer<typeof PeerAllowedAddressSchema>
 export type PeerCredentials = z.infer<typeof PeerCredentialsSchema>
 export type PeerShare = z.infer<typeof PeerShareSchema>

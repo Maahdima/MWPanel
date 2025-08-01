@@ -33,7 +33,7 @@ export function ServersPrimaryButtons({
       </Button>
       <Button
         className='space-x-1'
-        // disabled={serversLength === 1}
+        disabled={serversLength === 1}
         onClick={() => setOpen('add')}
       >
         <span>Add New Server</span> <IconUserPlus size={18} />

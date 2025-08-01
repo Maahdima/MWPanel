@@ -49,8 +49,22 @@ export const deviceDataSchema = z.object({
   ),
 })
 
+export const trafficUsageSchema = z.object({
+  interface_id: z.number(),
+  date: z.string(),
+  download: z.string(),
+  upload: z.string(),
+  total: z.string(),
+})
+
+export const dailyTrafficUsageSchema = z.array(trafficUsageSchema).nullable()
+
 export const deviceDataResponseSchema =
   createApiResponseSchema(deviceDataSchema)
 
+export const dailyTrafficUsageResponseSchema = createApiResponseSchema(
+  dailyTrafficUsageSchema
+)
+
 export type DeviceData = z.infer<typeof deviceDataSchema>
-export type DeviceInfoData = z.infer<typeof deviceDataSchema>['DeviceInfo']
+export type DailyTrafficUsage = z.infer<typeof dailyTrafficUsageSchema>
