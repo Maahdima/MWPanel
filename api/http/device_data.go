@@ -23,7 +23,17 @@ func NewDeviceDataController(deviceDataService *service.DeviceData) *DeviceDataC
 }
 
 func (c *DeviceDataController) GetDailyTrafficUsage(ctx echo.Context) error {
-	trafficData, err := c.deviceDataService.GetDailyTrafficUsage()
+	rangeParam := ctx.QueryParam("range")
+	if rangeParam == "" {
+		c.logger.Error("failed to parse range query parameter")
+		return ctx.JSON(http.StatusBadRequest, schema.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Status:     "error",
+			Message:    "invalid range query parameter",
+		})
+	}
+
+	trafficData, err := c.deviceDataService.GetDailyTrafficUsage(rangeParam)
 	if err != nil {
 		c.logger.Error("failed to fetch daily traffic usage", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{

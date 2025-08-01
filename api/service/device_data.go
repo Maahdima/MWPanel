@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -46,10 +47,21 @@ func NewDeviceData(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, serverService
 	}
 }
 
-func (d *DeviceData) GetDailyTrafficUsage() (*[]schema.DailyTrafficUsageResponse, error) {
+func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTrafficUsageResponse, error) {
 	var trafficData []model.Traffic
 
-	if err := d.db.Order("created_at ASC").Find(&trafficData).Error; err != nil {
+	days, err := strconv.Atoi(rangeParam)
+	if err != nil || days <= 0 {
+		d.logger.Error("invalid range param", zap.String("range", rangeParam), zap.Error(err))
+		return nil, fmt.Errorf("invalid range parameter: %s", rangeParam)
+	}
+
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	if err := d.db.
+		Where("created_at >= ?", startDate.Unix()).
+		Order("created_at ASC").
+		Find(&trafficData).Error; err != nil {
 		d.logger.Error("failed to fetch daily traffic usage data", zap.Error(err))
 		return nil, err
 	}
@@ -62,7 +74,6 @@ func (d *DeviceData) GetDailyTrafficUsage() (*[]schema.DailyTrafficUsageResponse
 			UploadUsage:   utils.BytesToGB(data.UploadUsage),
 			TotalUsage:    utils.BytesToGB(data.TotalUsage),
 		}
-
 		dailyTrafficUsages = append(dailyTrafficUsages, dailyUsage)
 	}
 
