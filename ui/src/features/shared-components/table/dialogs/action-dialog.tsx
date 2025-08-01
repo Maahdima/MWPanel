@@ -1,6 +1,4 @@
-import { LoaderCircleIcon } from 'lucide-react'
-import { useCreateServerMutation } from '@/hooks/servers/useCreateServerMutation.ts'
-import { useUpdateServerMutation } from '@/hooks/servers/useUpdateServerMutation.ts'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
@@ -32,10 +30,7 @@ export function ActionDialog<T>({
   description,
   formId,
 }: Props<T>) {
-  const { mutateAsync: createServer, isPending: createServerPending } =
-    useCreateServerMutation()
-  const { mutateAsync: updateServer, isPending: updateServerPending } =
-    useUpdateServerMutation()
+  const [pending, setPending] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -47,41 +42,32 @@ export function ActionDialog<T>({
 
         {formId === 'server-form' ? (
           <ServerForm
-            createServer={async (data) => {
-              await createServer(data)
-            }}
-            updateServer={async (data) => {
-              await updateServer(data)
-            }}
             currentRow={currentRow}
             onClose={() => onOpenChange(false)}
+            setPending={setPending}
           />
         ) : formId === 'interface-form' ? (
           <InterfaceForm
             currentRow={currentRow}
             onClose={() => onOpenChange(false)}
+            setPending={setPending}
           />
         ) : formId === 'pool-form' ? (
           <PoolForm
             currentRow={currentRow}
             onClose={() => onOpenChange(false)}
+            setPending={setPending}
           />
         ) : (
           <PeerForm
             currentRow={currentRow}
             onClose={() => onOpenChange(false)}
+            setIsLoading={setPending}
           />
         )}
 
         <DialogFooter>
-          <Button
-            disabled={createServerPending || updateServerPending}
-            type='submit'
-            form={formId}
-          >
-            {(createServerPending || updateServerPending) && (
-              <LoaderCircleIcon className='animate-spin' />
-            )}
+          <Button disabled={pending} type='submit' form={formId}>
             Save changes
           </Button>
         </DialogFooter>

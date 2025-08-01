@@ -18,7 +18,7 @@ import { PeersChart } from '@/features/dashboard/components/peers-chart.tsx'
 import OnlineUsersSkeleton from '@/features/dashboard/components/skeletons/online-users.skeleton.tsx'
 import DeviceStatsSkeleton from '@/features/dashboard/components/skeletons/statistics.skeleton.tsx'
 import { StatsCard } from '@/features/dashboard/components/stats-card.tsx'
-import { ChartAreaInteractive } from '@/features/dashboard/components/traffic-chart.tsx'
+import { TrafficChart } from '@/features/dashboard/components/traffic-chart.tsx'
 
 const statsCards = [
   {
@@ -120,7 +120,7 @@ export default function Dashboard() {
                 />
               )}
 
-              <ChartAreaInteractive />
+              <TrafficChart />
             </div>
           </TabsContent>
         </Tabs>

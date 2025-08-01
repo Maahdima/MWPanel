@@ -11,6 +11,8 @@ import {
 } from '@/schema/servers.ts'
 import { ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import { useCreateServerMutation } from '@/hooks/servers/useCreateServerMutation.ts'
+import { useUpdateServerMutation } from '@/hooks/servers/useUpdateServerMutation.ts'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
@@ -53,19 +55,17 @@ const simpleFormFields: FormFieldConfig[] = [
 ]
 
 interface Props {
-  createServer: (data: CreateServerRequest) => Promise<void>
-  updateServer: (data: UpdateServerRequest) => Promise<void>
   currentRow?: Partial<CreateServerRequest>
   onClose: () => void
+  setPending: (pending: boolean) => void
 }
 
-export function ServerForm({
-  createServer,
-  updateServer,
-  currentRow,
-  onClose,
-}: Props) {
+export function ServerForm({ currentRow, onClose, setPending }: Props) {
   const isEdit = Boolean(currentRow?.name)
+  const { mutateAsync: createServer, isPending: isCreateServerPending } =
+    useCreateServerMutation()
+  const { mutateAsync: updateServer, isPending: isUpdateServerPending } =
+    useUpdateServerMutation()
 
   const form = useForm<CreateServerRequest>({
     resolver: zodResolver(
@@ -82,21 +82,32 @@ export function ServerForm({
     }
   }, [currentRow, form])
 
+  useEffect(() => {
+    setPending?.(isEdit ? isUpdateServerPending : isCreateServerPending)
+  }, [isCreateServerPending, isUpdateServerPending, isEdit, setPending])
+
   const onSubmit = async (
     values: CreateServerRequest | UpdateServerRequest
   ) => {
-    if (isEdit) {
-      await updateServer(values as UpdateServerRequest)
-    } else {
-      await createServer(values as CreateServerRequest)
-    }
+    try {
+      setPending(true)
+      if (isEdit) {
+        await updateServer(values as UpdateServerRequest)
+      } else {
+        await createServer(values as CreateServerRequest)
+      }
 
-    form.reset()
-    const toastMessage = isEdit
-      ? 'Server updated successfully.'
-      : 'Server created successfully.'
-    toast.success(toastMessage)
-    onClose()
+      form.reset()
+      toast.success(
+        isEdit
+          ? 'Server updated successfully.'
+          : 'Server created successfully.',
+        { duration: 5000 }
+      )
+      onClose()
+    } finally {
+      setPending(false)
+    }
   }
 
   return (

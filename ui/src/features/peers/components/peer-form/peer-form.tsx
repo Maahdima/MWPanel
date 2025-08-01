@@ -12,10 +12,11 @@ interface Props {
   setIsLoading?: (loading: boolean) => void
 }
 
-export function PeerForm({ currentRow, onClose }: Props) {
+export function PeerForm({ currentRow, onClose, setIsLoading }: Props) {
   const { form, onSubmit, isDefaultsReady } = usePeerForm({
     currentRow,
     onClose,
+    setIsLoading,
   })
 
   if (!isDefaultsReady) {
@@ -29,7 +30,11 @@ export function PeerForm({ currentRow, onClose }: Props) {
         onSubmit={form.handleSubmit(onSubmit)}
         className='space-y-4'
       >
-        <PeerFormFields form={form} isEdit={!!currentRow} />
+        <PeerFormFields
+          control={form.control}
+          setValue={form.setValue}
+          isEdit={!!currentRow}
+        />
       </form>
     </Form>
   )

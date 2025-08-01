@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useMemo, useState } from 'react'
 import { CloudOff } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
 import { useDailyTrafficUsageQuery } from '@/hooks/dashboard/useDailyTrafficUsageQuery.ts'
@@ -37,10 +37,10 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartAreaInteractive() {
-  const [timeRange, setTimeRange] = React.useState('7d')
+export function TrafficChart() {
+  const [timeRange, setTimeRange] = useState('7d')
 
-  const rangeNumber = React.useMemo(
+  const rangeNumber = useMemo(
     () => parseInt(timeRange.replace('d', '')),
     [timeRange]
   )
@@ -130,8 +130,8 @@ export function ChartAreaInteractive() {
           </div>
         ) : filteredData.length === 0 ? (
           <div className='text-muted-foreground flex h-full w-full flex-col items-center justify-center'>
-            <CloudOff className='mb-4 text-gray-300' size={64} />
-            <p className='text-center text-base font-medium'>
+            <CloudOff className='mb-4 text-gray-400' size={64} />
+            <p className='text-center text-lg'>
               No traffic data available for the selected range.
             </p>
           </div>

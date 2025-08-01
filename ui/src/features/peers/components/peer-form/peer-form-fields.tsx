@@ -10,17 +10,13 @@ import { InterfaceSelect } from '@/features/peers/components/fields/interface-se
 import { TrafficInput } from '@/features/peers/components/fields/taffic-limit-field'
 import { SimpleField } from '@/features/shared-components/simple-field'
 
-interface PeerFormFieldsProps {
+interface Props {
   control: Control<CreatePeerRequest>
   setValue: UseFormSetValue<CreatePeerRequest>
   isEdit: boolean
 }
 
-export function PeerFormFields({
-  control,
-  setValue,
-  isEdit,
-}: PeerFormFieldsProps) {
+export function PeerFormFields({ control, setValue, isEdit }: Props) {
   const {
     data: interfacesList = [],
     isLoading: isInterfacesLoading,
@@ -61,7 +57,7 @@ export function PeerFormFields({
               control={control}
             />
             <div className='md:col-span-2'>
-              <GenerateKeyField control={control} setValue={setValue} />
+              <GenerateKeyField control={control} />
             </div>
           </div>
         </div>

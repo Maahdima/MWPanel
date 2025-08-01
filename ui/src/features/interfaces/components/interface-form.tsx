@@ -18,12 +18,15 @@ import { SimpleField } from '@/features/shared-components/simple-field.tsx'
 interface Props {
   currentRow?: Partial<CreateInterfaceRequest>
   onClose: () => void
+  setPending: (pending: boolean) => void
 }
 
-export function InterfaceForm({ currentRow, onClose }: Props) {
+export function InterfaceForm({ currentRow, onClose, setPending }: Props) {
   const isEdit = Boolean(currentRow)
-  const { mutateAsync: createInterface } = useCreateInterfaceMutation()
-  const { mutateAsync: updateInterface } = useUpdateInterfaceMutation()
+  const { mutateAsync: createInterface, isPending: isCreateInterfacePending } =
+    useCreateInterfaceMutation()
+  const { mutateAsync: updateInterface, isPending: isUpdateServerPending } =
+    useUpdateInterfaceMutation()
 
   const form = useForm<CreateInterfaceRequest>({
     resolver: zodResolver(
@@ -38,20 +41,32 @@ export function InterfaceForm({ currentRow, onClose }: Props) {
     }
   }, [currentRow, form])
 
+  useEffect(() => {
+    setPending?.(isEdit ? isUpdateServerPending : isCreateInterfacePending)
+  }, [isCreateInterfacePending, isUpdateServerPending, isEdit, setPending])
+
   const onSubmit = async (
     values: CreateInterfaceRequest | UpdateInterfaceRequest
   ) => {
-    if (isEdit) {
-      await updateInterface(values as UpdateInterfaceRequest)
-    } else {
-      await createInterface(values as CreateInterfaceRequest)
+    try {
+      setPending(true)
+      if (isEdit) {
+        await updateInterface(values as UpdateInterfaceRequest)
+      } else {
+        await createInterface(values as CreateInterfaceRequest)
+      }
+
+      form.reset()
+      toast.success(
+        isEdit
+          ? 'Interface updated successfully.'
+          : 'Interface created successfully.',
+        { duration: 5000 }
+      )
+      onClose()
+    } finally {
+      setPending(false)
     }
-    form.reset()
-    const toastMessage = isEdit
-      ? 'Interface updated successfully.'
-      : 'Interface created successfully.'
-    toast.success(toastMessage, { duration: 5000 })
-    onClose()
   }
 
   return (

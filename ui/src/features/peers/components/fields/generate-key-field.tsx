@@ -1,9 +1,7 @@
 'use client'
 
-import { Control, UseFormSetValue } from 'react-hook-form'
+import { Control } from 'react-hook-form'
 import { CreatePeerRequest } from '@/schema/peers.ts'
-import { fetchPeerCredentials } from '@/api/peers.ts'
-import { Button } from '@/components/ui/button.tsx'
 import {
   FormControl,
   FormField,
@@ -16,16 +14,9 @@ import { PasswordInput } from '@/components/password-input.tsx'
 
 interface Props {
   control: Control<CreatePeerRequest>
-  setValue: UseFormSetValue<CreatePeerRequest>
 }
 
-export function GenerateKeyField({ control, setValue }: Props) {
-  const onGenerateKeys = async () => {
-    const { private_key, public_key } = await fetchPeerCredentials()
-    setValue('private_key', private_key)
-    setValue('public_key', public_key)
-  }
-
+export function GenerateKeyField({ control }: Props) {
   return (
     <div className='space-y-4'>
       <div className='flex items-end gap-2'>
@@ -46,14 +37,6 @@ export function GenerateKeyField({ control, setValue }: Props) {
             </FormItem>
           )}
         />
-        <Button
-          type='button'
-          onClick={onGenerateKeys}
-          variant='outline'
-          className='self-end'
-        >
-          Generate
-        </Button>
       </div>
 
       <FormField

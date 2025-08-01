@@ -7,17 +7,13 @@ import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuer
 import { usePeerAllowedAddressMutation } from '@/hooks/peers/usePeerAllowedAddressMutation.ts'
 import { useServersListQuery } from '@/hooks/servers/useServersListQuery'
 
-interface UsePeerDefaultsProps {
+interface Props {
   isEdit: boolean
   form: UseFormReturn<CreatePeerRequest>
   shouldRefetch: boolean
 }
 
-export function usePeerDefaults({
-  isEdit,
-  form,
-  shouldRefetch,
-}: UsePeerDefaultsProps) {
+export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
   const {
     data: interfacesList = [],
     isLoading: isInterfacesLoading,

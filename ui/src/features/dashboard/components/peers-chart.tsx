@@ -1,5 +1,3 @@
-'use client'
-
 import { IconChartPie } from '@tabler/icons-react'
 import { DeviceData } from '@/schema/dashboard.ts'
 import { Pie, PieChart } from 'recharts'

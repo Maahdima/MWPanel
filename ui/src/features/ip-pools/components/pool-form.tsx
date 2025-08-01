@@ -29,17 +29,20 @@ import { SimpleField } from '@/features/shared-components/simple-field.tsx'
 interface Props {
   currentRow?: Partial<CreateIPPoolRequest>
   onClose: () => void
+  setPending: (pending: boolean) => void
 }
 
-export function PoolForm({ currentRow, onClose }: Props) {
+export function PoolForm({ currentRow, onClose, setPending }: Props) {
   const {
     data: interfacesList = [],
     isLoading: isInterfacesLoading,
     error: interfacesError,
   } = useInterfacesListQuery()
 
-  const { mutateAsync: createIPPool } = useCreateIPPoolMutation()
-  const { mutateAsync: updateIPPool } = useUpdateIPPoolMutation()
+  const { mutateAsync: createIPPool, isPending: isCreateIPPoolPending } =
+    useCreateIPPoolMutation()
+  const { mutateAsync: updateIPPool, isPending: isUpdateIPPoolPending } =
+    useUpdateIPPoolMutation()
 
   const isEdit = Boolean(currentRow)
 
@@ -93,31 +96,41 @@ export function PoolForm({ currentRow, onClose }: Props) {
     }
   }, [currentRow, form])
 
+  useEffect(() => {
+    setPending?.(isEdit ? isUpdateIPPoolPending : isCreateIPPoolPending)
+  }, [isCreateIPPoolPending, isUpdateIPPoolPending, isEdit, setPending])
+
   const onSubmit = async (
     values: CreateIPPoolRequest | UpdateIPPoolRequest
   ) => {
-    const patchedValues = {
-      ...values,
-      start_ip: values.start_ip.endsWith('/32')
-        ? values.start_ip
-        : `${values.start_ip}/32`,
-      end_ip: values.end_ip.endsWith('/32')
-        ? values.end_ip
-        : `${values.end_ip}/32`,
-    }
+    try {
+      setPending(true)
 
-    if (isEdit) {
-      await updateIPPool(patchedValues as UpdateIPPoolRequest)
-    } else {
-      await createIPPool(patchedValues as CreateIPPoolRequest)
-    }
+      const patchedValues = {
+        ...values,
+        start_ip: values.start_ip.endsWith('/32')
+          ? values.start_ip
+          : `${values.start_ip}/32`,
+        end_ip: values.end_ip.endsWith('/32')
+          ? values.end_ip
+          : `${values.end_ip}/32`,
+      }
 
-    form.reset()
-    const toastMessage = isEdit
-      ? 'Pool updated successfully.'
-      : 'Pool created successfully.'
-    toast.success(toastMessage, { duration: 5000 })
-    onClose()
+      if (isEdit) {
+        await updateIPPool(patchedValues as UpdateIPPoolRequest)
+      } else {
+        await createIPPool(patchedValues as CreateIPPoolRequest)
+      }
+
+      form.reset()
+      toast.success(
+        isEdit ? 'Pool updated successfully.' : 'Pool created successfully.',
+        { duration: 5000 }
+      )
+      onClose()
+    } finally {
+      setPending(false)
+    }
   }
 
   return (

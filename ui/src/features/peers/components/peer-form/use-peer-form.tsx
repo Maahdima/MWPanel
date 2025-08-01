@@ -18,9 +18,11 @@ import { usePeerDefaults } from '@/features/peers/components/peer-form/use-peer-
 export function usePeerForm({
   currentRow,
   onClose,
+  setIsLoading,
 }: {
   currentRow?: Partial<CreatePeerRequest>
   onClose: () => void
+  setIsLoading?: (loading: boolean) => void
 }) {
   const isEdit = !!currentRow
 
@@ -49,8 +51,10 @@ export function usePeerForm({
     serversError,
   } = usePeerDefaults({ isEdit, form, shouldRefetch })
 
-  const { mutateAsync: createPeer } = useCreatePeerMutation()
-  const { mutateAsync: updatePeer } = useUpdatePeerMutation()
+  const { mutateAsync: createPeer, isPending: isCreatePeerLoading } =
+    useCreatePeerMutation()
+  const { mutateAsync: updatePeer, isPending: isUpdatePeerLoading } =
+    useUpdatePeerMutation()
 
   const hasGeneratedKeys = useRef(false)
 
@@ -74,6 +78,10 @@ export function usePeerForm({
       setIsDefaultsReady(true)
     }
   }, [isEdit, currentRow, form])
+
+  useEffect(() => {
+    setIsLoading?.(isEdit ? isUpdatePeerLoading : isCreatePeerLoading)
+  }, [isCreatePeerLoading, isUpdatePeerLoading, isEdit, setIsLoading])
 
   const onSubmit = async (values: CreatePeerRequest | UpdatePeerRequest) => {
     if (isEdit) {

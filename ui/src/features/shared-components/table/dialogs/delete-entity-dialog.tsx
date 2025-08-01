@@ -21,18 +21,22 @@ export function DeleteEntityDialog<T>({
   entityType,
   mutationFn,
 }: Props<T>) {
+  const [loading, setLoading] = useState(false)
   const [value, setValue] = useState('')
 
   const handleDelete = async () => {
     if (value.trim() !== entity.name) return
-    await mutationFn(entity.id)
-    onOpenChange(false)
-    toast.success(
-      `${entityType} ${entity.name} has been deleted successfully`,
-      {
-        duration: 5000,
-      }
-    )
+    try {
+      setLoading(true)
+      await mutationFn(entity.id)
+      onOpenChange(false)
+      toast.success(
+        `${entityType} ${entity.name} has been deleted successfully`,
+        { duration: 5000 }
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -78,6 +82,7 @@ export function DeleteEntityDialog<T>({
           </Alert>
         </div>
       }
+      isLoading={loading}
       confirmText='Delete'
       destructive
     />

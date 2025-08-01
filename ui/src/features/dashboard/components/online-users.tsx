@@ -1,54 +1,66 @@
 import { IconUserOff } from '@tabler/icons-react'
 import { DeviceData } from '@/schema/dashboard.ts'
-import { Card, CardContent } from '@/components/ui/card'
+import { getAvatarInitials } from '@/utils/helper.ts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
-type RecentlyOnlineUsersProps = {
+type Props = {
   peers: DeviceData['PeerInfo']['recent_online_peers']
 }
-export default function RecentlyOnlineUsers({
-  peers,
-}: RecentlyOnlineUsersProps) {
+
+export default function RecentlyOnlineUsers({ peers }: Props) {
+  const hasPeers = peers && peers.length > 0
+
   return (
-    <Card className='col-span-1 lg:col-span-2'>
-      <CardContent className='h-full px-6'>
-        <h2 className='mb-4 border-white/10 pb-2 text-lg font-semibold'>
+    <Card className='col-span-1 flex h-full flex-col lg:col-span-2'>
+      <CardHeader>
+        <CardTitle className='mb-4 text-lg font-semibold'>
           Recently Online Users
-        </h2>
-        {!peers || peers.length === 0 ? (
-          <div className='flex h-[77%] flex-col items-center justify-center text-gray-400'>
-            <IconUserOff className='pb-5' size={80} />
-            <p className='text-center text-lg'>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='flex flex-grow flex-col p-0'>
+        {!hasPeers ? (
+          <div className='flex flex-grow flex-col items-center justify-center gap-4 text-slate-500'>
+            <IconUserOff size={64} stroke={1.5} />
+            <p className='text-center text-base'>
               No users have been online recently.
             </p>
           </div>
         ) : (
-          <table className='w-full text-sm'>
-            <thead>
-              <tr className='text-center text-gray-400'>
-                <th className='justify-center py-2'>Name</th>
-                <th className='justify-center py-2'>Last Seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {peers?.map((peer, idx) => (
-                <tr
-                  key={idx}
-                  className='justify-center border-t border-white/5 transition hover:bg-white/5'
-                >
-                  <td className='flex items-center justify-center gap-3 py-4'>
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-white`}
-                    >
-                      {peer?.name.split('-')[1]?.slice(0, 2).toUpperCase() ||
-                        'U'}
-                    </div>
-                    <span>{peer?.name}</span>
-                  </td>
-                  <td className='py-2 text-gray-300'>{peer?.last_seen} ago</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className='-mt-4'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className='pl-6'>User</TableHead>
+                  <TableHead className='pr-6 text-right'>Last Seen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {peers.map((peer, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className='py-4 pl-6 font-medium'>
+                      <div className='flex items-center gap-3'>
+                        <div className='flex h-9 w-9 items-center justify-center rounded-full bg-teal-800 text-sm font-bold text-white'>
+                          {getAvatarInitials(peer.name)}
+                        </div>
+                        <span>{peer.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className='pr-6 text-right text-slate-400'>
+                      {peer.last_seen} ago
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
