@@ -3,6 +3,8 @@ package webserver
 import (
 	"fmt"
 
+	"golang.org/x/crypto/acme/autocert"
+
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
@@ -40,7 +42,12 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	http.SetupMwpUI(e, appCfg.UIAssetsFs)
 	http.SetupMwpAPI(e, mwpClients, authenticationService, serverService, interfaceService, ipPoolService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator, syncService)
 
-	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
+	if appCfg.Port == "443" || appCfg.Port == "8443" {
+		e.AutoTLSManager.Cache = autocert.DirCache(appCfg.DataDirPath)
+		e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
+	} else {
+		e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
+	}
 
 	return nil
 }
