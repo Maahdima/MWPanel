@@ -1,10 +1,13 @@
 'use client'
 
+import { IconCircleFilled } from '@tabler/icons-react'
 import { PeerStats } from '@/schema/peers.ts'
+import clsx from 'clsx'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   ClockFadingIcon,
+  EthernetPortIcon,
   GaugeIcon,
   WifiHighIcon,
 } from 'lucide-react'
@@ -26,11 +29,12 @@ function remainingDays(expireTime: string | null | undefined): number {
 }
 
 export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
-  // calculate remaining days
+  const status = stats?.is_online ? 'Online' : 'Offline'
+  const statusColor = stats?.is_online ? 'text-green-500' : 'text-red-500'
 
   return (
     <Card className='gap-3'>
-      <CardHeader>
+      <CardHeader className='flex flex-row items-center justify-between space-y-0'>
         <CardTitle>Statistics</CardTitle>
       </CardHeader>
 
@@ -38,13 +42,29 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
         {isLoading ? (
           <div className='space-y-3'>
             <Skeleton className='h-4 w-1/2' />
+            <Skeleton className='h-4 w-1/2' />
             <Skeleton className='h-4 w-1/3' />
             <Skeleton className='h-4 w-2/3' />
             <Skeleton className='h-4 w-1/4' />
             <Skeleton className='h-3 w-full rounded-full' />
           </div>
         ) : (
-          <div className='space-y-4 text-sm'>
+          <div className='space-y-4 pt-2 text-sm'>
+            <div className='flex items-center justify-between'>
+              <span className='flex items-center gap-2'>
+                <EthernetPortIcon className='h-4 w-5' />
+                Connection Status
+              </span>
+              <span>
+                <div className='flex items-center gap-2 text-sm font-medium'>
+                  <IconCircleFilled className={clsx('h-3 w-3', statusColor)} />
+                  <span className={clsx('capitalize', statusColor)}>
+                    {status}
+                  </span>
+                </div>
+              </span>
+            </div>
+
             <div className='flex items-center justify-between'>
               <span className='flex items-center gap-2'>
                 <WifiHighIcon className='h-5 w-5' />

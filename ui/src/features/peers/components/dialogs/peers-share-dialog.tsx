@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Peer } from '@/schema/peers.ts'
 import {
   CalendarIcon,
@@ -29,6 +30,10 @@ type Props = {
 }
 
 export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
+  const origin = location.origin
+
+  const [shareLink, setShareLink] = useState('')
+
   const {
     data: shareData,
     isLoading,
@@ -43,11 +48,15 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
   const isMutating =
     updatePeerShareStatus.isPending || updatePeerShareExpire.isPending
 
-  const handleCopy = () => {
-    if (shareData?.share_link) {
-      navigator.clipboard.writeText(shareData.share_link)
-      toast.success('Share link copied to clipboard', { duration: 5000 })
+  useEffect(() => {
+    if (shareData?.uuid) {
+      setShareLink(`${origin}/share?shareId=${shareData.uuid}`)
     }
+  }, [origin, shareData])
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareLink)
+    toast.success('Share link copied to clipboard', { duration: 5000 })
   }
 
   const handleExpireDateChange = async (value: string | null) => {
@@ -107,7 +116,7 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
                     Share Link
                   </Label>
                   <div className='flex items-center gap-2'>
-                    <Input value={shareData.share_link ?? ''} readOnly />
+                    <Input value={shareLink ?? ''} readOnly />
                     <Button
                       variant='outline'
                       size='icon'

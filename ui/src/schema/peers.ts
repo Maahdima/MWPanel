@@ -39,7 +39,7 @@ export const PeerCredentialsSchema = z.object({
 
 export const PeerShareSchema = z.object({
   is_shared: z.boolean(),
-  share_link: z.string().nullable(),
+  uuid: z.string().nullable(),
   expire_time: z.string().nullable(),
 })
 
@@ -51,6 +51,7 @@ export const PeerStatsSchema = z.object({
   upload_usage: z.string(),
   total_usage: z.string(),
   usage_percent: z.string().nullable(),
+  is_online: z.boolean(),
 })
 
 export const PeerResponseSchema = createApiResponseSchema(PeerSchema)

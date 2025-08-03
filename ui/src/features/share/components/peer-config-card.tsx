@@ -19,6 +19,7 @@ export default function PeerConfigCard({
   peerName,
 }: ConfigCardProps) {
   const [configText, setConfigText] = useState<string>('')
+  const [isBlurred, setIsBlurred] = useState(true)
 
   useEffect(() => {
     if (blob) {
@@ -45,6 +46,10 @@ export default function PeerConfigCard({
     document.body.removeChild(link)
   }
 
+  const toggleBlur = () => {
+    setIsBlurred((prev) => !prev)
+  }
+
   return (
     <Card className='gap-3'>
       <CardHeader>
@@ -61,20 +66,39 @@ export default function PeerConfigCard({
           </div>
         ) : (
           <>
-            <div className='bg-muted relative max-h-[60vh] min-h-[10vh] overflow-auto rounded-md px-4 py-3'>
-              <pre className='text-sm break-words whitespace-pre-wrap'>
+            <div
+              className='bg-muted relative max-h-[60vh] min-h-[10vh] cursor-pointer overflow-auto rounded-md px-4 py-3'
+              onClick={toggleBlur}
+              title={isBlurred ? 'Click to reveal' : 'Click to hide'}
+            >
+              <pre
+                className={`text-sm break-words whitespace-pre-wrap transition-all duration-300 ${
+                  isBlurred ? 'blur-md' : 'blur-0'
+                }`}
+              >
                 <code>{configText}</code>
               </pre>
+
+              {isBlurred && (
+                <div className='pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-black/40 font-semibold text-white'>
+                  Click to reveal
+                </div>
+              )}
+
               <Button
                 variant='outline'
                 size='sm'
-                onClick={handleCopy}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCopy()
+                }}
                 className='absolute top-2 right-2'
               >
                 <CopyIcon className='mr-1 h-4 w-4' />
                 Copy
               </Button>
             </div>
+
             <Button className='mt-4' onClick={handleDownload}>
               Download Config
             </Button>
