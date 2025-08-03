@@ -17,7 +17,6 @@ import (
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
-	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/utils"
@@ -211,19 +210,14 @@ func (w *WgPeer) GetPeerShareStatus(id uint) (*schema.PeerShareStatusResponse, e
 	if !peer.IsShared {
 		return &schema.PeerShareStatusResponse{
 			IsShared:   false,
-			ShareLink:  nil,
+			UUID:       nil,
 			ExpireTime: nil,
 		}, nil
 	}
 
-	appCfg := config.GetAppConfig()
-
-	// TODO: https
-	shareLink := fmt.Sprintf("http://%s:%s/share?shareId=%s", appCfg.Host, appCfg.Port, peer.UUID)
-
 	return &schema.PeerShareStatusResponse{
 		IsShared:   peer.IsShared,
-		ShareLink:  &shareLink,
+		UUID:       &peer.UUID,
 		ExpireTime: peer.ShareExpireTime,
 	}, nil
 }
@@ -290,6 +284,18 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		usagePercent = utils.Ptr(fmt.Sprintf("%.1f", percent))
 	}
 
+	mtPeer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
+	if err != nil {
+		w.logger.Error("failed to fetch wireguard peer from Mikrotik", zap.String("peer_id", peer.PeerID), zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch wireguard peer: %w", err)
+	}
+
+	_, isOnline, err := w.handshakeData(mtPeer)
+	if err != nil {
+		w.logger.Error("failed to parse last handshake duration", zap.String("peer_id", peer.PeerID), zap.Error(err))
+		return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
+	}
+
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
 		TrafficLimit:  trafficLimit,
@@ -298,6 +304,7 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		UploadUsage:   utils.BytesToGB(peer.UploadUsage),
 		TotalUsage:    utils.BytesToGB(totalUsage),
 		UsagePercent:  usagePercent,
+		IsOnline:      isOnline,
 	}, nil
 }
 
@@ -324,19 +331,13 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 
 		wgPeer := w.transformPeerToResponse(dbPeer)
 
-		var duration time.Duration
-		if peer.LastHandshake != nil {
-			duration, err = utils.ParseCustomDuration(*peer.LastHandshake)
-			if err != nil {
-				w.logger.Error("failed to parse last handshake duration", zap.Error(err))
-				return nil, fmt.Errorf("failed to parse last handshake duration: %w", err)
-			}
-
-			if peer.Disabled == "false" && duration < 150*time.Second {
-				wgPeer.IsOnline = true
-			}
+		_, isOnline, err := w.handshakeData(&peer)
+		if err != nil {
+			w.logger.Error("failed to parse last handshake duration", zap.String("peer_id", peer.ID), zap.Error(err))
+			continue
 		}
 
+		wgPeer.IsOnline = isOnline
 		wgPeers = append(wgPeers, wgPeer)
 	}
 
@@ -491,19 +492,17 @@ func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
 			continue
 		}
 
-		if peer.LastHandshake != nil {
-			duration, err := utils.ParseCustomDuration(*peer.LastHandshake)
-			if err != nil {
-				w.logger.Error("invalid last handshake duration", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
-				continue
-			}
+		duration, isOnline, err := w.handshakeData(&peer)
+		if err != nil {
+			w.logger.Error("failed to parse last handshake duration", zap.String("peerID", dbPeer.PeerID), zap.Error(err))
+			continue
+		}
 
-			if duration < 150*time.Second {
-				onlinePeers = append(onlinePeers, peerWithDuration{
-					peer:     peer,
-					duration: duration,
-				})
-			}
+		if isOnline && duration < 150*time.Second {
+			onlinePeers = append(onlinePeers, peerWithDuration{
+				peer:     peer,
+				duration: duration,
+			})
 		}
 	}
 
@@ -709,7 +708,7 @@ func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*
 		return newQueueID, nil
 	}
 
-	if !bandwidthsEqual(peer.DownloadBandwidth, download) || !bandwidthsEqual(peer.UploadBandwidth, upload) {
+	if !w.bandwidthsEqual(peer.DownloadBandwidth, download) || !w.bandwidthsEqual(peer.UploadBandwidth, upload) {
 		err := w.queue.updateQueue(queueID, download, upload)
 		if err != nil {
 			w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
@@ -799,7 +798,24 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 	return peerStatus
 }
 
-func bandwidthsEqual(a, b *string) bool {
+func (w *WgPeer) handshakeData(peer *mikrotik.WireGuardPeer) (duration time.Duration, isOnline bool, err error) {
+	if peer.LastHandshake != nil {
+		duration, err = utils.ParseCustomDuration(*peer.LastHandshake)
+		if err != nil {
+			w.logger.Error("failed to parse last handshake duration", zap.Error(err))
+			return
+		}
+
+		if peer.Disabled == "false" && duration < 150*time.Second {
+			isOnline = true
+			return
+		}
+	}
+
+	return
+}
+
+func (w *WgPeer) bandwidthsEqual(a, b *string) bool {
 	if a == nil && b == nil {
 		return true
 	}

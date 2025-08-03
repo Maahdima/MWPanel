@@ -8,8 +8,8 @@ import (
 	"github.com/go-co-op/gocron/v2"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
+	"github.com/maahdima/mwp/api/cmd/http-server"
 	"github.com/maahdima/mwp/api/cmd/jobs"
-	"github.com/maahdima/mwp/api/cmd/web-server"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice"
@@ -80,7 +80,7 @@ func main() {
 	scheduler.Start()
 
 	// Start the HTTP server
-	if err := webserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator); err != nil {
+	if err := httpserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator); err != nil {
 		logger.Panic("Failed to start HTTP server", zap.Error(err))
 	}
 }

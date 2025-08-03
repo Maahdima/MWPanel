@@ -63,11 +63,12 @@ type PeerDetailsResponse struct {
 	UploadUsage   string  `json:"upload_usage"`
 	TotalUsage    string  `json:"total_usage"`
 	UsagePercent  *string `json:"usage_percent"`
+	IsOnline      bool    `json:"is_online"`
 }
 
 type PeerShareStatusResponse struct {
 	IsShared   bool    `json:"is_shared"`
-	ShareLink  *string `json:"share_link"`
+	UUID       *string `json:"uuid"`
 	ExpireTime *string `json:"expire_time"`
 }
 
