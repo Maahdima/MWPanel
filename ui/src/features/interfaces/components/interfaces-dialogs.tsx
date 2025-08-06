@@ -17,7 +17,7 @@ export function InterfacesDialogs() {
       <ActionDialog
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}
-        title='Add New Interface'
+        title='Create New Interface'
         description='Fill out the form to create a new interface.'
         formId='interface-form'
       />

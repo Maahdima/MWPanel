@@ -1,5 +1,6 @@
-import { IconCloudDown, IconRefresh, IconUserPlus } from '@tabler/icons-react'
+import { IconCloudDown, IconRefresh, IconWorldPlus } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
+import { cn } from '@/lib/utils.ts'
 import { Button } from '@/components/ui/button'
 import { useInterfaces } from '@/features/interfaces/context/interfaces-context.tsx'
 
@@ -20,34 +21,44 @@ export function InterfacesPrimaryButtons({
 
   return (
     <div className='flex gap-2'>
-      <Button
-        variant='outline'
-        className='border-primary space-x-1 border-dashed shadow-none'
-        disabled={isInterfacesSyncing}
-        onClick={syncInterfaces}
-      >
-        <span>Sync Interfaces</span>
-        {isInterfacesSyncing ? (
-          <Loader2Icon className='animate-spin' />
-        ) : (
-          <IconCloudDown />
-        )}
-      </Button>
-      <Button
-        variant='outline'
-        className='space-x-1'
-        disabled={isInterfacesListRefetching}
-        onClick={refetchInterfacesList}
-      >
-        <span>Refresh</span>
-        {isInterfacesListRefetching ? (
-          <Loader2Icon className='animate-spin' />
-        ) : (
-          <IconRefresh />
-        )}
-      </Button>
+      <div className='inline-flex w-fit -space-x-px rounded-md shadow-xs rtl:space-x-reverse'>
+        <Button
+          variant='outline'
+          className={cn(
+            'rounded-none rounded-s-md shadow-none transition-all focus-visible:z-10',
+            isInterfacesSyncing && 'cursor-not-allowed opacity-70'
+          )}
+          disabled={isInterfacesSyncing}
+          onClick={syncInterfaces}
+        >
+          {isInterfacesSyncing ? (
+            <Loader2Icon className='h-4 w-4 animate-spin' />
+          ) : (
+            <IconCloudDown className='h-4 w-4' />
+          )}
+          <span className='text-sm font-medium'>Sync</span>
+        </Button>
+
+        <Button
+          variant='outline'
+          className={cn(
+            'rounded-none rounded-e-md shadow-none focus-visible:z-10',
+            isInterfacesListRefetching && 'cursor-not-allowed opacity-70'
+          )}
+          disabled={isInterfacesListRefetching}
+          onClick={refetchInterfacesList}
+        >
+          {isInterfacesListRefetching ? (
+            <Loader2Icon className='h-4 w-4 animate-spin' />
+          ) : (
+            <IconRefresh className='h-4 w-4' />
+          )}
+          <span className='text-sm font-medium'>Refresh</span>
+        </Button>
+      </div>
+
       <Button className='space-x-1' onClick={() => setOpen('add')}>
-        <span>Add New Interface</span> <IconUserPlus size={18} />
+        <span>Add Interface</span> <IconWorldPlus size={18} />
       </Button>
     </div>
   )

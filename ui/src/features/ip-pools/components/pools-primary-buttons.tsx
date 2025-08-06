@@ -1,4 +1,4 @@
-import { IconRefresh, IconUserPlus } from '@tabler/icons-react'
+import { IconLinkPlus, IconRefresh } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePools } from '@/features/ip-pools/context/pools-context.tsx'
@@ -22,15 +22,15 @@ export function PoolsPrimaryButtons({
         disabled={isIPPoolsListRefetching}
         onClick={refetchIPPoolsList}
       >
-        <span>Refresh</span>
         {isIPPoolsListRefetching ? (
           <Loader2Icon className='animate-spin' />
         ) : (
           <IconRefresh />
         )}
+        <span>Refresh</span>
       </Button>
       <Button className='space-x-1' onClick={() => setOpen('add')}>
-        <span>Add New Pool</span> <IconUserPlus size={18} />
+        <span>Add Pool</span> <IconLinkPlus size={18} />
       </Button>
     </div>
   )

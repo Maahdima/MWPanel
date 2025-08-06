@@ -17,7 +17,7 @@ export function PoolsDialogs() {
       <ActionDialog
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}
-        title='Add New Pool'
+        title='Create New Pool'
         description='Fill out the form to create a new pool.'
         formId='pool-form'
       />

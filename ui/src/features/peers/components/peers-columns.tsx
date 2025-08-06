@@ -120,7 +120,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
     },
   },
   {
-    accessorKey: 'traffic_limit',
+    accessorKey: 'total_usage',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Traffic' />
     ),

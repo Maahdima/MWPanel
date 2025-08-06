@@ -1,13 +1,13 @@
 import {
-  IconCloudComputing,
+  IconCloud,
   IconHelp,
   IconLayoutDashboard,
-  IconLinkPlus,
+  IconLink,
   IconPalette,
   IconSettings,
   IconTool,
-  IconTransferVertical,
   IconUsers,
+  IconWorld,
 } from '@tabler/icons-react'
 import { type SidebarData } from '../types'
 
@@ -29,17 +29,17 @@ export const sidebarData: SidebarData = {
         {
           title: 'Servers',
           url: '/servers',
-          icon: IconCloudComputing,
+          icon: IconCloud,
         },
         {
           title: 'Interfaces',
           url: '/interfaces',
-          icon: IconTransferVertical,
+          icon: IconWorld,
         },
         {
           title: 'Pools',
           url: '/pools',
-          icon: IconLinkPlus,
+          icon: IconLink,
         },
         {
           title: 'Peers',
