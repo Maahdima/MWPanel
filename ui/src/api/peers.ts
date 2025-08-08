@@ -93,6 +93,10 @@ export const resetPeerUsage = async (id: number): Promise<void> => {
   await axiosInstance.patch(`/peer/${id}/reset-usage`)
 }
 
+export const resetPeerUsages = async (): Promise<void> => {
+  await axiosInstance.patch(`/peer/reset-usage`)
+}
+
 export const syncPeers = async (): Promise<void> => {
   await axiosInstance.post('/sync/peers')
 }

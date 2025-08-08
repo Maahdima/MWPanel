@@ -1,12 +1,9 @@
-import {
-  IconCloudDown,
-  IconRefresh,
-  IconRestore,
-  IconUserPlus,
-} from '@tabler/icons-react'
+import { IconCloudDown, IconRefresh, IconUserPlus } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useResetUsagesMutation } from '@/hooks/peers/useResetUsagesMutation.ts'
 import { Button } from '@/components/ui/button'
+import { ResetUsagesDialog } from '@/features/peers/components/dialogs/peers-reset-usages-dialogs.tsx'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
 
 interface Props {
@@ -23,6 +20,9 @@ export function PeersPrimaryButtons({
   isPeersSyncing,
 }: Props) {
   const { setOpen } = usePeers()
+
+  const { mutateAsync: resetUsages, isPending: isResetUsagesPending } =
+    useResetUsagesMutation()
 
   return (
     <div className='flex flex-wrap items-center gap-3'>
@@ -62,13 +62,10 @@ export function PeersPrimaryButtons({
         </Button>
       </div>
 
-      <Button
-        variant='outline'
-        className='gap-2 border-amber-500 text-amber-600 transition-all hover:bg-amber-100/60 dark:border-amber-400 dark:text-amber-400 dark:hover:bg-amber-400/10'
-      >
-        <IconRestore className='h-4 w-4' />
-        <span className='text-sm font-medium'>Reset Usages</span>
-      </Button>
+      <ResetUsagesDialog
+        isPending={isResetUsagesPending}
+        resetUsages={resetUsages}
+      />
 
       <Button onClick={() => setOpen('add')} className='gap-2 transition-all'>
         <span className='text-sm font-medium'>Add Peer</span>
