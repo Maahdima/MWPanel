@@ -159,15 +159,13 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	ctx := context.Background()
-
 	var peer model.Peer
 	if err := c.db.Where("id = ?", id).First(&peer).Error; err != nil {
 		c.logger.Error("Failed to find peer in DB", zap.Uint("id", id), zap.Error(err))
 		return err
 	}
 
-	wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(ctx, peer.PeerID)
+	wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
 	if err != nil {
 		c.logger.Error("Failed to fetch peer from Mikrotik", zap.String("peerID", peer.PeerID), zap.Error(err))
 		return err
@@ -196,6 +194,51 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 
 	c.logger.Info("Peer usage reset successfully", zap.String("peerID", peer.PeerID))
 
+	return nil
+}
+
+func (c *Calculator) ResetPeerUsages() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var peers []model.Peer
+	if err := c.db.Find(&peers).Error; err != nil {
+		c.logger.Error("Failed to find peers in DB", zap.Error(err))
+		return err
+	}
+
+	wgPeers, err := c.mikrotikAdaptor.FetchWgPeers(context.Background())
+	if err != nil {
+		c.logger.Error("Failed to fetch peers from Mikrotik", zap.Error(err))
+		return err
+	}
+
+	wgPeerMap := make(map[string]mikrotik.WireGuardPeer)
+	for _, wgPeer := range wgPeers {
+		wgPeerMap[wgPeer.ID] = wgPeer
+	}
+
+	for _, peer := range peers {
+		wgPeer, found := wgPeerMap[peer.PeerID]
+		if !found {
+			continue
+		}
+
+		currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
+		currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
+
+		peer.DownloadUsage = 0
+		peer.UploadUsage = 0
+		peer.LastTx = currentTx
+		peer.LastRx = currentRx
+
+		if err := c.db.Save(&peer).Error; err != nil {
+			c.logger.Error("Failed to reset peer usage", zap.String("peerID", peer.PeerID), zap.Error(err))
+			return err
+		}
+	}
+
+	c.logger.Info("Peer usages reset successfully")
 	return nil
 }
 

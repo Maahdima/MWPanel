@@ -49,7 +49,6 @@ func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {
 	})
 }
 
-// TODO : fix this goes only till x.x.x.10
 func (c *WgPeerController) GetNewPeerAllowedAddress(ctx echo.Context) error {
 	var req schema.NewPeerAllowedAddressRequest
 
@@ -410,6 +409,20 @@ func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
 			Message:    "failed to reset wireguard peer usage: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}
+
+func (c *WgPeerController) ResetPeerUsages(ctx echo.Context) error {
+	err := c.trafficCalculator.ResetPeerUsages()
+	if err != nil {
+		c.logger.Error("failed to reset wireguard peer usages", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to reset wireguard peer usages: " + err.Error(),
 		})
 	}
 

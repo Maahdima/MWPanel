@@ -117,6 +117,7 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerSecured.POST("", wgPeerController.CreatePeer)
 	peerSecured.PATCH("/:id/status", wgPeerController.UpdatePeerStatus)
 	peerSecured.PATCH("/:id/reset-usage", wgPeerController.ResetPeerUsage)
+	peerSecured.PATCH("/reset-usage", wgPeerController.ResetPeerUsages)
 	peerSecured.PUT("/:id", wgPeerController.UpdatePeer)
 	peerSecured.DELETE("/:id", wgPeerController.DeletePeer)
 }
