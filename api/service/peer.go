@@ -587,8 +587,8 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 
 	var trafficLimit *int64
 	if req.TrafficLimit != nil {
-		bytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
-		trafficLimit = &bytes
+		trafficBytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+		trafficLimit = &trafficBytes
 	}
 
 	dbPeer := model.Peer{

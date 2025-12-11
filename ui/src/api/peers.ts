@@ -97,6 +97,27 @@ export const resetPeerUsages = async (): Promise<void> => {
   await axiosInstance.patch(`/peer/reset-usage`)
 }
 
+export const exportTrafficExcel = async (): Promise<void> => {
+  const response = await axiosInstance.post(`/peer/traffic/export`, null, {
+    responseType: 'blob',
+  })
+
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = `traffic-report-${new Date().toISOString().split('T')[0]}.xlsx`
+
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export const syncPeers = async (): Promise<void> => {
   await axiosInstance.post('/sync/peers')
 }

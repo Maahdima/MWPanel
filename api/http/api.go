@@ -20,8 +20,9 @@ func SetupMwpAPI(
 	interfaceService *service.WgInterface,
 	ipPoolService *service.IPPool,
 	peerService *service.WgPeer,
-	peerConfigService *service.ConfigGenerator,
-	peerQrCodeService *service.QRCodeGenerator,
+	configGeneratorService *service.ConfigGenerator,
+	qrCodeGeneratorService *service.QRCodeGenerator,
+	excelGeneratorService *service.ExcelGenerator,
 	deviceDataService *service.DeviceData,
 	trafficCalculator *traffic.Calculator,
 	syncService *service.SyncService,
@@ -39,10 +40,16 @@ func SetupMwpAPI(
 	serverController := NewServerController(serverService)
 	wgInterfaceController := NewWgInterfaceController(interfaceService)
 	ipPoolController := NewIPPoolController(ipPoolService)
-	wgPeerController := NewWgPeerController(peerService, peerConfigService, peerQrCodeService, trafficCalculator)
+	wgPeerController := NewWgPeerController(
+		peerService,
+		configGeneratorService,
+		qrCodeGeneratorService,
+		excelGeneratorService,
+		trafficCalculator,
+	)
 	deviceInfoController := NewDeviceDataController(deviceDataService)
 	syncController := NewSyncController(syncService)
-	userController := NewUserController(peerService, peerConfigService, peerQrCodeService)
+	userController := NewUserController(peerService, configGeneratorService, qrCodeGeneratorService)
 
 	setupAuthenticationRoutes(router, jwtConfig, authController)
 	setupServerRoutes(router, jwtConfig, serverController)
@@ -120,6 +127,7 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerSecured.PATCH("/reset-usage", wgPeerController.ResetPeerUsages)
 	peerSecured.PUT("/:id", wgPeerController.UpdatePeer)
 	peerSecured.DELETE("/:id", wgPeerController.DeletePeer)
+	peerSecured.POST("/traffic/export", wgPeerController.ExportPeersTrafficData)
 }
 
 func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, deviceInfoController *DeviceDataController) {

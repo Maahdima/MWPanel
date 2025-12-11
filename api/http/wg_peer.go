@@ -15,20 +15,22 @@ import (
 )
 
 type WgPeerController struct {
-	peerService       *service.WgPeer
-	peerConfigService *service.ConfigGenerator
-	peerQrCodeService *service.QRCodeGenerator
-	trafficCalculator *traffic.Calculator
-	logger            *zap.Logger
+	peerService            *service.WgPeer
+	configGeneratorService *service.ConfigGenerator
+	qrCodeGeneratorService *service.QRCodeGenerator
+	excelGeneratorService  *service.ExcelGenerator
+	trafficCalculator      *traffic.Calculator
+	logger                 *zap.Logger
 }
 
-func NewWgPeerController(PeerService *service.WgPeer, peerConfigService *service.ConfigGenerator, peerQrCodeService *service.QRCodeGenerator, trafficCalculator *traffic.Calculator) *WgPeerController {
+func NewWgPeerController(PeerService *service.WgPeer, configGeneratorService *service.ConfigGenerator, qrCodeGeneratorService *service.QRCodeGenerator, excelGeneratorService *service.ExcelGenerator, trafficCalculator *traffic.Calculator) *WgPeerController {
 	return &WgPeerController{
-		peerService:       PeerService,
-		peerConfigService: peerConfigService,
-		peerQrCodeService: peerQrCodeService,
-		trafficCalculator: trafficCalculator,
-		logger:            zap.L().Named("WgPeerController"),
+		peerService:            PeerService,
+		configGeneratorService: configGeneratorService,
+		qrCodeGeneratorService: qrCodeGeneratorService,
+		excelGeneratorService:  excelGeneratorService,
+		trafficCalculator:      trafficCalculator,
+		logger:                 zap.L().Named("WgPeerController"),
 	}
 }
 
@@ -237,7 +239,7 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	config, err := c.peerConfigService.GetPeerConfig(uint(peerId))
+	config, err := c.configGeneratorService.GetPeerConfig(uint(peerId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -270,7 +272,7 @@ func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	qrCode, err := c.peerQrCodeService.GetPeerQRCode(uint(peerId))
+	qrCode, err := c.qrCodeGeneratorService.GetPeerQRCode(uint(peerId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -427,4 +429,18 @@ func (c *WgPeerController) ResetPeerUsages(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}
+
+func (c *WgPeerController) ExportPeersTrafficData(ctx echo.Context) error {
+	filePath, err := c.excelGeneratorService.GetTrafficUsageReport()
+	if err != nil {
+		c.logger.Error("failed to export peers traffic data", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to export peers traffic data: " + err.Error(),
+		})
+	}
+
+	return ctx.File(filePath)
 }

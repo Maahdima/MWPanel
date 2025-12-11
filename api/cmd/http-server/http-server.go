@@ -27,6 +27,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	queueService := service.NewQueue(mikrotikAdaptor)
 	configGenerator := service.NewConfigGenerator(db)
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
+	excelGenerator := service.NewExcelGenerator(db)
 	serverService := service.NewServerService(db, mwpClients, mikrotikAdaptor)
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor)
 	ipPoolService := service.NewIPPool(db)
@@ -40,7 +41,21 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
 	http.SetupMwpUI(e, appCfg.UIAssetsFs)
-	http.SetupMwpAPI(e, mwpClients, authenticationService, serverService, interfaceService, ipPoolService, peerService, configGenerator, qrCodeGenerator, deviceDataService, trafficCalculator, syncService)
+	http.SetupMwpAPI(
+		e,
+		mwpClients,
+		authenticationService,
+		serverService,
+		interfaceService,
+		ipPoolService,
+		peerService,
+		configGenerator,
+		qrCodeGenerator,
+		excelGenerator,
+		deviceDataService,
+		trafficCalculator,
+		syncService,
+	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {
 		e.AutoTLSManager.Cache = autocert.DirCache(appCfg.DataDirPath)
