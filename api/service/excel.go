@@ -1,13 +1,14 @@
 package service
 
 import (
+	"sort"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/xuri/excelize/v2"
 
 	"github.com/maahdima/mwp/api/dataservice/model"
-	"github.com/maahdima/mwp/api/utils"
 )
 
 type ExcelGenerator struct {
@@ -106,6 +107,12 @@ func (e *ExcelGenerator) setHeaders(excelFile *excelize.File, sheetName string) 
 }
 
 func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.Peer, sheetName string) error {
+	sort.Slice(peers, func(i, j int) bool {
+		totalI := peers[i].DownloadUsage + peers[i].UploadUsage
+		totalJ := peers[j].DownloadUsage + peers[j].UploadUsage
+		return totalI > totalJ
+	})
+
 	for idx, peer := range peers {
 		rowIndex := idx + 2
 
@@ -133,8 +140,8 @@ func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.
 			return err
 		}
 
-		totalUsage := utils.BytesToGB(peer.DownloadUsage + peer.UploadUsage)
-		if err := excelFile.SetCellValue(sheetName, usageCell, totalUsage); err != nil {
+		totalUsageGB := float64(peer.DownloadUsage+peer.UploadUsage) / float64(1024*1024*1024)
+		if err := excelFile.SetCellFloat(sheetName, usageCell, totalUsageGB, 2, 64); err != nil {
 			e.logger.Error("failed to set traffic usage cell value", zap.String("cell", usageCell), zap.Error(err))
 			return err
 		}
