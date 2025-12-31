@@ -1,7 +1,9 @@
 package service
 
 import (
+	"net"
 	"sort"
+	"strings"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -25,6 +27,7 @@ func NewExcelGenerator(db *gorm.DB) *ExcelGenerator {
 
 func (e *ExcelGenerator) GetTrafficUsageReport() (filePath string, err error) {
 	var peers []model.Peer
+
 	sheetName := "traffic-usage"
 	filePath = "traffic-report.xlsx"
 
@@ -60,7 +63,7 @@ func (e *ExcelGenerator) GetTrafficUsageReport() (filePath string, err error) {
 		return "", err
 	}
 
-	if err = excelFile.SetCellStyle(sheetName, "A1", "D1000", style); err != nil {
+	if err = excelFile.SetCellStyle(sheetName, "A1", "E1000", style); err != nil {
 		e.logger.Error("failed to set cell style", zap.Error(err))
 		return "", err
 	}
@@ -87,12 +90,12 @@ func (e *ExcelGenerator) GetTrafficUsageReport() (filePath string, err error) {
 }
 
 func (e *ExcelGenerator) setHeaders(excelFile *excelize.File, sheetName string) error {
-	headers := []string{"ID", "Name", "Comment", "Traffic (GB)"}
+	headers := []string{"Id", "Name", "Comment", "IP Address", "Traffic (GB)"}
 
 	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		// set width for each column
-		if err := excelFile.SetColWidth(sheetName, cell[:1], cell[:1], 20); err != nil {
+		if err := excelFile.SetColWidth(sheetName, cell[:1], cell[:1], 40); err != nil {
 			e.logger.Error("failed to set column width", zap.String("column", cell[:1]), zap.Error(err))
 			return err
 		}
@@ -108,9 +111,15 @@ func (e *ExcelGenerator) setHeaders(excelFile *excelize.File, sheetName string) 
 
 func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.Peer, sheetName string) error {
 	sort.Slice(peers, func(i, j int) bool {
-		totalI := peers[i].DownloadUsage + peers[i].UploadUsage
-		totalJ := peers[j].DownloadUsage + peers[j].UploadUsage
-		return totalI > totalJ
+		ipI := parseIPAddress(peers[i].AllowedAddress)
+		ipJ := parseIPAddress(peers[j].AllowedAddress)
+
+		for k := 0; k < len(ipI) && k < len(ipJ); k++ {
+			if ipI[k] != ipJ[k] {
+				return ipI[k] < ipJ[k]
+			}
+		}
+		return len(ipI) < len(ipJ)
 	})
 
 	for idx, peer := range peers {
@@ -119,7 +128,8 @@ func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.
 		idCell, _ := excelize.CoordinatesToCellName(1, rowIndex)
 		nameCell, _ := excelize.CoordinatesToCellName(2, rowIndex)
 		commentCell, _ := excelize.CoordinatesToCellName(3, rowIndex)
-		usageCell, _ := excelize.CoordinatesToCellName(4, rowIndex)
+		ipAddressCell, _ := excelize.CoordinatesToCellName(4, rowIndex)
+		usageCell, _ := excelize.CoordinatesToCellName(5, rowIndex)
 
 		if err := excelFile.SetCellValue(sheetName, idCell, peer.ID); err != nil {
 			e.logger.Error("failed to set ID cell value", zap.String("cell", idCell), zap.Error(err))
@@ -140,6 +150,11 @@ func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.
 			return err
 		}
 
+		if err := excelFile.SetCellValue(sheetName, ipAddressCell, peer.AllowedAddress); err != nil {
+			e.logger.Error("failed to set ID cell value", zap.String("cell", idCell), zap.Error(err))
+			return err
+		}
+
 		totalUsageGB := float64(peer.DownloadUsage+peer.UploadUsage) / float64(1024*1024*1024)
 		if err := excelFile.SetCellFloat(sheetName, usageCell, totalUsageGB, 2, 64); err != nil {
 			e.logger.Error("failed to set traffic usage cell value", zap.String("cell", usageCell), zap.Error(err))
@@ -148,4 +163,24 @@ func (e *ExcelGenerator) setColumnsData(excelFile *excelize.File, peers []model.
 	}
 
 	return nil
+}
+
+// parseIPAddress extracts and parses the IP address from AllowedAddress field (which may include CIDR notation)
+func parseIPAddress(allowedAddress string) net.IP {
+	// Remove CIDR notation if present (e.g., "192.168.1.1/24" -> "192.168.1.1")
+	ipStr := allowedAddress
+	if idx := strings.Index(allowedAddress, "/"); idx != -1 {
+		ipStr = allowedAddress[:idx]
+	}
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return net.IPv4(0, 0, 0, 0)
+	}
+
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4
+	}
+
+	return ip
 }

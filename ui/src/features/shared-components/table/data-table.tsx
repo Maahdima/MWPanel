@@ -38,13 +38,18 @@ declare module '@tanstack/react-table' {
 interface DataTableProps<T> {
   columns: ColumnDef<T>[]
   data: T[]
+  initialSorting?: SortingState
 }
 
-export function DataTable<T>({ columns, data }: DataTableProps<T>) {
+export function DataTable<T>({
+  columns,
+  data,
+  initialSorting = [],
+}: DataTableProps<T>) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
   const table = useReactTable({
     data,

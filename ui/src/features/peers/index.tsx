@@ -53,7 +53,11 @@ export default function Peers() {
           {isPeersListLoading ? (
             <DataTableSkeleton columns={5} />
           ) : (
-            <DataTable data={peersList ?? []} columns={peersColumns} />
+            <DataTable
+              data={peersList ?? []}
+              columns={peersColumns}
+              initialSorting={[{ id: 'allowed_address', desc: false }]}
+            />
           )}
         </div>
       </Main>

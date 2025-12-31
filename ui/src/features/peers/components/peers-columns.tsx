@@ -9,16 +9,9 @@ import { useUpdatePeerStatusMutation } from '@/hooks/peers/useUpdatePeerStatusMu
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button.tsx'
 import { Switch } from '@/components/ui/switch.tsx'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger, } from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
-import {
-  OfflineBadge,
-  OnlineBadge,
-} from '@/features/peers/components/activity-badge.tsx'
+import { OfflineBadge, OnlineBadge, } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
@@ -115,6 +108,26 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='IP Address' />
     ),
     cell: ({ row }) => <div>{row.getValue('allowed_address')}</div>,
+    sortingFn: (rowA, rowB, columnId) => {
+      const ipA = rowA.getValue(columnId) as string
+      const ipB = rowB.getValue(columnId) as string
+
+      const getIpParts = (ip: string) => {
+        const ipOnly = ip.split('/')[0]
+        return ipOnly.split('.').map((num) => parseInt(num, 10))
+      }
+
+      const partsA = getIpParts(ipA)
+      const partsB = getIpParts(ipB)
+
+      for (let i = 0; i < 4; i++) {
+        if (partsA[i] !== partsB[i]) {
+          return partsA[i] - partsB[i]
+        }
+      }
+
+      return 0
+    },
     meta: {
       className: cn('border-l border-r'),
     },
