@@ -60,9 +60,9 @@ export function PeersDialogs() {
 
           <PeersConfigDialog
             key={`peer-config-${currentRow.id}`}
-            open={open === 'show_config'}
+            open={open === 'show_config' || open === 'download_config'}
             download={open === 'download_config'}
-            onOpenChange={handleClose('config')}
+            onOpenChange={open === 'download_config' ? handleClose('download_config') : handleClose('show_config')}
             currentRow={currentRow}
           />
         </>

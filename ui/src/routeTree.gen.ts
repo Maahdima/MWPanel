@@ -138,6 +138,7 @@ const AuthenticatedSettingsAccountRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
   '/share': typeof ShareRoute
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
@@ -148,14 +149,13 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
-  '/': typeof AuthenticatedIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
-  '/help-center': typeof AuthenticatedHelpCenterIndexRoute
-  '/interfaces': typeof AuthenticatedInterfacesIndexRoute
-  '/peers': typeof AuthenticatedPeersIndexRoute
-  '/pools': typeof AuthenticatedPoolsIndexRoute
-  '/servers': typeof AuthenticatedServersIndexRoute
+  '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
+  '/interfaces/': typeof AuthenticatedInterfacesIndexRoute
+  '/peers/': typeof AuthenticatedPeersIndexRoute
+  '/pools/': typeof AuthenticatedPoolsIndexRoute
+  '/servers/': typeof AuthenticatedServersIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -204,6 +204,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/share'
     | '/settings'
     | '/forgot-password'
@@ -214,14 +215,13 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
-    | '/'
     | '/settings/account'
     | '/settings/appearance'
-    | '/help-center'
-    | '/interfaces'
-    | '/peers'
-    | '/pools'
-    | '/servers'
+    | '/help-center/'
+    | '/interfaces/'
+    | '/peers/'
+    | '/pools/'
+    | '/servers/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -292,7 +292,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -376,35 +376,35 @@ declare module '@tanstack/react-router' {
     '/_authenticated/servers/': {
       id: '/_authenticated/servers/'
       path: '/servers'
-      fullPath: '/servers'
+      fullPath: '/servers/'
       preLoaderRoute: typeof AuthenticatedServersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pools/': {
       id: '/_authenticated/pools/'
       path: '/pools'
-      fullPath: '/pools'
+      fullPath: '/pools/'
       preLoaderRoute: typeof AuthenticatedPoolsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/peers/': {
       id: '/_authenticated/peers/'
       path: '/peers'
-      fullPath: '/peers'
+      fullPath: '/peers/'
       preLoaderRoute: typeof AuthenticatedPeersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/interfaces/': {
       id: '/_authenticated/interfaces/'
       path: '/interfaces'
-      fullPath: '/interfaces'
+      fullPath: '/interfaces/'
       preLoaderRoute: typeof AuthenticatedInterfacesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/help-center/': {
       id: '/_authenticated/help-center/'
       path: '/help-center'
-      fullPath: '/help-center'
+      fullPath: '/help-center/'
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
