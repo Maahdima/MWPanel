@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sidebar'
 import { NavGroup } from '@/components/layout/nav-group'
 import { sidebarData } from './data/sidebar-data'
+import React from 'react'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open } = useSidebar()
@@ -47,6 +48,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   Maahdima
                 </a>
               </div>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <div className='text-xs text-white/70'>v{__APP_VERSION__}</div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

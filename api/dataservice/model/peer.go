@@ -10,7 +10,7 @@ type Peer struct {
 	PrivateKey          string  `gorm:"type:varchar(255);not null"`
 	PublicKey           string  `gorm:"type:varchar(255);not null"`
 	Interface           string  `gorm:"type:varchar(255);not null"`
-	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex;not null"`
+	AllowedAddress      string  `gorm:"type:varchar(255);not null"`
 	Endpoint            string  `gorm:"type:varchar(255);not null"`
 	EndpointPort        string  `gorm:"type:varchar(10);not null"`
 	PersistentKeepalive string  `gorm:"type:varchar(10)"`
