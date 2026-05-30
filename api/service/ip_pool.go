@@ -152,7 +152,7 @@ func (s *IPPool) transformPoolToResponse(pool model.IPPool) schema.IPPoolRespons
 		return schema.IPPoolResponse{}
 	}
 
-	totalIPs, usedIPs, remainingIPs, err := s.getIPCounts(startIP, endIP)
+	totalIPs, usedIPs, remainingIPs, err := s.getIPCounts(startIP, endIP, pool.InterfaceID)
 	if err != nil {
 		s.logger.Error("failed to get IP counts", zap.Error(err))
 		return schema.IPPoolResponse{}
@@ -169,7 +169,7 @@ func (s *IPPool) transformPoolToResponse(pool model.IPPool) schema.IPPoolRespons
 	}
 }
 
-func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainingIPs int, err error) {
+func (s *IPPool) getIPCounts(startIP, endIP net.IP, interfaceID uint) (totalIPs, usedIPs, remainingIPs int, err error) {
 	start := utils.IPToUint32(startIP)
 	end := utils.IPToUint32(endIP)
 
@@ -180,6 +180,7 @@ func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainin
 
 	var peers []model.Peer
 	if err := s.db.Model(&model.Peer{}).
+		Where("interface_id = ?", interfaceID).
 		Find(&peers).Error; err != nil {
 		s.logger.Error("failed to fetch peers", zap.Error(err))
 		return 0, 0, 0, err

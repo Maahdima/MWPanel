@@ -211,7 +211,7 @@ func (s *SyncService) buildDBPeer(peer mikrotik.WireGuardPeer, server model.Serv
 		Name:                peer.Name,
 		PrivateKey:          *peer.PrivateKey,
 		PublicKey:           peer.PublicKey,
-		Interface:           peer.Interface,
+		InterfaceID:         iface.ID,
 		AllowedAddress:      peer.AllowedAddress,
 		Endpoint:            server.IPAddress,
 		EndpointPort:        iface.ListenPort,
