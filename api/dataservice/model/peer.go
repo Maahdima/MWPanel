@@ -18,6 +18,10 @@ type Peer struct {
 	QueueID             *string `gorm:"type:varchar(255)"`
 	ExpireTime          *string `gorm:"type:varchar(255)"`
 	TrafficLimit        *int64  `gorm:"type:bigint"`
+	TelegramUsername    *string `gorm:"type:varchar(255)"`
+	FirstNotify         bool    `gorm:"type:boolean;not null;default:false;column:first_notify"`
+	SecondNotify        bool    `gorm:"type:boolean;not null;default:false;column:second_notify"`
+	ThirdNotify         bool    `gorm:"type:boolean;not null;default:false;column:third_notify"`
 	DownloadBandwidth   *string `gorm:"type:varchar(255)"`
 	UploadBandwidth     *string `gorm:"type:varchar(255)"`
 	DownloadUsage       int64   `gorm:"type:bigint;not null;default:0"` // in bytes

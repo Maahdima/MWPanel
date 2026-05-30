@@ -19,6 +19,7 @@ type NewPeerAllowedAddressResponse struct {
 
 type CreatePeerRequest struct {
 	Comment             *string `json:"comment,omitempty"`
+	TelegramUsername    *string `json:"telegram_username,omitempty"`
 	Name                string  `json:"name" validate:"required"`
 	InterfaceId         uint    `json:"interface_id" validate:"required"`
 	PrivateKey          string  `json:"private_key" validate:"required"`
@@ -36,6 +37,7 @@ type CreatePeerRequest struct {
 type UpdatePeerRequest struct {
 	Disabled            *bool   `json:"disabled,omitempty"`
 	Comment             *string `json:"comment,omitempty"`
+	TelegramUsername    *string `json:"telegram_username,omitempty"`
 	Name                string  `json:"name,omitempty"`
 	AllowedAddress      string  `json:"allowed_address,omitempty"`
 	PresharedKey        *string `json:"preshared_key,omitempty"`
@@ -77,6 +79,7 @@ type PeerResponse struct {
 	UUID              string       `json:"uuid"`
 	Disabled          bool         `json:"disabled"`
 	Comment           *string      `json:"comment"`
+	TelegramUsername  *string      `json:"telegram_username"`
 	Name              string       `json:"name"`
 	Interface         string       `json:"interface"`
 	AllowedAddress    string       `json:"allowed_address"`

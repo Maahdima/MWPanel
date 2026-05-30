@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -42,20 +43,14 @@ type AuthConfig struct {
 	RefreshTokenTTL string
 }
 
+type TelegramConfig struct {
+	Enabled    bool
+	BotToken   string
+	ApiBaseURL string
+}
+
 func init() {
 	_ = loadEnv()
-}
-
-func loadEnv() error {
-	return godotenv.Load(getEnv("ENV_FILE", "config/.env"))
-}
-
-func getEnv(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
 }
 
 func GetAppConfig() AppConfig {
@@ -116,4 +111,32 @@ func GetAuthConfig() AuthConfig {
 		AccessTokenTTL:  getEnv("AUTH_ACCESS_TOKEN_TTL", "900"),
 		RefreshTokenTTL: getEnv("AUTH_REFRESH_TOKEN_TTL", "86400"),
 	}
+}
+
+func GetTelegramConfig() TelegramConfig {
+	return TelegramConfig{
+		Enabled:    getEnvBool("TELEGRAM_BOT_ENABLED", false),
+		BotToken:   getEnv("TELEGRAM_BOT_TOKEN", ""),
+		ApiBaseURL: getEnv("TELEGRAM_BOT_API_BASE_URL", "https://api.telegram.org"),
+	}
+}
+
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	if value == "" {
+		return defaultValue
+	}
+	return value == "1" || value == "true" || value == "yes" || value == "y"
+}
+
+func loadEnv() error {
+	return godotenv.Load(getEnv("ENV_FILE", "config/.env"))
 }

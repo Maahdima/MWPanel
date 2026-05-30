@@ -14,6 +14,7 @@ import (
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice"
 	"github.com/maahdima/mwp/api/dataservice/seeds"
+	"github.com/maahdima/mwp/api/service"
 	"github.com/maahdima/mwp/api/utils/log"
 
 	"go.uber.org/zap"
@@ -50,7 +51,8 @@ func main() {
 	mwpClients.InitClient()
 
 	mikrotikAdaptor := mikrotik.NewAdaptor(mwpClients)
-	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor)
+	telegramNotifier := service.NewTelegramNotifier(config.GetTelegramConfig())
+	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor, telegramNotifier)
 
 	// Start the traffic calculation job
 	scheduler, err := gocron.NewScheduler()

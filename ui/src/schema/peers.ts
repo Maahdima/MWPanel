@@ -13,6 +13,7 @@ export const PeerSchema = z.object({
   uuid: z.string(),
   disabled: z.boolean(),
   comment: z.string().nullable(),
+  telegram_username: z.string().nullable(),
   name: z.string(),
   interface: z.string(),
   allowed_address: z.string(),
@@ -71,6 +72,7 @@ export const FetchPeerAllowedAddressSchema = z.object({
 
 export const CreatePeerSchema = z.object({
   comment: z.string().optional().nullable(),
+  telegram_username: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
   interface_id: z.number().min(1, 'Interface ID is required'),
   private_key: z.string().min(1, 'Private Key is required'),
@@ -89,6 +91,7 @@ export const UpdatePeerSchema = z.object({
   id: z.number().int().positive(),
   disabled: z.boolean().optional(),
   comment: z.string().optional().nullable(),
+  telegram_username: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
   allowed_address: z.string().min(1, 'Allowed Address is required'),
   persistent_keepalive: z.string().optional().nullable(),

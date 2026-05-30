@@ -403,7 +403,7 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 		return nil, err
 	}
 
-	updateData := w.preparePeerUpdate(req, schedulerID, queueID)
+	updateData := w.preparePeerUpdate(&peer, req, schedulerID, queueID)
 	if err := w.db.Model(&peer).Updates(updateData).Error; err != nil {
 		return nil, err
 	}
@@ -591,6 +591,8 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		trafficLimit = &trafficBytes
 	}
 
+	telegramUsername := normalizeTelegramUsername(req.TelegramUsername)
+
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),
 		PeerID:              mtPeer.ID,
@@ -608,6 +610,7 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		QueueID:             queueId,
 		ExpireTime:          req.ExpireTime,
 		TrafficLimit:        trafficLimit,
+		TelegramUsername:    telegramUsername,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
 	}
@@ -719,14 +722,25 @@ func (w *WgPeer) handleQueue(peer *model.Peer, req *schema.UpdatePeerRequest) (*
 	return queueID, nil
 }
 
-func (w *WgPeer) preparePeerUpdate(req *schema.UpdatePeerRequest, schedulerID, queueID *string) map[string]interface{} {
+func (w *WgPeer) preparePeerUpdate(peer *model.Peer, req *schema.UpdatePeerRequest, schedulerID, queueID *string) map[string]interface{} {
 	updateData := map[string]interface{}{}
 
-	trafficLimit := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
-	if trafficLimit > 0 {
-		updateData["traffic_limit"] = trafficLimit
+	trafficBytes := utils.GBToBytes(utils.DerefString(req.TrafficLimit))
+	var trafficLimit *int64
+	if trafficBytes > 0 {
+		trafficLimit = &trafficBytes
+		updateData["traffic_limit"] = trafficBytes
 	} else {
 		updateData["traffic_limit"] = nil
+	}
+
+	telegramUsername := normalizeTelegramUsername(req.TelegramUsername)
+	updateData["telegram_username"] = telegramUsername
+
+	if !int64PtrEqual(peer.TrafficLimit, trafficLimit) || !stringPtrEqual(peer.TelegramUsername, telegramUsername) {
+		updateData["traffic_notified_first_threshold"] = false
+		updateData["traffic_notified_second_threshold"] = false
+		updateData["traffic_notified_third_threshold"] = false
 	}
 
 	updateData["disabled"] = req.Disabled
@@ -759,6 +773,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		UUID:              peer.UUID,
 		Disabled:          peer.Disabled,
 		Comment:           peer.Comment,
+		TelegramUsername:  peer.TelegramUsername,
 		Name:              peer.Name,
 		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
@@ -824,3 +839,35 @@ func (w *WgPeer) bandwidthsEqual(a, b *string) bool {
 	}
 	return false
 }
+
+func normalizeTelegramUsername(username *string) *string {
+	if username == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*username)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+func stringPtrEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func int64PtrEqual(a, b *int64) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+

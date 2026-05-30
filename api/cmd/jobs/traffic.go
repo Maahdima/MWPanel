@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
@@ -14,19 +15,25 @@ import (
 	"gorm.io/gorm"
 )
 
+type PeerUsageNotifier interface {
+	NotifyPeerUsage(ctx context.Context, peerName, telegramUsername string, percent int64, totalUsage, limit int64) error
+}
+
 type Calculator struct {
 	db              *gorm.DB
 	mikrotikAdaptor *mikrotik.Adaptor
 	mu              *sync.Mutex // avoid race condition between traffic job and reset
 	logger          *zap.Logger
+	notifier        PeerUsageNotifier
 }
 
-func NewTrafficCalculator(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor) *Calculator {
+func NewTrafficCalculator(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, notifier PeerUsageNotifier) *Calculator {
 	return &Calculator{
 		db:              db,
 		mikrotikAdaptor: mikrotikAdaptor,
 		mu:              &sync.Mutex{},
 		logger:          zap.L().Named("TrafficCalculatorJob"),
+		notifier:        notifier,
 	}
 }
 
@@ -34,12 +41,10 @@ func (c *Calculator) CalculatePeerTraffic() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var peers []model.Peer
-	if err := c.db.Find(&peers).Error; err != nil {
-		c.logger.Error("Failed to fetch peers from database", zap.Error(err))
+	peers, err := c.fetchPeers()
+	if err != nil {
 		return
 	}
-
 	if len(peers) == 0 {
 		c.logger.Info("No peers found, skipping traffic calculation")
 		return
@@ -48,46 +53,7 @@ func (c *Calculator) CalculatePeerTraffic() {
 	const maxCounter = 4294967296 // mikrotik 32-bit counter bug in wg peers (2^32)
 
 	for _, peer := range peers {
-		wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
-		if err != nil {
-			c.logger.Error("Failed to fetch wireguard peer", zap.String("peerID", peer.PeerID), zap.Error(err))
-			continue
-		}
-
-		currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
-		currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
-
-		deltaTx := calculateDelta(peer.LastTx, currentTx, maxCounter)
-		deltaRx := calculateDelta(peer.LastRx, currentRx, maxCounter)
-
-		peer.DownloadUsage += deltaTx
-		peer.UploadUsage += deltaRx
-		peer.LastTx = currentTx
-		peer.LastRx = currentRx
-
-		updates := map[string]interface{}{
-			"download_usage": peer.DownloadUsage,
-			"upload_usage":   peer.UploadUsage,
-			"last_tx":        peer.LastTx,
-			"last_rx":        peer.LastRx,
-		}
-
-		if peer.TrafficLimit != nil && (peer.DownloadUsage+peer.UploadUsage) > *peer.TrafficLimit {
-			c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
-			peer.Disabled = true
-			updates["disabled"] = true
-
-			_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
-				Disabled: strconv.FormatBool(true),
-			})
-			if err != nil {
-				c.logger.Error("Failed to disable peer on Mikrotik", zap.String("peerID", peer.PeerID), zap.Error(err))
-			}
-		}
-
-		if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
-			c.logger.Error("Failed to update peer usage in database", zap.String("peerID", peer.PeerID), zap.Error(err))
-		}
+		c.processPeerTraffic(peer, maxCounter)
 	}
 
 	c.logger.Info("Peer Traffic calculation job completed")
@@ -179,6 +145,9 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 		peer.UploadUsage = 0
 		peer.LastTx = currentTx
 		peer.LastRx = currentRx
+		peer.FirstNotify = false
+		peer.SecondNotify = false
+		peer.ThirdNotify = false
 
 		if err := tx.Save(&peer).Error; err != nil {
 			return err
@@ -231,6 +200,9 @@ func (c *Calculator) ResetPeerUsages() error {
 		peer.UploadUsage = 0
 		peer.LastTx = currentTx
 		peer.LastRx = currentRx
+		peer.FirstNotify = false
+		peer.SecondNotify = false
+		peer.ThirdNotify = false
 
 		if err := c.db.Save(&peer).Error; err != nil {
 			c.logger.Error("Failed to reset peer usage", zap.String("peerID", peer.PeerID), zap.Error(err))
@@ -242,9 +214,133 @@ func (c *Calculator) ResetPeerUsages() error {
 	return nil
 }
 
-func calculateDelta(prev, current, maxCounter int64) int64 {
-	if current >= prev {
-		return current - prev
+func (c *Calculator) fetchPeers() ([]model.Peer, error) {
+	var peers []model.Peer
+	if err := c.db.Find(&peers).Error; err != nil {
+		c.logger.Error("Failed to fetch peers from database", zap.Error(err))
+		return nil, err
 	}
-	return (maxCounter - prev) + current
+	return peers, nil
+}
+
+func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
+	wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
+	if err != nil {
+		c.logger.Error("Failed to fetch wireguard peer", zap.String("peerID", peer.PeerID), zap.Error(err))
+		return
+	}
+
+	currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
+	currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
+
+	deltaTx, deltaRx, resetDetected := c.calculatePeerDeltas(peer, currentTx, currentRx, maxCounter)
+	if resetDetected {
+		c.logger.Debug("Detected peer counter reset",
+			zap.String("peerID", peer.PeerID),
+			zap.Int64("prevTx", peer.LastTx),
+			zap.Int64("currentTx", currentTx),
+			zap.Int64("prevRx", peer.LastRx),
+			zap.Int64("currentRx", currentRx),
+		)
+	}
+
+	peer.DownloadUsage += deltaTx
+	peer.UploadUsage += deltaRx
+	peer.LastTx = currentTx
+	peer.LastRx = currentRx
+
+	updates := map[string]interface{}{
+		"download_usage": peer.DownloadUsage,
+		"upload_usage":   peer.UploadUsage,
+		"last_tx":        peer.LastTx,
+		"last_rx":        peer.LastRx,
+	}
+
+	c.applyPeerTrafficNotifications(&peer, updates)
+	c.applyPeerTrafficLimit(&peer, updates)
+	c.persistPeerTraffic(peer, updates)
+}
+
+func (c *Calculator) calculatePeerDeltas(peer model.Peer, currentTx, currentRx, maxCounter int64) (int64, int64, bool) {
+	deltaTx, resetTx := calculateDelta(peer.LastTx, currentTx, maxCounter)
+	deltaRx, resetRx := calculateDelta(peer.LastRx, currentRx, maxCounter)
+	return deltaTx, deltaRx, resetTx || resetRx
+}
+
+func (c *Calculator) applyPeerTrafficLimit(peer *model.Peer, updates map[string]interface{}) {
+	if peer.TrafficLimit != nil && (peer.DownloadUsage+peer.UploadUsage) > *peer.TrafficLimit {
+		c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
+		peer.Disabled = true
+		updates["disabled"] = true
+
+		_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
+			Disabled: strconv.FormatBool(true),
+		})
+		if err != nil {
+			c.logger.Error("Failed to disable peer on Mikrotik", zap.String("peerID", peer.PeerID), zap.Error(err))
+		}
+	}
+}
+
+func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map[string]interface{}) {
+	if c.notifier == nil || peer.TrafficLimit == nil || peer.TelegramUsername == nil {
+		return
+	}
+
+	username := strings.TrimSpace(*peer.TelegramUsername)
+	if username == "" {
+		return
+	}
+
+	limit := *peer.TrafficLimit
+	if limit <= 0 {
+		return
+	}
+
+	totalUsage := peer.DownloadUsage + peer.UploadUsage
+	percent := (totalUsage * 100) / limit
+
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 80, "traffic_notified_first_threshold", &peer.FirstNotify)
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 90, "traffic_notified_second_threshold", &peer.SecondNotify)
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 100, "traffic_notified_third_threshold", &peer.ThirdNotify)
+}
+
+func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interface{}, username string, percent, totalUsage, limit, threshold int64, updateKey string, notified *bool) {
+	if percent < threshold || *notified {
+		return
+	}
+
+	err := c.notifier.NotifyPeerUsage(context.Background(), peer.Name, username, percent, totalUsage, limit)
+	if err != nil {
+		c.logger.Error("Failed to send peer usage notification", zap.String("peerID", peer.PeerID), zap.Error(err))
+		return
+	}
+
+	*notified = true
+	updates[updateKey] = true
+}
+
+func (c *Calculator) persistPeerTraffic(peer model.Peer, updates map[string]interface{}) {
+	if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
+		c.logger.Error("Failed to update peer usage in database", zap.String("peerID", peer.PeerID), zap.Error(err))
+	}
+}
+
+func calculateDelta(prev, current, maxCounter int64) (int64, bool) {
+	if current >= prev {
+		return current - prev, false
+	}
+
+	// If counters are already beyond the expected 32-bit max, treat this as a reset.
+	if maxCounter <= 0 || prev > maxCounter || current > maxCounter {
+		return current, true
+	}
+
+	// If the counter moved backwards by a large amount, assume a wrap.
+	if (prev - current) > (maxCounter / 2) {
+		return (maxCounter - prev) + current, false
+	}
+
+	// Otherwise treat it as a reset to avoid a large, incorrect delta.
+	return current, true
 }
