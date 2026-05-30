@@ -53,7 +53,7 @@ func (s *SyncService) SyncPeers() error {
 	mikrotikMap := s.mapMikrotikPeers(mikrotikPeers)
 	dbMap := s.mapDBPeers(dbPeers)
 
-	if err := s.syncNewAndUpdatedPeers(mikrotikMap); err != nil {
+	if err := s.syncNewAndUpdatedPeers(mikrotikMap, dbMap); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func (s *SyncService) SyncInterfaces() error {
 	mikrotikMap := s.mapMikrotikInterfaces(mikrotikIfaces)
 	dbMap := s.mapDBInterfaces(dbIfaces)
 
-	if err := s.syncNewAndUpdatedInterfaces(mikrotikMap); err != nil {
+	if err := s.syncNewAndUpdatedInterfaces(mikrotikMap, dbMap); err != nil {
 		return err
 	}
 
@@ -129,7 +129,7 @@ func (s *SyncService) mapDBPeers(peers []model.Peer) map[string]model.Peer {
 	return m
 }
 
-func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuardPeer) error {
+func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range peers {
 		if peer.PrivateKey == nil {
 			s.logger.Error("missing private key", zap.String("peer", id))
@@ -146,7 +146,25 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 			return err
 		}
 
-		dbPeer := s.buildDBPeer(peer, server, dbIface)
+		dbPeer, exists := dbMap[id]
+		if !exists {
+			dbPeer = model.Peer{
+				UUID:                uuid.New().String(),
+				PeerID:              peer.ID,
+				PersistentKeepalive: common.DefaultKeepalive,
+			}
+		}
+
+		dbPeer.Disabled = parseBool(peer.Disabled)
+		dbPeer.Comment = peer.Comment
+		dbPeer.Name = peer.Name
+		dbPeer.PrivateKey = *peer.PrivateKey
+		dbPeer.PublicKey = peer.PublicKey
+		dbPeer.InterfaceID = dbIface.ID
+		dbPeer.AllowedAddress = peer.AllowedAddress
+		dbPeer.Endpoint = server.IPAddress
+		dbPeer.EndpointPort = dbIface.ListenPort
+
 		config := s.buildConfig(peer, dbPeer, dbIface)
 
 		if err := s.configService.BuildPeerConfig(config, dbPeer.UUID); err != nil {
@@ -170,7 +188,7 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range dbMap {
 		if _, found := mikrotikMap[id]; !found {
-			if err := s.db.Delete(peer.ID).Unscoped().Error; err != nil {
+			if err := s.db.Unscoped().Delete(&peer).Error; err != nil {
 				s.logger.Error("failed to delete peer", zap.String("peerId", id), zap.Error(err))
 				return err
 			}
@@ -265,17 +283,21 @@ func (s *SyncService) mapDBInterfaces(ifaces []model.Interface) map[string]model
 	return m
 }
 
-func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.WireGuardInterface) error {
+func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.WireGuardInterface, dbMap map[string]model.Interface) error {
 	for id, mikrotikIface := range ifaceMap {
-		dbIface := model.Interface{
-			InterfaceID: mikrotikIface.ID,
-			Disabled:    parseBool(mikrotikIface.Disabled),
-			Comment:     mikrotikIface.Comment,
-			Name:        mikrotikIface.Name,
-			PrivateKey:  mikrotikIface.PrivateKey,
-			PublicKey:   mikrotikIface.PublicKey,
-			ListenPort:  mikrotikIface.ListenPort,
+		dbIface, exists := dbMap[id]
+		if !exists {
+			dbIface = model.Interface{
+				InterfaceID: mikrotikIface.ID,
+			}
 		}
+
+		dbIface.Disabled = parseBool(mikrotikIface.Disabled)
+		dbIface.Comment = mikrotikIface.Comment
+		dbIface.Name = mikrotikIface.Name
+		dbIface.PrivateKey = mikrotikIface.PrivateKey
+		dbIface.PublicKey = mikrotikIface.PublicKey
+		dbIface.ListenPort = mikrotikIface.ListenPort
 
 		if err := s.db.Save(&dbIface).Error; err != nil {
 			s.logger.Error("failed to upsert interface", zap.String("id", id), zap.Error(err))
@@ -288,7 +310,20 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 func (s *SyncService) removeStaleInterfaces(mikrotikMap map[string]mikrotik.WireGuardInterface, dbMap map[string]model.Interface) error {
 	for id, dbIface := range dbMap {
 		if _, exists := mikrotikMap[id]; !exists {
-			if err := s.db.Delete(dbIface.ID).Unscoped().Error; err != nil {
+			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.Peer{}).Error; err != nil {
+				s.logger.Error("failed to delete dependent peers", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
+				return err
+			}
+			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.Traffic{}).Error; err != nil {
+				s.logger.Error("failed to delete dependent traffic", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
+				return err
+			}
+			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.IPPool{}).Error; err != nil {
+				s.logger.Error("failed to delete dependent IP pools", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
+				return err
+			}
+
+			if err := s.db.Unscoped().Delete(&dbIface).Error; err != nil {
 				s.logger.Error("failed to delete interface", zap.String("interfaceId", id), zap.Error(err))
 				return err
 			}
