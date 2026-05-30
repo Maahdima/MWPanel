@@ -23,10 +23,11 @@ build-node:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
     - when: never
   before_script:
+    - npm install -g pnpm@latest
     - cd ui
   script:
-    - npx pnpm install --store-dir .pnpm --prefer-offline
-    - npm run build
+    - pnpm install --store-dir .pnpm --prefer-offline
+    - pnpm run build
     - echo "${CI_COMMIT_SHA}" > dist/.app_commit_sha
   cache:
     key:
