@@ -870,4 +870,3 @@ func int64PtrEqual(a, b *int64) bool {
 	}
 	return *a == *b
 }
-

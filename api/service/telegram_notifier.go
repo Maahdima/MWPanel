@@ -116,4 +116,3 @@ func (t *TelegramNotifier) NotifyPeerUsage(ctx context.Context, peerName, telegr
 
 	return nil
 }
-
