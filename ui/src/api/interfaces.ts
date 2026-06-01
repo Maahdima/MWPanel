@@ -6,6 +6,12 @@ import {
   InterfacesResponseSchema,
   UpdateInterfaceRequest,
 } from '@/schema/interfaces.ts'
+import {
+  SyncInterfacePreview,
+  SyncInterfacesRequest,
+  SyncInterfacesRequestSchema,
+  SyncInterfacesResponseSchema,
+} from '@/schema/sync.ts'
 import axiosInstance from '@/api/axios-instance.ts'
 
 export const fetchInterfacesList = async (): Promise<Interface[]> => {
@@ -45,3 +51,19 @@ export const deleteInterface = async (id: number): Promise<void> => {
 export const syncInterfaces = async (): Promise<void> => {
   await axiosInstance.post('/sync/interfaces')
 }
+
+export const fetchSyncInterfaces = async (): Promise<
+  SyncInterfacePreview[]
+> => {
+  const { data } = await axiosInstance.get('/sync/interfaces')
+  const parsed = SyncInterfacesResponseSchema.parse(data)
+  return parsed.data || []
+}
+
+export const syncSelectedInterfaces = async (
+  payload: SyncInterfacesRequest
+): Promise<void> => {
+  const validated = SyncInterfacesRequestSchema.parse(payload)
+  await axiosInstance.post('/sync/interfaces/selected', validated)
+}
+

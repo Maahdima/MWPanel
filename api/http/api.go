@@ -148,6 +148,10 @@ func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	syncSecured := syncGroup.Group("")
 	syncSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
 
+	syncSecured.GET("/interfaces", syncController.GetSyncInterfaces)
+	syncSecured.GET("/peers", syncController.GetSyncPeers)
+	syncSecured.POST("/interfaces/selected", syncController.SyncSelectedInterfaces)
+	syncSecured.POST("/peers/selected", syncController.SyncSelectedPeers)
 	syncSecured.POST("/peers", syncController.SyncPeers)
 	syncSecured.POST("/interfaces", syncController.SyncInterfaces)
 }

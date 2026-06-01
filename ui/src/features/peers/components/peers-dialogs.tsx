@@ -1,6 +1,7 @@
 import { useDeletePeerMutation } from '@/hooks/peers/useDeletePeerMutation.ts'
 import { PeersConfigDialog } from '@/features/peers/components/dialogs/peers-config-dialog.tsx'
 import { PeersQRCodeDialog } from '@/features/peers/components/dialogs/peers-qrcode-dialog.tsx'
+import { PeersSyncDialog } from '@/features/peers/components/dialogs/peers-sync-dialog.tsx'
 import { PeersShareDialog } from '@/features/peers/components/dialogs/peers-share-dialog.tsx'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
 import { ActionDialog } from '@/features/shared-components/table/dialogs/action-dialog.tsx'
@@ -17,6 +18,7 @@ export function PeersDialogs() {
 
   return (
     <>
+      <PeersSyncDialog />
       <ActionDialog
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}

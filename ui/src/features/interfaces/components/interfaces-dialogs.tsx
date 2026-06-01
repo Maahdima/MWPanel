@@ -1,5 +1,6 @@
 import { useDeleteInterfaceMutation } from '@/hooks/interfaces/useDeleteInterfaceMutation.ts'
 import { useInterfaces } from '@/features/interfaces/context/interfaces-context.tsx'
+import { InterfacesSyncDialog } from '@/features/interfaces/components/interfaces-sync-dialog.tsx'
 import { ActionDialog } from '@/features/shared-components/table/dialogs/action-dialog.tsx'
 import { DeleteEntityDialog } from '@/features/shared-components/table/dialogs/delete-entity-dialog.tsx'
 
@@ -14,6 +15,7 @@ export function InterfacesDialogs() {
 
   return (
     <>
+      <InterfacesSyncDialog />
       <ActionDialog
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}

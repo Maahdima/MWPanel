@@ -160,7 +160,7 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		dbPeer.Name = peer.Name
 		dbPeer.PrivateKey = *peer.PrivateKey
 		dbPeer.PublicKey = peer.PublicKey
-		dbPeer.InterfaceID = dbIface.ID
+		dbPeer.Interface = dbIface.Name
 		dbPeer.AllowedAddress = peer.AllowedAddress
 		dbPeer.Endpoint = server.IPAddress
 		dbPeer.EndpointPort = dbIface.ListenPort
@@ -229,7 +229,7 @@ func (s *SyncService) buildDBPeer(peer mikrotik.WireGuardPeer, server model.Serv
 		Name:                peer.Name,
 		PrivateKey:          *peer.PrivateKey,
 		PublicKey:           peer.PublicKey,
-		InterfaceID:         iface.ID,
+		Interface:           peer.Interface,
 		AllowedAddress:      peer.AllowedAddress,
 		Endpoint:            server.IPAddress,
 		EndpointPort:        iface.ListenPort,
@@ -310,20 +310,7 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 func (s *SyncService) removeStaleInterfaces(mikrotikMap map[string]mikrotik.WireGuardInterface, dbMap map[string]model.Interface) error {
 	for id, dbIface := range dbMap {
 		if _, exists := mikrotikMap[id]; !exists {
-			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.Peer{}).Error; err != nil {
-				s.logger.Error("failed to delete dependent peers", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
-				return err
-			}
-			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.Traffic{}).Error; err != nil {
-				s.logger.Error("failed to delete dependent traffic", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
-				return err
-			}
-			if err := s.db.Unscoped().Where("interface_id = ?", dbIface.ID).Delete(&model.IPPool{}).Error; err != nil {
-				s.logger.Error("failed to delete dependent IP pools", zap.Uint("interface_id", dbIface.ID), zap.Error(err))
-				return err
-			}
-
-			if err := s.db.Unscoped().Delete(&dbIface).Error; err != nil {
+			if err := s.db.Delete(dbIface.ID).Unscoped().Error; err != nil {
 				s.logger.Error("failed to delete interface", zap.String("interfaceId", id), zap.Error(err))
 				return err
 			}

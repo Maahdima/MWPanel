@@ -7,15 +7,11 @@ import { useInterfaces } from '@/features/interfaces/context/interfaces-context.
 interface Props {
   refetchInterfacesList: () => void
   isInterfacesListRefetching: boolean
-  syncInterfaces: () => void
-  isInterfacesSyncing: boolean
 }
 
 export function InterfacesPrimaryButtons({
   refetchInterfacesList,
   isInterfacesListRefetching,
-  syncInterfaces,
-  isInterfacesSyncing,
 }: Props) {
   const { setOpen } = useInterfaces()
 
@@ -24,18 +20,10 @@ export function InterfacesPrimaryButtons({
       <div className='inline-flex w-fit -space-x-px rounded-md shadow-xs rtl:space-x-reverse'>
         <Button
           variant='outline'
-          className={cn(
-            'rounded-none rounded-s-md shadow-none transition-all focus-visible:z-10',
-            isInterfacesSyncing && 'cursor-not-allowed opacity-70'
-          )}
-          disabled={isInterfacesSyncing}
-          onClick={syncInterfaces}
+          className={cn('rounded-none rounded-s-md shadow-none transition-all focus-visible:z-10')}
+          onClick={() => setOpen('sync')}
         >
-          {isInterfacesSyncing ? (
-            <Loader2Icon className='h-4 w-4 animate-spin' />
-          ) : (
-            <IconCloudDown className='h-4 w-4' />
-          )}
+          <IconCloudDown className='h-4 w-4' />
           <span className='text-sm font-medium'>Sync</span>
         </Button>
 

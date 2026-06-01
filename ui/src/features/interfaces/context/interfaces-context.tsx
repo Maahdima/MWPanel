@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Interface } from '@/schema/interfaces.ts'
 import useDialogState from '@/hooks/use-dialog-state'
 
-type InterfacesDialogType = 'add' | 'edit' | 'delete'
+type InterfacesDialogType = 'add' | 'edit' | 'delete' | 'sync'
 
 interface InterfacesContextType {
   open: InterfacesDialogType | null

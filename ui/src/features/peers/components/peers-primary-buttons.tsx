@@ -10,15 +10,11 @@ import { usePeers } from '@/features/peers/context/peers-context.tsx'
 interface Props {
   refetchPeersList: () => void
   isPeersListRefetching: boolean
-  syncPeers: () => void
-  isPeersSyncing: boolean
 }
 
 export function PeersPrimaryButtons({
   refetchPeersList,
   isPeersListRefetching,
-  syncPeers,
-  isPeersSyncing,
 }: Props) {
   const { setOpen } = usePeers()
 
@@ -35,18 +31,10 @@ export function PeersPrimaryButtons({
       <div className='inline-flex w-fit -space-x-px rounded-md shadow-xs rtl:space-x-reverse'>
         <Button
           variant='outline'
-          className={cn(
-            'rounded-none rounded-s-md shadow-none transition-all focus-visible:z-10',
-            isPeersSyncing && 'cursor-not-allowed opacity-70'
-          )}
-          disabled={isPeersSyncing}
-          onClick={syncPeers}
+          className={cn('rounded-none rounded-s-md shadow-none transition-all focus-visible:z-10')}
+          onClick={() => setOpen('sync')}
         >
-          {isPeersSyncing ? (
-            <Loader2Icon className='h-4 w-4 animate-spin' />
-          ) : (
-            <IconCloudDown className='h-4 w-4' />
-          )}
+          <IconCloudDown className='h-4 w-4' />
           <span className='text-sm font-medium'>Sync</span>
         </Button>
 

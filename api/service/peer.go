@@ -137,7 +137,7 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 	}
 
 	var peers []model.Peer
-	if err := w.db.Find(&peers, "interface_id = ?", iface.ID).Error; err != nil {
+	if err := w.db.Find(&peers, "interface = ?", iface.Name).Error; err != nil {
 		w.logger.Error("failed to query peers from database", zap.Error(err))
 		return nil, fmt.Errorf("failed to find peers: %w", err)
 	}
@@ -350,7 +350,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress, iface.ID); err != nil {
+	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress); err != nil {
 		return nil, err
 	}
 
@@ -387,12 +387,6 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
 		w.logger.Error("failed to get peer from database", zap.Error(err))
 		return nil, err
-	}
-
-	if req.AllowedAddress != peer.AllowedAddress {
-		if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress, peer.InterfaceID); err != nil {
-			return nil, err
-		}
 	}
 
 	if err := w.updateMikrotikPeer(peer.PeerID, req); err != nil {
@@ -550,9 +544,9 @@ func (w *WgPeer) getInterface(id uint) (model.Interface, error) {
 	return iface, nil
 }
 
-func (w *WgPeer) ensureAllowedAddressIsUnique(address string, interfaceID uint) error {
+func (w *WgPeer) ensureAllowedAddressIsUnique(address string) error {
 	var existing model.Peer
-	if err := w.db.Where("allowed_address = ? AND interface_id = ?", address, interfaceID).First(&existing).Error; err == nil {
+	if err := w.db.Where("allowed_address = ?", address).First(&existing).Error; err == nil {
 		return fmt.Errorf("allowed address %s is already in use by peer %s", address, existing.Name)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		w.logger.Error("allowed address lookup failed", zap.Error(err))
@@ -607,7 +601,7 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		Name:                mtPeer.Name,
 		PrivateKey:          *mtPeer.PrivateKey,
 		PublicKey:           mtPeer.PublicKey,
-		InterfaceID:         iface.ID,
+		Interface:           mtPeer.Interface,
 		AllowedAddress:      mtPeer.AllowedAddress,
 		Endpoint:            req.Endpoint,
 		EndpointPort:        iface.ListenPort,
@@ -774,11 +768,6 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		trafficLimit = utils.Ptr(utils.BytesToGB(*peer.TrafficLimit))
 	}
 
-	ifaceName := ""
-	if peer.Interface != nil {
-		ifaceName = peer.Interface.Name
-	}
-
 	return schema.PeerResponse{
 		Id:                peer.ID,
 		UUID:              peer.UUID,
@@ -786,7 +775,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		Comment:           peer.Comment,
 		TelegramUsername:  peer.TelegramUsername,
 		Name:              peer.Name,
-		Interface:         ifaceName,
+		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
 		TrafficLimit:      trafficLimit,
 		ExpireTime:        peer.ExpireTime,

@@ -14,6 +14,12 @@ import {
   UpdatePeerRequest,
   UpdatePeerShareExpireRequest,
 } from '@/schema/peers.ts'
+import {
+  SyncPeerPreview,
+  SyncPeersRequest,
+  SyncPeersRequestSchema,
+  SyncPeersResponseSchema,
+} from '@/schema/sync.ts'
 import axiosInstance from '@/api/axios-instance.ts'
 
 export const fetchPeersList = async (): Promise<Peer[]> => {
@@ -121,3 +127,21 @@ export const exportTrafficExcel = async (): Promise<void> => {
 export const syncPeers = async (): Promise<void> => {
   await axiosInstance.post('/sync/peers')
 }
+
+export const fetchSyncPeers = async (
+  interfaceName?: string
+): Promise<SyncPeerPreview[]> => {
+  const { data } = await axiosInstance.get('/sync/peers', {
+    params: interfaceName ? { interface: interfaceName } : undefined,
+  })
+  const parsed = SyncPeersResponseSchema.parse(data)
+  return parsed.data || []
+}
+
+export const syncSelectedPeers = async (
+  payload: SyncPeersRequest
+): Promise<void> => {
+  const validated = SyncPeersRequestSchema.parse(payload)
+  await axiosInstance.post('/sync/peers/selected', validated)
+}
+
