@@ -50,7 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </div>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <div className='text-xs text-white/70'>v{__APP_VERSION__}</div>
+              <div className='text-xs text-white/70 text-center w-full'>v{__APP_VERSION__}</div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

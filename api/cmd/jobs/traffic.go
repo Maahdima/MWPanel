@@ -300,9 +300,9 @@ func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
 	percent := (totalUsage * 100) / limit
 
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 80, "traffic_notified_first_threshold", &peer.FirstNotify)
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 90, "traffic_notified_second_threshold", &peer.SecondNotify)
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 100, "traffic_notified_third_threshold", &peer.ThirdNotify)
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 80, "first_notify", &peer.FirstNotify)
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 90, "second_notify", &peer.SecondNotify)
+	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 100, "third_notify", &peer.ThirdNotify)
 }
 
 func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interface{}, username string, percent, totalUsage, limit, threshold int64, updateKey string, notified *bool) {

@@ -738,9 +738,9 @@ func (w *WgPeer) preparePeerUpdate(peer *model.Peer, req *schema.UpdatePeerReque
 	updateData["telegram_username"] = telegramUsername
 
 	if !int64PtrEqual(peer.TrafficLimit, trafficLimit) || !stringPtrEqual(peer.TelegramUsername, telegramUsername) {
-		updateData["traffic_notified_first_threshold"] = false
-		updateData["traffic_notified_second_threshold"] = false
-		updateData["traffic_notified_third_threshold"] = false
+		updateData["first_notify"] = false
+		updateData["second_notify"] = false
+		updateData["third_notify"] = false
 	}
 
 	updateData["disabled"] = req.Disabled
