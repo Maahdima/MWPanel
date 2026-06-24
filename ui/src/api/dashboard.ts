@@ -21,3 +21,7 @@ export const fetchDailyTrafficUsage = async (
   const parsed = dailyTrafficUsageResponseSchema.parse(data)
   return parsed.data
 }
+
+export const resetTotalTrafficUsage = async (): Promise<void> => {
+  await axiosInstance.patch('/device/traffic/reset')
+}

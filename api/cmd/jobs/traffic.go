@@ -234,6 +234,9 @@ func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
 	currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
 
 	deltaTx, deltaRx, resetDetected := c.calculatePeerDeltas(peer, currentTx, currentRx, maxCounter)
+	if delta := deltaTx + deltaRx; delta > 0 {
+		c.accumulateTotalTraffic(delta)
+	}
 	if resetDetected {
 		c.logger.Debug("Detected peer counter reset",
 			zap.String("peerID", peer.PeerID),
@@ -324,6 +327,42 @@ func (c *Calculator) persistPeerTraffic(peer model.Peer, updates map[string]inte
 	if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
 		c.logger.Error("Failed to update peer usage in database", zap.String("peerID", peer.PeerID), zap.Error(err))
 	}
+}
+
+func (c *Calculator) accumulateTotalTraffic(delta int64) {
+	var totalTraffic model.TotalTrafficUsage
+	err := c.db.FirstOrCreate(&totalTraffic, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error
+	if err != nil {
+		c.logger.Error("Failed to fetch total traffic usage record", zap.Error(err))
+		return
+	}
+
+	if err := c.db.Model(&model.TotalTrafficUsage{}).
+		Where("id = ?", model.TotalTrafficUsageSingletonID).
+		UpdateColumn("total_usage", gorm.Expr("total_usage + ?", delta)).Error; err != nil {
+		c.logger.Error("Failed to accumulate total traffic usage", zap.Error(err))
+	}
+}
+
+func (c *Calculator) ResetTotalTrafficUsage() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var totalTraffic model.TotalTrafficUsage
+	if err := c.db.FirstOrCreate(&totalTraffic, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error; err != nil {
+		c.logger.Error("Failed to fetch total traffic usage record", zap.Error(err))
+		return err
+	}
+
+	if err := c.db.Model(&model.TotalTrafficUsage{}).
+		Where("id = ?", model.TotalTrafficUsageSingletonID).
+		Update("total_usage", 0).Error; err != nil {
+		c.logger.Error("Failed to reset total traffic usage", zap.Error(err))
+		return err
+	}
+
+	c.logger.Info("Total traffic usage reset successfully")
+	return nil
 }
 
 func calculateDelta(prev, current, maxCounter int64) (int64, bool) {

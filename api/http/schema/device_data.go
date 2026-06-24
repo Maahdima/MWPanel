@@ -12,10 +12,15 @@ type DeviceStatsResponse struct {
 	ServerInfo        *ServerStatsResponse
 	InterfaceInfo     *InterfaceStatsResponse
 	PeerInfo          *PeerStatsResponse
+	TrafficInfo       *TrafficInfo
 	DeviceIdentity    *DeviceIdentity
 	DeviceInfo        *DeviceInfo
 	DeviceIPv4Address *DeviceIPv4Address
 	DNSConfig         *DNSConfig
+}
+
+type TrafficInfo struct {
+	TotalUsage string `json:"total_usage"`
 }
 
 type DeviceInfo struct {

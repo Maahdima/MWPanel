@@ -97,6 +97,11 @@ func (d *DeviceData) GetDeviceData() (*schema.DeviceStatsResponse, error) {
 		return nil, err
 	}
 
+	trafficInfo, err := d.getTrafficInfo()
+	if err != nil {
+		return nil, err
+	}
+
 	info, err := d.getDeviceInfo()
 	if err != nil {
 		return nil, err
@@ -121,10 +126,23 @@ func (d *DeviceData) GetDeviceData() (*schema.DeviceStatsResponse, error) {
 		ServerInfo:        serverStats,
 		InterfaceInfo:     interfaceStats,
 		PeerInfo:          peerStats,
+		TrafficInfo:       trafficInfo,
 		DeviceInfo:        info,
 		DeviceIdentity:    identity,
 		DeviceIPv4Address: ipv4,
 		DNSConfig:         dns,
+	}, nil
+}
+
+func (d *DeviceData) getTrafficInfo() (*schema.TrafficInfo, error) {
+	var totalTraffic model.TotalTrafficUsage
+	if err := d.db.FirstOrCreate(&totalTraffic, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error; err != nil {
+		d.logger.Error("failed to fetch total traffic usage", zap.Error(err))
+		return nil, err
+	}
+
+	return &schema.TrafficInfo{
+		TotalUsage: utils.BytesToGB(totalTraffic.TotalUsage),
 	}, nil
 }
 

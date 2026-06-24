@@ -63,6 +63,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.IPPool{},
 		&model.Peer{},
 		&model.Traffic{},
+		&model.TotalTrafficUsage{},
 		&model.Server{},
 		&model.Admin{},
 	)

@@ -18,6 +18,7 @@ import { PeersChart } from '@/features/dashboard/components/peers-chart.tsx'
 import OnlineUsersSkeleton from '@/features/dashboard/components/skeletons/online-users.skeleton.tsx'
 import DeviceStatsSkeleton from '@/features/dashboard/components/skeletons/statistics.skeleton.tsx'
 import { StatsCard } from '@/features/dashboard/components/stats-card.tsx'
+import { TrafficStatsCard } from '@/features/dashboard/components/traffic-stats-card.tsx'
 import { TrafficChart } from '@/features/dashboard/components/traffic-chart.tsx'
 
 const statsCards = [
@@ -76,7 +77,7 @@ export default function Dashboard() {
           className='space-y-4'
         >
           <TabsContent value='overview' className='space-y-4'>
-            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5'>
               {statsCards.map((card) => {
                 const section =
                   deviceData?.[card.source as keyof typeof deviceData]
@@ -92,6 +93,10 @@ export default function Dashboard() {
                   />
                 )
               })}
+              <TrafficStatsCard
+                value={deviceData?.TrafficInfo?.total_usage}
+                isLoading={isDeviceDataLoading}
+              />
             </div>
 
             <div className='grid grid-cols-1 gap-4 lg:grid-cols-7'>

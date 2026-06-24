@@ -47,7 +47,7 @@ func SetupMwpAPI(
 		excelGeneratorService,
 		trafficCalculator,
 	)
-	deviceInfoController := NewDeviceDataController(deviceDataService)
+	deviceInfoController := NewDeviceDataController(deviceDataService, trafficCalculator)
 	syncController := NewSyncController(syncService)
 	userController := NewUserController(peerService, configGeneratorService, qrCodeGeneratorService)
 
@@ -139,6 +139,7 @@ func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jw
 
 	deviceSecured.GET("/stats", deviceInfoController.GetDeviceInfo)
 	deviceSecured.GET("/traffic", deviceInfoController.GetDailyTrafficUsage)
+	deviceSecured.PATCH("/traffic/reset", deviceInfoController.ResetTotalTrafficUsage)
 }
 
 func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, syncController *SyncController) {

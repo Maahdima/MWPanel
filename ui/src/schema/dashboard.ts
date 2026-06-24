@@ -22,6 +22,9 @@ export const deviceDataSchema = z.object({
     offline_peers: z.number(),
     disabled_peers: z.number(),
   }),
+  TrafficInfo: z.object({
+    total_usage: z.string(),
+  }),
   DeviceIdentity: z.object({
     identity: z.string(),
   }),
