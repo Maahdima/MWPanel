@@ -25,20 +25,20 @@ export function HighlightStatsCard({
   }
 
   return (
-    <Card className='border-border/60'>
-      <CardContent className='flex h-full items-center justify-between gap-4 p-4 sm:p-5'>
-        <div className='flex min-w-0 items-center gap-4'>
-          <div className='bg-white/10 text-white flex size-10 shrink-0 items-center justify-center rounded-lg [&>svg]:size-5'>
+    <Card className='border-border/60 py-0'>
+      <CardContent className='flex items-center justify-between gap-5 px-6 py-5'>
+        <div className='flex min-w-0 items-center gap-5'>
+          <div className='bg-white/10 text-white flex size-11 shrink-0 items-center justify-center rounded-lg [&>svg]:size-5'>
             {icon}
           </div>
           <div className='min-w-0'>
-            <p className='truncate text-lg font-medium text-gray-300'>
+            <p className='truncate text-lg font-medium leading-snug text-gray-300'>
               {title}
             </p>
             {isLoading ? (
-              <Skeleton className='mt-1.5 h-7 w-24 rounded-sm' />
+              <Skeleton className='mt-1.5 h-8 w-24 rounded-sm' />
             ) : (
-              <p className='truncate text-2xl font-bold tracking-tight text-white'>
+              <p className='truncate text-3xl font-bold leading-snug tracking-tight text-white'>
                 {displayValue}
               </p>
             )}
