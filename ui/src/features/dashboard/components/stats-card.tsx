@@ -21,9 +21,9 @@ export function StatsCard({ title, icon, value, isLoading }: StatsCardProps) {
             {title}
           </p>
           {isLoading ? (
-            <Skeleton className='mt-1.5 h-8 w-12 rounded-sm' />
+            <Skeleton className='mt-1.5 h-7 w-12 rounded-sm' />
           ) : (
-            <p className='text-3xl font-bold leading-snug tracking-tight text-white'>
+            <p className='text-2xl font-bold leading-snug tracking-tight text-white'>
               {value}
             </p>
           )}

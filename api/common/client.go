@@ -67,7 +67,7 @@ func (c *MwpClients) IsConnected(serverName *string) bool {
 
 	httpClient := &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Second,
+		Timeout:   5 * time.Second,
 	}
 
 	uri := fmt.Sprintf("http://%s:%d/rest/system/identity", server.IPAddress, server.APIPort)

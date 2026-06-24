@@ -36,9 +36,9 @@ export function HighlightStatsCard({
               {title}
             </p>
             {isLoading ? (
-              <Skeleton className='mt-1.5 h-8 w-24 rounded-sm' />
+              <Skeleton className='mt-1.5 h-7 w-24 rounded-sm' />
             ) : (
-              <p className='truncate text-3xl font-bold leading-snug tracking-tight text-white'>
+              <p className='truncate text-2xl font-bold leading-snug tracking-tight text-white'>
                 {displayValue}
               </p>
             )}

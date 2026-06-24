@@ -5,21 +5,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
-)
-
-const (
-	defaultTimeout      = 30 * time.Second
-	defaultMaxRetries   = 3
-	defaultRetryBackoff = 500 * time.Millisecond
 )
 
 type Config struct {
@@ -28,8 +19,6 @@ type Config struct {
 	Password           string        // Password for Basic Authentication.
 	InsecureSkipVerify bool          // If true, the client will skip TLS certificate verification. Equivalent to 'curl -k'.
 	Timeout            time.Duration // Request timeout. Defaults to 30 seconds if not set.
-	MaxRetries         int           // Number of retries after the initial attempt. Defaults to 3.
-	RetryBackoff       time.Duration // Base delay between retries. Defaults to 500ms.
 }
 
 type Client struct {
@@ -44,13 +33,7 @@ func NewClient(config Config) (*Client, error) {
 		return nil, fmt.Errorf("BaseURL is a required configuration field")
 	}
 	if config.Timeout == 0 {
-		config.Timeout = defaultTimeout
-	}
-	if config.MaxRetries == 0 {
-		config.MaxRetries = defaultMaxRetries
-	}
-	if config.RetryBackoff == 0 {
-		config.RetryBackoff = defaultRetryBackoff
+		config.Timeout = 5 * time.Second
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -72,38 +55,6 @@ func NewClient(config Config) (*Client, error) {
 }
 
 func (c *Client) Do(req *http.Request, respBody interface{}) error {
-	maxAttempts := c.config.MaxRetries + 1
-	var lastErr error
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		if attempt > 1 {
-			if !isRetryableError(lastErr) {
-				return lastErr
-			}
-			if err := resetRequestBody(req); err != nil {
-				return lastErr
-			}
-			if err := waitBeforeRetry(req.Context(), c.config.RetryBackoff, attempt-1); err != nil {
-				return err
-			}
-			c.logger.Warn("Retrying request",
-				zap.String("method", req.Method),
-				zap.String("url", req.URL.String()),
-				zap.Int("attempt", attempt),
-				zap.Error(lastErr),
-			)
-		}
-
-		lastErr = c.doOnce(req, respBody)
-		if lastErr == nil {
-			return nil
-		}
-	}
-
-	return lastErr
-}
-
-func (c *Client) doOnce(req *http.Request, respBody interface{}) error {
 	if c.config.Username != "" || c.config.Password != "" {
 		req.SetBasicAuth(c.config.Username, c.config.Password)
 	}
@@ -128,11 +79,7 @@ func (c *Client) doOnce(req *http.Request, respBody interface{}) error {
 			zap.Int("statusCode", resp.StatusCode),
 			zap.String("responseBody", string(body)),
 		)
-		err = fmt.Errorf("request failed with status code %d: %s", resp.StatusCode, string(body))
-		if isRetryableStatusCode(resp.StatusCode) {
-			return &retryableError{err: err}
-		}
-		return err
+		return fmt.Errorf("request failed with status code %d: %s", resp.StatusCode, string(body))
 	}
 
 	if respBody == nil || len(body) == 0 {
@@ -147,98 +94,12 @@ func (c *Client) doOnce(req *http.Request, respBody interface{}) error {
 	return nil
 }
 
-type retryableError struct {
-	err error
-}
-
-func (e *retryableError) Error() string {
-	return e.err.Error()
-}
-
-func (e *retryableError) Unwrap() error {
-	return e.err
-}
-
-func isRetryableError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var retryable *retryableError
-	if errors.As(err, &retryable) {
-		return true
-	}
-
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-		return true
-	}
-
-	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return true
-	}
-
-	errMsg := strings.ToLower(err.Error())
-	return strings.Contains(errMsg, "connection reset") ||
-		strings.Contains(errMsg, "broken pipe") ||
-		strings.Contains(errMsg, "connection refused") ||
-		strings.Contains(errMsg, "no route to host") ||
-		strings.Contains(errMsg, "i/o timeout") ||
-		strings.Contains(errMsg, "eof")
-}
-
-func isRetryableStatusCode(statusCode int) bool {
-	return statusCode == http.StatusBadGateway ||
-		statusCode == http.StatusServiceUnavailable ||
-		statusCode == http.StatusGatewayTimeout
-}
-
-func resetRequestBody(req *http.Request) error {
-	if req.Body == nil {
-		return nil
-	}
-	if req.GetBody == nil {
-		return fmt.Errorf("cannot retry request with non-resettable body")
-	}
-
-	body, err := req.GetBody()
-	if err != nil {
-		return err
-	}
-
-	req.Body = body
-	return nil
-}
-
-func waitBeforeRetry(ctx context.Context, baseBackoff time.Duration, attempt int) error {
-	delay := baseBackoff * time.Duration(attempt)
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
-}
-
 func (c *Client) newRequestWithBody(ctx context.Context, method, path string, reqBody interface{}) (*http.Request, error) {
 	fullURL := c.config.BaseURL + path
 
 	var bodyReader io.Reader
-	var jsonBody []byte
 	if reqBody != nil {
-		var err error
-		jsonBody, err = json.Marshal(reqBody)
+		jsonBody, err := json.Marshal(reqBody)
 		if err != nil {
 			c.logger.Error("Failed to marshal request body", zap.String("method", method), zap.String("path", path), zap.Error(err))
 			return nil, err
@@ -254,9 +115,6 @@ func (c *Client) newRequestWithBody(ctx context.Context, method, path string, re
 
 	if reqBody != nil {
 		req.Header.Set("Content-Type", "application/json")
-		req.GetBody = func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewReader(jsonBody)), nil
-		}
 	}
 
 	return req, nil
