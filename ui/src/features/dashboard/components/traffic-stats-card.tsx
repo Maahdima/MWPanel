@@ -3,7 +3,6 @@ import { IconArrowsExchange } from '@tabler/icons-react'
 import { RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { HighlightStatsCard } from '@/features/dashboard/components/highlight-stats-card.tsx'
 import { useResetTotalTrafficMutation } from '@/hooks/dashboard/useResetTotalTrafficMutation.ts'
 
 type TrafficStatsCardProps = {
@@ -33,35 +32,28 @@ export function TrafficStatsCard({ value, isLoading }: TrafficStatsCardProps) {
     setOpen(false)
   }
 
-  const displayValue = value ? `${value} GB` : '-'
-
   return (
     <>
-      <Card>
-        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-          <CardTitle className='text-lg font-medium'>Total Traffic</CardTitle>
-          <IconArrowsExchange />
-        </CardHeader>
-        <CardContent>
-          <div className='flex items-center justify-between gap-2'>
-            {isLoading ? (
-              <Skeleton className='h-6 w-16 rounded-sm' />
-            ) : (
-              <div className='text-2xl font-bold'>{displayValue}</div>
-            )}
-            <Button
-              variant='ghost'
-              size='icon'
-              className='text-muted-foreground hover:text-foreground h-8 w-8 shrink-0'
-              aria-label='Reset total traffic usage'
-              disabled={isLoading || isPending}
-              onClick={() => setOpen(true)}
-            >
-              <RotateCcw className='h-4 w-4' />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <HighlightStatsCard
+        title='Total Traffic'
+        icon={<IconArrowsExchange />}
+        value={value}
+        suffix='GB'
+        isLoading={isLoading}
+        action={
+          <Button
+            variant='outline'
+            size='sm'
+            className='shrink-0 gap-2 border-white/20 text-white hover:bg-white/10 hover:text-white'
+            aria-label='Reset total traffic usage'
+            disabled={isLoading || isPending}
+            onClick={() => setOpen(true)}
+          >
+            <RotateCcw className='size-4' />
+            <span className='hidden sm:inline'>Reset</span>
+          </Button>
+        }
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

@@ -1,5 +1,5 @@
 import { JSX } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type StatsCardProps = {
@@ -11,17 +11,21 @@ type StatsCardProps = {
 
 export function StatsCard({ title, icon, value, isLoading }: StatsCardProps) {
   return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-        <CardTitle className='text-lg font-medium'>{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className='mt-1 h-6 w-6 rounded-sm' />
-        ) : (
-          <div className='text-2xl font-bold'>{value}</div>
-        )}
+    <Card className='border-border/60'>
+      <CardContent className='flex items-center gap-4 p-4 sm:p-5'>
+        <div className='bg-white/10 text-white flex size-10 shrink-0 items-center justify-center rounded-lg [&>svg]:size-5'>
+          {icon}
+        </div>
+        <div className='min-w-0'>
+          <p className='truncate text-lg font-medium text-gray-300'>{title}</p>
+          {isLoading ? (
+            <Skeleton className='mt-1.5 h-7 w-10 rounded-sm' />
+          ) : (
+            <p className='text-2xl font-bold tracking-tight text-white'>
+              {value}
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
