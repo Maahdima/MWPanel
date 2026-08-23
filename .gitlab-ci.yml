@@ -59,6 +59,7 @@ build-go:
         ENTRYPOINT: "api/cmd/main.go"
         BUILD_COMMAND_GENERIC: "CGO_ENABLED=0 go build -x -v -trimpath -ldflags='-v -s -w' -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false"
         BUILD_COMMAND_LINUX: "GOOS=linux CGO_ENABLED=1 go build -x -v -trimpath -ldflags='-v -linkmode=external -s -w -extldflags=--static-pie' -buildmode=pie -tags=osusergo,netgo,static_build -buildvcs=false"
+        BUILD_COMMAND_LINUX_ARM: "GOOS=linux CGO_ENABLED=0 go build -x -v -trimpath -ldflags='-v -s -w' -tags=osusergo,netgo,static_build -buildvcs=false"
     - when: never
   before_script:
     - ARCH=$(uname -m)
@@ -71,8 +72,8 @@ build-go:
     - eval "CC=x86_64-linux-gnu-gcc GOARCH=amd64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.amd64' '${ENTRYPOINT}'"
     # Build for linux arm64
     - eval "CC=aarch64-linux-gnu-gcc GOARCH=arm64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.arm64' '${ENTRYPOINT}'"
-    # Build for linux arm/v7 without CGO: Debian's armhf cross libc has no rcrt1.o, so --static-pie cannot link
-    - eval "GOOS=linux GOARCH=arm GOARM=7 ${BUILD_COMMAND_GENERIC} -o 'build/mwp.linux.arm' '${ENTRYPOINT}'"
+    # linux/arm cannot use -buildmode=pie without CGO, and Debian's armhf cross libc has no rcrt1.o for --static-pie
+    - eval "GOARCH=arm GOARM=7 ${BUILD_COMMAND_LINUX_ARM} -o 'build/mwp.linux.arm' '${ENTRYPOINT}'"
     # Build for windows amd64
     - eval "GOARCH=amd64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o 'build/mwp.windows.amd64.exe' '${ENTRYPOINT}'"
     # Build for windows arm64
