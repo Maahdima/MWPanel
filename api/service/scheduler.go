@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -27,14 +30,20 @@ func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string)
 		return nil, nil
 	}
 
+	startDate, err := toMikrotikDate(expireTime)
+	if err != nil {
+		s.logger.Error("failed to convert expire date for scheduler", zap.Error(err))
+		return nil, err
+	}
+
 	scheduler := mikrotik.Scheduler{
 		Comment:   utils.Ptr(common.SchedulerComment + peerName),
 		Name:      common.SchedulerName + peerName,
-		StartDate: expireTime,
+		StartDate: startDate,
 		StartTime: utils.Ptr(common.SchedulerStartTime),
 		Interval:  utils.Ptr(common.SchedulerInterval),
 		Policy:    utils.Ptr(common.SchedulerPolicy),
-		OnEvent:   utils.Ptr(common.SchedulerEvent + peerID),
+		OnEvent:   utils.Ptr(schedulerOnEvent(peerID)),
 	}
 
 	createdScheduler, err := s.mikrotikAdaptor.CreateScheduler(context.Background(), scheduler)
@@ -46,12 +55,20 @@ func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string)
 	return &createdScheduler.ID, nil
 }
 
-func (s *Scheduler) updateScheduler(schedulerID, expireTime *string) error {
-	scheduler := mikrotik.Scheduler{
-		StartDate: expireTime,
+func (s *Scheduler) updateScheduler(schedulerID *string, peerID string, expireTime *string) error {
+	startDate, err := toMikrotikDate(expireTime)
+	if err != nil {
+		s.logger.Error("failed to convert expire date for scheduler", zap.Error(err))
+		return err
 	}
 
-	_, err := s.mikrotikAdaptor.UpdateScheduler(context.Background(), *schedulerID, scheduler)
+	scheduler := mikrotik.Scheduler{
+		StartDate: startDate,
+		StartTime: utils.Ptr(common.SchedulerStartTime),
+		OnEvent:   utils.Ptr(schedulerOnEvent(peerID)),
+	}
+
+	_, err = s.mikrotikAdaptor.UpdateScheduler(context.Background(), *schedulerID, scheduler)
 	if err != nil {
 		s.logger.Error("failed to update scheduler for wireguard peer", zap.String("schedulerID", *schedulerID), zap.Error(err))
 		return err
@@ -72,4 +89,26 @@ func (s *Scheduler) deleteScheduler(schedulerID *string) error {
 	}
 
 	return nil
+}
+
+func schedulerOnEvent(peerID string) string {
+	return fmt.Sprintf(common.SchedulerEvent, peerID)
+}
+
+func toMikrotikDate(isoDate *string) (*string, error) {
+	if isoDate == nil {
+		return nil, nil
+	}
+
+	raw := strings.TrimSpace(*isoDate)
+	if raw == "" {
+		return nil, fmt.Errorf("expire date is empty")
+	}
+
+	parsed, err := time.Parse("2006-01-02", raw)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expire date %q: %w", raw, err)
+	}
+
+	return utils.Ptr(strings.ToLower(parsed.Format("Jan/02/2006"))), nil
 }

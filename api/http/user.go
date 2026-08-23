@@ -59,6 +59,36 @@ func (u *UserController) GetUserDetails(ctx echo.Context) error {
 	})
 }
 
+func (u *UserController) GetUserTelegram(ctx echo.Context) error {
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		u.logger.Error("Peer uuid is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	status, err := u.peerService.GetPeerTelegramStatus(uuid)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
+			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     "error",
+				Message:    "peer not found",
+			})
+		}
+
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve telegram status: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerTelegramStatusResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          *status,
+	})
+}
+
 func (u *UserController) GetUserConfig(ctx echo.Context) error {
 	uuid := ctx.Param("uuid")
 	if uuid == "" {

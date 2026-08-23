@@ -29,6 +29,8 @@ create, update, share, and monitor WireGuard peers with a user-friendly interfac
 - ⏱️ Automatic peer expiration time (TTL)
 - 😉Traffic Limitations and auto-expiration
 - 📉Bandwidth Limitation for upload and download
+- 📬 Telegram traffic alerts at 80%, 90%, and 100% usage
+- 📜 Peer session history (connect/disconnect) in the admin panel
 - 📤 Share peer configs via secure links and QR codes
 - 🛠️ Mikrotik RouterOS API integration
 - ↕️Multi-Server support (for future)
@@ -121,6 +123,8 @@ services:
     environment:
       ADMIN_USERNAME: mwpadmin
       ADMIN_PASSWORD: mwpadmin
+      # TELEGRAM_BOT_ENABLED: "true"
+      # TELEGRAM_BOT_TOKEN: "123456:ABC-DEF"
     volumes:
       - mwp-data:/var/www/mwp
 ```
@@ -177,6 +181,7 @@ Visit `http://localhost:3000` in your browser.
 4. **Monitor stats** such as last handshake, data usage
 5. **Auto-expire** peers after defined TTL
 6. **Revoke or edit** existing peers
+7. **Telegram bot:** enable `TELEGRAM_BOT_ENABLED` and set the bot token. Users start the bot with their config UUID (from the share dialog). They can download the config, show the QR code, see usage details, and turn traffic alerts on or off.
 
 ---
 
@@ -185,12 +190,16 @@ Visit `http://localhost:3000` in your browser.
 MWP is configured using environment variables. Create a `.env` file in the root project directory (for Docker) or in the
 `api` directory (for manual setup).
 
-| Variable         | Description                                 | Default    | Required |
-|------------------|---------------------------------------------|------------|----------|
-| `SERVER_HOST`    | The ip address to listen on it.             | `0.0.0.0`  | No       |
-| `SERVER_PORT`    | The port for the backend Go API server.     | `3000`     | No       |
-| `ADMIN_USERNAME` | The username for the panel's admin account. | `mwpadmin` | No       |
-| `ADMIN_PASSWORD` | The password for the panel's admin account. | `mwpadmin` | No       |
+| Variable                     | Description                                                                 | Default                     | Required |
+|------------------------------|-----------------------------------------------------------------------------|-----------------------------|----------|
+| `SERVER_HOST`                | The ip address to listen on it.                                             | `0.0.0.0`                   | No       |
+| `SERVER_PORT`                | The port for the backend Go API server.                                     | `3000`                      | No       |
+| `ADMIN_USERNAME`             | The username for the panel's admin account.                                 | `mwpadmin`                  | No       |
+| `ADMIN_PASSWORD`             | The password for the panel's admin account.                                 | `mwpadmin`                  | No       |
+| `TELEGRAM_BOT_ENABLED`       | Enable the Telegram bot (config UUID linking, files, and 80/90/100% alerts). | `false`                   | No       |
+| `TELEGRAM_BOT_TOKEN`         | Bot token from [@BotFather](https://t.me/BotFather).                        |                             | If enabled |
+| `TELEGRAM_BOT_API_BASE_URL`  | Telegram Bot API base URL.                                                  | `https://api.telegram.org`  | No       |
+| `SESSION_JOB_INTERVAL`       | How often to poll WireGuard handshakes for session history, in seconds.     | `30`                        | No       |
 
 ---
 
@@ -205,7 +214,8 @@ MWP is configured using environment variables. Create a `.env` file in the root 
 - [x] Theme customization (light/dark)
 - [x] Docker support
 - [x] Single Binary Build
-- [ ] Telegram Bot support for notifications
+- [x] Telegram Bot support for notifications
+- [x] Peer session history
 - [ ] Multi-server support
 
 ---

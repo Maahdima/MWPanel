@@ -10,6 +10,8 @@ import {
   PeerResponseSchema,
   PeerShare,
   PeerShareResponseSchema,
+  PeerSessions,
+  PeerSessionsResponseSchema,
   PeersResponseSchema,
   UpdatePeerRequest,
   UpdatePeerShareExpireRequest,
@@ -86,6 +88,12 @@ export const fetchPeerCredentials = async (): Promise<PeerCredentials> => {
 export const fetchPeerShareStatus = async (id: number): Promise<PeerShare> => {
   const { data } = await axiosInstance.get(`/peer/${id}/share`)
   const parsed = PeerShareResponseSchema.parse(data)
+  return parsed.data
+}
+
+export const fetchPeerSessions = async (id: number): Promise<PeerSessions> => {
+  const { data } = await axiosInstance.get(`/peer/${id}/sessions`)
+  const parsed = PeerSessionsResponseSchema.parse(data)
   return parsed.data
 }
 

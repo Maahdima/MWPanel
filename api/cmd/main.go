@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -8,8 +9,8 @@ import (
 	"github.com/go-co-op/gocron/v2"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
-	"github.com/maahdima/mwp/api/cmd/http-server"
-	"github.com/maahdima/mwp/api/cmd/jobs"
+	httpserver "github.com/maahdima/mwp/api/cmd/http-server"
+	traffic "github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice"
@@ -51,7 +52,13 @@ func main() {
 	mwpClients.InitClient()
 
 	mikrotikAdaptor := mikrotik.NewAdaptor(mwpClients)
-	telegramNotifier := service.NewTelegramNotifier(config.GetTelegramConfig())
+	telegramCfg := config.GetTelegramConfig()
+	telegramClient := service.NewTelegramClient(telegramCfg)
+	telegramNotifier := service.NewTelegramNotifier(db, telegramCfg, telegramClient)
+	configGenerator := service.NewConfigGenerator(db)
+	qrCodeGenerator := service.NewQRCodeGenerator(db)
+	telegramBot := service.NewTelegramBot(db, telegramCfg, telegramClient, configGenerator, qrCodeGenerator, mikrotikAdaptor)
+	telegramBot.Start(context.Background())
 	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor, telegramNotifier)
 
 	// Start the traffic calculation job
@@ -61,6 +68,10 @@ func main() {
 	}
 
 	trafficJobInterval, _ := strconv.Atoi(appCfg.TrafficJobInterval)
+	sessionJobInterval, _ := strconv.Atoi(appCfg.SessionJobInterval)
+	if sessionJobInterval <= 0 {
+		sessionJobInterval = 30
+	}
 
 	_, err = scheduler.NewJob(
 		gocron.DurationJob(
@@ -68,6 +79,26 @@ func main() {
 		gocron.NewTask(trafficCalculator.CalculatePeerTraffic))
 	if err != nil {
 		logger.Panic("Failed to create peer traffic calculation job", zap.Error(err))
+	}
+
+	_, err = scheduler.NewJob(
+		gocron.DurationJob(
+			time.Duration(sessionJobInterval)*time.Second),
+		gocron.NewTask(trafficCalculator.TrackPeerSessions),
+		gocron.WithStartAt(gocron.WithStartImmediately()),
+	)
+	if err != nil {
+		logger.Panic("Failed to create peer session tracking job", zap.Error(err))
+	}
+
+	_, err = scheduler.NewJob(
+		gocron.DurationJob(
+			time.Duration(trafficJobInterval)*time.Second),
+		gocron.NewTask(trafficCalculator.ExpireOverduePeers),
+		gocron.WithStartAt(gocron.WithStartImmediately()),
+	)
+	if err != nil {
+		logger.Panic("Failed to create peer expiration job", zap.Error(err))
 	}
 
 	_, err = scheduler.NewJob(
@@ -82,7 +113,7 @@ func main() {
 	scheduler.Start()
 
 	// Start the HTTP server
-	if err := httpserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator); err != nil {
+	if err := httpserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator, telegramBot); err != nil {
 		logger.Panic("Failed to start HTTP server", zap.Error(err))
 	}
 }

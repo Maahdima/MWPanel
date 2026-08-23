@@ -188,6 +188,10 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range dbMap {
 		if _, found := mikrotikMap[id]; !found {
+			if err := deletePeerSessions(s.db, peer.ID); err != nil {
+				s.logger.Error("failed to delete peer sessions", zap.String("peerId", id), zap.Error(err))
+				return err
+			}
 			if err := s.db.Unscoped().Delete(&peer).Error; err != nil {
 				s.logger.Error("failed to delete peer", zap.String("peerId", id), zap.Error(err))
 				return err

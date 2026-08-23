@@ -33,12 +33,12 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
   const statusColor = stats?.is_online ? 'text-green-500' : 'text-red-500'
 
   return (
-    <Card className='gap-3'>
+    <Card className='flex h-full flex-col gap-3'>
       <CardHeader className='flex flex-row items-center justify-between space-y-0'>
         <CardTitle>Statistics</CardTitle>
       </CardHeader>
 
-      <CardContent className='flex-1'>
+      <CardContent className='flex flex-1 flex-col justify-center'>
         {isLoading ? (
           <div className='space-y-3'>
             <Skeleton className='h-4 w-1/2' />

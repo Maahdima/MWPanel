@@ -6,6 +6,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/gommon/log"
@@ -26,6 +27,67 @@ func ParseStringToInt(s string) int64 {
 		return 0
 	}
 	return val
+}
+
+func HandshakeStatus(disabled string, lastHandshake *string, threshold time.Duration) (age time.Duration, online bool, err error) {
+	if lastHandshake == nil || strings.TrimSpace(*lastHandshake) == "" {
+		return 0, false, nil
+	}
+
+	age, err = ParseCustomDuration(*lastHandshake)
+	if err != nil {
+		return 0, false, err
+	}
+
+	if strings.EqualFold(strings.TrimSpace(disabled), "false") && age < threshold {
+		return age, true, nil
+	}
+
+	return age, false, nil
+}
+
+func FormatDataSize(b int64) string {
+	if b < 0 {
+		b = 0
+	}
+
+	const (
+		kb = 1024
+		mb = 1024 * kb
+		gb = 1024 * mb
+	)
+
+	switch {
+	case b >= gb:
+		return fmt.Sprintf("%.2f GB", float64(b)/float64(gb))
+	case b >= mb:
+		return fmt.Sprintf("%.1f MB", float64(b)/float64(mb))
+	case b >= kb:
+		return fmt.Sprintf("%.1f KB", float64(b)/float64(kb))
+	default:
+		return fmt.Sprintf("%d B", b)
+	}
+}
+
+func FormatPrettyDuration(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	d = d.Truncate(time.Second)
+
+	days := d / (24 * time.Hour)
+	d -= days * 24 * time.Hour
+	hours := d / time.Hour
+	d -= hours * time.Hour
+	minutes := d / time.Minute
+	d -= minutes * time.Minute
+	seconds := d / time.Second
+
+	hms := fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+	if days > 0 {
+		return fmt.Sprintf("%dd %s", days, hms)
+	}
+	return hms
 }
 
 func ParseCustomDuration(s string) (time.Duration, error) {
@@ -68,19 +130,38 @@ func GBToBytes(s string) int64 {
 	return int64(gb * 1024 * 1024 * 1024)
 }
 
+func IsPeerExpired(expireTime *string, now time.Time) bool {
+	if expireTime == nil {
+		return false
+	}
+
+	raw := strings.TrimSpace(*expireTime)
+	if raw == "" {
+		return false
+	}
+
+	expireDay, err := time.ParseInLocation("2006-01-02", raw, now.Location())
+	if err != nil {
+		return false
+	}
+
+	year, month, day := now.Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location())
+	return !today.Before(expireDay)
+}
+
 func IsPeerSharable(isShared bool, shareExpireTime *string) bool {
 	if !isShared {
 		log.Errorf("peer is not shared")
 		return false
 	}
 
-	if shareExpireTime != nil {
-		expireTime, err := time.Parse("2006-01-02", *shareExpireTime)
-		if err != nil {
+	if shareExpireTime != nil && strings.TrimSpace(*shareExpireTime) != "" {
+		if _, err := time.Parse("2006-01-02", strings.TrimSpace(*shareExpireTime)); err != nil {
 			log.Errorf("failed to parse share expire time")
 			return false
 		}
-		if time.Now().After(expireTime) {
+		if IsPeerExpired(shareExpireTime, time.Now()) {
 			log.Errorf("share link has expired")
 			return false
 		}

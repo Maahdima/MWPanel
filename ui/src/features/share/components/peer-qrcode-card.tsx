@@ -24,7 +24,7 @@ export default function PeerQRCodeCard({ isLoading, qrCode }: QRCodeCardProps) {
 
       <CardContent className='flex flex-1 items-center justify-center'>
         {isLoading ? (
-          <Skeleton className='h-[300px] w-[300px] rounded-md' />
+          <Skeleton className='h-[280px] w-[280px] rounded-md' />
         ) : (
           <div
             onClick={handleToggleBlur}
@@ -34,9 +34,9 @@ export default function PeerQRCodeCard({ isLoading, qrCode }: QRCodeCardProps) {
             <img
               src={qrCode}
               alt='QR Code'
-              width={300}
-              height={300}
-              className={`rounded-md transition-all duration-300 ${
+              width={280}
+              height={280}
+              className={`h-[280px] w-[280px] rounded-md transition-all duration-300 ${
                 isBlurred ? 'blur-md' : 'blur-0'
               }`}
             />

@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react'
 import { CopyIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface ConfigCardProps {
@@ -51,13 +57,13 @@ export default function PeerConfigCard({
   }
 
   return (
-    <Card className='gap-3'>
+    <Card className='flex h-full flex-col gap-3'>
       <CardHeader>
         <CardTitle>Configuration</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className='flex flex-1 flex-col'>
         {isLoading ? (
-          <div className='space-y-2'>
+          <div className='flex flex-1 flex-col justify-center space-y-2'>
             <Skeleton className='h-4 w-full' />
             <Skeleton className='h-4 w-5/6' />
             <Skeleton className='h-4 w-4/6' />
@@ -65,9 +71,8 @@ export default function PeerConfigCard({
             <Skeleton className='mt-4 h-10 w-32' />
           </div>
         ) : (
-          <>
             <div
-              className='bg-muted relative max-h-[60vh] min-h-[10vh] cursor-pointer overflow-auto rounded-md px-4 py-3'
+              className='bg-muted relative min-h-[12rem] flex-1 cursor-pointer overflow-auto rounded-md px-4 py-3'
               onClick={toggleBlur}
               title={isBlurred ? 'Click to reveal' : 'Click to hide'}
             >
@@ -98,13 +103,15 @@ export default function PeerConfigCard({
                 Copy
               </Button>
             </div>
-
-            <Button className='mt-4' onClick={handleDownload}>
-              Download Config
-            </Button>
-          </>
         )}
       </CardContent>
+      {!isLoading && (
+        <CardFooter className='mt-auto'>
+          <Button className='w-full' onClick={handleDownload}>
+            Download Config
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }

@@ -58,7 +58,12 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	err := db.Migrator().AutoMigrate(
+	migrator := db.Migrator()
+	if migrator.HasTable(&model.TelegramChat{}) && !migrator.HasColumn(&model.TelegramChat{}, "peer_uuid") {
+		_ = migrator.DropTable(&model.TelegramChat{})
+	}
+
+	err := migrator.AutoMigrate(
 		&model.Interface{},
 		&model.IPPool{},
 		&model.Peer{},
@@ -66,6 +71,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.TotalTrafficUsage{},
 		&model.Server{},
 		&model.Admin{},
+		&model.TelegramChat{},
+		&model.PeerSession{},
 	)
 	if err != nil {
 		log.Panic("failed to auto migrate db: ", err)

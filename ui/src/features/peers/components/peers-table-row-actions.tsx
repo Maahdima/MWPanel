@@ -4,6 +4,7 @@ import {
   IconDownload,
   IconEdit,
   IconFileCode,
+  IconHistory,
   IconQrcode,
   IconShare,
   IconTrash,
@@ -39,6 +40,17 @@ export function PeersTableRowActions({ row }: Props) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(row.original)
+              setOpen('sessions')
+            }}
+          >
+            Session History
+            <DropdownMenuShortcut>
+              <IconHistory size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
               setCurrentRow(row.original)

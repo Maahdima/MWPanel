@@ -22,6 +22,7 @@ type AppConfig struct {
 	UIAssetsFs         fs.FS
 	PeerFilesDir       string
 	TrafficJobInterval string
+	SessionJobInterval string
 }
 
 type DBConfig struct {
@@ -77,6 +78,7 @@ func GetAppConfig() AppConfig {
 		PeerFilesDir:       getEnv("PEER_FILES_DIR", filepath.Join(dataDir, "peer-files")),
 		DataDirPath:        dataDir,
 		TrafficJobInterval: getEnv("TRAFFIC_JOB_INTERVAL", "300"),
+		SessionJobInterval: getEnv("SESSION_JOB_INTERVAL", "30"),
 	}
 }
 

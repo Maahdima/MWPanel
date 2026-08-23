@@ -9,9 +9,16 @@ import { useUpdatePeerStatusMutation } from '@/hooks/peers/useUpdatePeerStatusMu
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button.tsx'
 import { Switch } from '@/components/ui/switch.tsx'
-import { Tooltip, TooltipContent, TooltipTrigger, } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
-import { OfflineBadge, OnlineBadge, } from '@/features/peers/components/activity-badge.tsx'
+import {
+  OfflineBadge,
+  OnlineBadge,
+} from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
@@ -204,6 +211,28 @@ export const peersColumns: ColumnDef<Peer>[] = [
             </div>
           }
         />
+      )
+    },
+    meta: {
+      className: cn('border-l border-r'),
+    },
+  },
+  {
+    accessorKey: 'telegram_username',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Telegram' />
+    ),
+    cell: ({ row }) => {
+      const { telegram_username, telegram_linked } = row.original
+      if (!telegram_linked) {
+        return <span className='text-muted-foreground'>Not linked</span>
+      }
+
+      return (
+        <div className='flex w-fit items-center gap-2 text-nowrap'>
+          {telegram_username && <span>{telegram_username}</span>}
+          <ColoredBadge color='green' text='linked' />
+        </div>
       )
     },
     meta: {

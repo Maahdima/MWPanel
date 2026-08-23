@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/maahdima/mwp/api/cmd/jobs"
+	traffic "github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/http/middleware"
 	"github.com/maahdima/mwp/api/service"
@@ -26,6 +26,7 @@ func SetupMwpAPI(
 	deviceDataService *service.DeviceData,
 	trafficCalculator *traffic.Calculator,
 	syncService *service.SyncService,
+	telegramBot *service.TelegramBot,
 ) {
 	router := app.Group("/api")
 
@@ -50,6 +51,7 @@ func SetupMwpAPI(
 	deviceInfoController := NewDeviceDataController(deviceDataService, trafficCalculator)
 	syncController := NewSyncController(syncService)
 	userController := NewUserController(peerService, configGeneratorService, qrCodeGeneratorService)
+	telegramController := NewTelegramController(telegramBot)
 
 	setupAuthenticationRoutes(router, jwtConfig, authController)
 	setupServerRoutes(router, jwtConfig, serverController)
@@ -59,6 +61,7 @@ func SetupMwpAPI(
 	setupDeviceInfoRoutes(router, mwpClients, jwtConfig, deviceInfoController)
 	setupSyncRoutes(router, mwpClients, jwtConfig, syncController)
 	setupUserRoutes(router, userController)
+	setupTelegramRoutes(router, telegramController)
 }
 
 func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, authController *AuthController) {
@@ -116,6 +119,7 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerGroup.PATCH("/:id/share/expire", wgPeerController.UpdatePeerShareExpire)
 	peerGroup.GET("/:id/config", wgPeerController.GetPeerConfig)
 	peerGroup.GET("/:id/qrcode", wgPeerController.GetPeerQRCode)
+	peerGroup.GET("/:id/sessions", wgPeerController.GetPeerSessions)
 
 	peerSecured := peerGroup.Group("")
 	peerSecured.Use(middleware.ClientConnectionMiddleware(mwpClients))
@@ -163,4 +167,10 @@ func setupUserRoutes(router *echo.Group, userController *UserController) {
 	userGroup.GET("/:uuid/config", userController.GetUserConfig)
 	userGroup.GET("/:uuid/qrcode", userController.GetUserQRCode)
 	userGroup.GET("/:uuid/details", userController.GetUserDetails)
+	userGroup.GET("/:uuid/telegram", userController.GetUserTelegram)
+}
+
+func setupTelegramRoutes(router *echo.Group, telegramController *TelegramController) {
+	telegramGroup := router.Group("/telegram")
+	telegramGroup.GET("/status", telegramController.GetStatus)
 }

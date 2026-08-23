@@ -80,6 +80,22 @@ func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err err
 	return qrcodePath, nil
 }
 
+func (q *QRCodeGenerator) GetQRCodeByUUID(uuid string) (qrcodePath string, err error) {
+	var peer model.Peer
+
+	if err = q.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			q.logger.Error("peer not found in database", zap.String("uuid", uuid))
+			return
+		}
+		q.logger.Error("failed to get peer from database", zap.String("uuid", uuid), zap.Error(err))
+		return
+	}
+
+	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
+	return qrcodePath, nil
+}
+
 func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 	qrc, err := qrcode.New(config)
 	if err != nil {

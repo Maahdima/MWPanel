@@ -53,6 +53,10 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
+	if peer.Disabled && utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+		return fmt.Errorf("cannot enable an expired peer; extend the expire date first")
+	}
+
 	disabled := strconv.FormatBool(!peer.Disabled)
 
 	wgPeer := mikrotik.WireGuardPeer{
@@ -298,6 +302,7 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
+		UUID:          peer.UUID,
 		TrafficLimit:  trafficLimit,
 		ExpireTime:    peer.ExpireTime,
 		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
@@ -306,6 +311,47 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 		UsagePercent:  usagePercent,
 		IsOnline:      isOnline,
 	}, nil
+}
+
+func (w *WgPeer) GetPeerTelegramStatus(uuid string) (*schema.PeerTelegramStatusResponse, error) {
+	var peer model.Peer
+	if err := w.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		w.logger.Error("failed to find peer in database", zap.Error(err))
+		return nil, err
+	}
+
+	if !utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime) {
+		return nil, common.ErrPeerNotShared
+	}
+
+	status := schema.PeerTelegramStatusResponse{}
+	var chats []model.TelegramChat
+	if err := w.db.Where("peer_uuid = ?", peer.UUID).Find(&chats).Error; err != nil {
+		w.logger.Error("failed to lookup telegram chat links", zap.Error(err))
+		return nil, err
+	}
+	if len(chats) == 0 {
+		return &status, nil
+	}
+
+	chat := chats[0]
+	for _, item := range chats {
+		if item.Username != nil && *item.Username != "" {
+			chat = item
+			break
+		}
+	}
+
+	status.Linked = true
+	status.NotifyEnabled = chat.NotifyEnabled
+	if chat.Username != nil && *chat.Username != "" {
+		username := "@" + *chat.Username
+		status.Username = &username
+	}
+	return &status, nil
 }
 
 func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
@@ -340,6 +386,8 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 		wgPeer.IsOnline = isOnline
 		wgPeers = append(wgPeers, wgPeer)
 	}
+
+	w.attachTelegramLinkStatus(wgPeers)
 
 	return &wgPeers, nil
 }
@@ -378,7 +426,11 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	resp := w.transformPeerToResponse(dbPeer)
+	if err := w.syncExpiredPeer(&dbPeer); err != nil {
+		return nil, err
+	}
+
+	resp := w.peerResponse(dbPeer)
 	return &resp, nil
 }
 
@@ -408,7 +460,15 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 		return nil, err
 	}
 
-	transformed := w.transformPeerToResponse(peer)
+	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	if err := w.syncExpiredPeer(&peer); err != nil {
+		return nil, err
+	}
+
+	transformed := w.peerResponse(peer)
 	return &transformed, nil
 }
 
@@ -442,6 +502,11 @@ func (w *WgPeer) DeletePeer(id uint) error {
 	if err != nil {
 		w.logger.Error("failed to remove peer config", zap.Error(err))
 		return err
+	}
+
+	if err := deletePeerSessions(w.db, peer.ID); err != nil {
+		w.logger.Error("failed to delete peer sessions", zap.Error(err))
+		return fmt.Errorf("failed to delete peer sessions: %w", err)
 	}
 
 	if err := w.db.Unscoped().Delete(&peer).Error; err != nil {
@@ -591,8 +656,6 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		trafficLimit = &trafficBytes
 	}
 
-	telegramUsername := normalizeTelegramUsername(req.TelegramUsername)
-
 	dbPeer := model.Peer{
 		UUID:                uuid.New().String(),
 		PeerID:              mtPeer.ID,
@@ -610,7 +673,6 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		QueueID:             queueId,
 		ExpireTime:          req.ExpireTime,
 		TrafficLimit:        trafficLimit,
-		TelegramUsername:    telegramUsername,
 		DownloadBandwidth:   req.DownloadBandwidth,
 		UploadBandwidth:     req.UploadBandwidth,
 	}
@@ -676,7 +738,7 @@ func (w *WgPeer) handleScheduler(peer *model.Peer, req *schema.UpdatePeerRequest
 	}
 
 	if req.ExpireTime != nil && peer.SchedulerID != nil {
-		err := w.scheduler.updateScheduler(peer.SchedulerID, req.ExpireTime)
+		err := w.scheduler.updateScheduler(peer.SchedulerID, peer.PeerID, req.ExpireTime)
 		if err != nil {
 			w.logger.Error("failed to update scheduler for wireguard peer", zap.Error(err))
 			return peer.SchedulerID, err
@@ -734,10 +796,7 @@ func (w *WgPeer) preparePeerUpdate(peer *model.Peer, req *schema.UpdatePeerReque
 		updateData["traffic_limit"] = nil
 	}
 
-	telegramUsername := normalizeTelegramUsername(req.TelegramUsername)
-	updateData["telegram_username"] = telegramUsername
-
-	if !int64PtrEqual(peer.TrafficLimit, trafficLimit) || !stringPtrEqual(peer.TelegramUsername, telegramUsername) {
+	if !int64PtrEqual(peer.TrafficLimit, trafficLimit) {
 		updateData["first_notify"] = false
 		updateData["second_notify"] = false
 		updateData["third_notify"] = false
@@ -773,7 +832,8 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		UUID:              peer.UUID,
 		Disabled:          peer.Disabled,
 		Comment:           peer.Comment,
-		TelegramUsername:  peer.TelegramUsername,
+		TelegramUsername:  nil,
+		TelegramLinked:    false,
 		Name:              peer.Name,
 		Interface:         peer.Interface,
 		AllowedAddress:    peer.AllowedAddress,
@@ -787,6 +847,50 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 	}
 }
 
+func (w *WgPeer) peerResponse(peer model.Peer) schema.PeerResponse {
+	peers := []schema.PeerResponse{w.transformPeerToResponse(peer)}
+	w.attachTelegramLinkStatus(peers)
+	return peers[0]
+}
+
+func (w *WgPeer) attachTelegramLinkStatus(peers []schema.PeerResponse) {
+	uuids := make([]string, 0, len(peers))
+	for _, peer := range peers {
+		if peer.UUID != "" {
+			uuids = append(uuids, peer.UUID)
+		}
+	}
+	if len(uuids) == 0 {
+		return
+	}
+
+	var chats []model.TelegramChat
+	if err := w.db.Where("peer_uuid IN ?", uuids).Find(&chats).Error; err != nil {
+		w.logger.Error("failed to lookup telegram chat links", zap.Error(err))
+		return
+	}
+
+	linked := make(map[string]model.TelegramChat, len(chats))
+	for _, chat := range chats {
+		existing, ok := linked[chat.PeerUUID]
+		if !ok || (existing.Username == nil && chat.Username != nil) {
+			linked[chat.PeerUUID] = chat
+		}
+	}
+
+	for i := range peers {
+		chat, ok := linked[peers[i].UUID]
+		if !ok {
+			continue
+		}
+		peers[i].TelegramLinked = true
+		if chat.Username != nil && *chat.Username != "" {
+			username := "@" + *chat.Username
+			peers[i].TelegramUsername = &username
+		}
+	}
+}
+
 func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 	var peerStatus []schema.PeerStatus
 
@@ -796,11 +900,8 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 		peerStatus = append(peerStatus, schema.ActivePeer)
 	}
 
-	if peer.ExpireTime != nil {
-		expireTime, err := time.Parse("2006-01-02", *peer.ExpireTime)
-		if err == nil && time.Now().After(expireTime) {
-			peerStatus = append(peerStatus, schema.ExpiredPeer)
-		}
+	if utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+		peerStatus = append(peerStatus, schema.ExpiredPeer)
 	}
 
 	if peer.TrafficLimit != nil {
@@ -813,20 +914,41 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 	return peerStatus
 }
 
-func (w *WgPeer) handshakeData(peer *mikrotik.WireGuardPeer) (duration time.Duration, isOnline bool, err error) {
-	if peer.LastHandshake != nil {
-		duration, err = utils.ParseCustomDuration(*peer.LastHandshake)
-		if err != nil {
-			w.logger.Error("failed to parse last handshake duration", zap.Error(err))
-			return
-		}
+func (w *WgPeer) syncExpiredPeer(peer *model.Peer) error {
+	if peer.Disabled || !utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+		return nil
+	}
 
-		if peer.Disabled == "false" && duration < 150*time.Second {
-			isOnline = true
-			return
+	disabled := strconv.FormatBool(true)
+	if _, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
+		Disabled: disabled,
+	}); err != nil {
+		w.logger.Error("failed to disable expired wireguard peer", zap.Error(err))
+		return fmt.Errorf("failed to disable expired peer: %w", err)
+	}
+
+	if peer.QueueID != nil {
+		if _, err := w.mikrotikAdaptor.UpdateSimpleQueue(context.Background(), *peer.QueueID, mikrotik.Queue{
+			Disabled: disabled,
+		}); err != nil {
+			w.logger.Error("failed to disable queue for expired peer", zap.Error(err))
 		}
 	}
 
+	if err := w.db.Model(peer).Update("disabled", true).Error; err != nil {
+		w.logger.Error("failed to mark expired peer as disabled", zap.Error(err))
+		return fmt.Errorf("failed to mark expired peer as disabled: %w", err)
+	}
+
+	peer.Disabled = true
+	return nil
+}
+
+func (w *WgPeer) handshakeData(peer *mikrotik.WireGuardPeer) (duration time.Duration, isOnline bool, err error) {
+	duration, isOnline, err = utils.HandshakeStatus(peer.Disabled, peer.LastHandshake, common.PeerOnlineHandshakeTimeout)
+	if err != nil {
+		w.logger.Error("failed to parse last handshake duration", zap.Error(err))
+	}
 	return
 }
 
@@ -838,27 +960,6 @@ func (w *WgPeer) bandwidthsEqual(a, b *string) bool {
 		return *a == *b
 	}
 	return false
-}
-
-func normalizeTelegramUsername(username *string) *string {
-	if username == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*username)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
-}
-
-func stringPtrEqual(a, b *string) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
 }
 
 func int64PtrEqual(a, b *int64) bool {

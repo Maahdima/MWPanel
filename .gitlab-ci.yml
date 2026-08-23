@@ -71,6 +71,8 @@ build-go:
     - eval "CC=x86_64-linux-gnu-gcc GOARCH=amd64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.amd64' '${ENTRYPOINT}'"
     # Build for linux arm64
     - eval "CC=aarch64-linux-gnu-gcc GOARCH=arm64 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.arm64' '${ENTRYPOINT}'"
+    # Build for linux arm32
+    - eval "CC=arm-linux-gnueabihf-gcc GOARCH=arm GOARM=7 ${BUILD_COMMAND_LINUX} -o 'build/mwp.linux.arm32' '${ENTRYPOINT}'"
     # Build for windows amd64
     - eval "GOARCH=amd64 GOOS=windows ${BUILD_COMMAND_GENERIC} -o 'build/mwp.windows.amd64.exe' '${ENTRYPOINT}'"
     # Build for windows arm64
@@ -132,6 +134,14 @@ build-docker-arm64:
   tags:
     - saas-linux-small-arm64
 
+build-docker-arm32:
+  extends: .build-docker-base
+  variables:
+    PLATFORM: arm32
+    IMAGE_PLATFORM: linux/arm/v7
+  tags:
+    - saas-linux-small-arm32
+
 publish-docker:
   stage: publish-docker
   image: docker:cli
@@ -140,6 +150,7 @@ publish-docker:
   dependencies:
     - build-docker-amd64
     - build-docker-arm64
+    - build-docker-arm32
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
     - when: never
@@ -174,9 +185,9 @@ publish-github-release:
     - |
       gh release view "${CI_COMMIT_TAG}" --repo "${GITHUB_REPO}" >/dev/null 2>&1 \
         || gh release create "${CI_COMMIT_TAG}" \
-             --repo "${GITHUB_REPO}" \
-             --title "${CI_COMMIT_TAG}" \
-             --generate-notes
+            --repo "${GITHUB_REPO}" \
+            --title "${CI_COMMIT_TAG}" \
+            --generate-notes
     - gh release upload "${CI_COMMIT_TAG}" build/* --repo "${GITHUB_REPO}" --clobber
   variables:
     GH_TOKEN: ${GHCR_TOKEN}

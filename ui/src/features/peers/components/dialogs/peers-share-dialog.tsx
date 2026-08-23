@@ -54,9 +54,9 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
     }
   }, [origin, shareData])
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(shareLink)
-    toast.success('Share link copied to clipboard', { duration: 5000 })
+  const handleCopy = (value: string, message: string) => {
+    navigator.clipboard.writeText(value)
+    toast.success(message, { duration: 5000 })
   }
 
   const handleExpireDateChange = async (value: string | null) => {
@@ -120,7 +120,9 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
                     <Button
                       variant='outline'
                       size='icon'
-                      onClick={handleCopy}
+                      onClick={() =>
+                        handleCopy(shareLink, 'Share link copied to clipboard')
+                      }
                       disabled={isMutating}
                     >
                       <ClipboardCopyIcon className='h-4 w-4' />

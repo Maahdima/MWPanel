@@ -31,12 +31,6 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
         placeholder='Peer Name'
         control={control}
       />
-      <SimpleField
-        name='telegram_username'
-        label='Telegram Username'
-        placeholder='e.g., @username (optional)'
-        control={control}
-      />
       <div className='md:col-span-2'>
         <SimpleField
           name='comment'

@@ -1,5 +1,9 @@
 package common
 
+import "time"
+
+const PeerOnlineHandshakeTimeout = 150 * time.Second
+
 var (
 	DeviceInfoPath     = "/system/resource"
 	DeviceIdentityPath = "/system/identity"
@@ -19,10 +23,10 @@ var (
 var (
 	SchedulerComment   = "Expire WireGuard Peer: "
 	SchedulerName      = "Schedule: "
-	SchedulerStartTime = "12:00:00"
+	SchedulerStartTime = "00:00:00"
 	SchedulerInterval  = "00:00:00"
 	SchedulerPolicy    = "read,write"
-	SchedulerEvent     = "/interface/wireguard/peers/disable"
+	SchedulerEvent     = `/interface/wireguard/peers/set [find where .id="%s"] disabled=yes`
 )
 
 var (

@@ -78,6 +78,22 @@ func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, err err
 	return configPath, nil
 }
 
+func (c *ConfigGenerator) GetConfigByUUID(uuid string) (configPath string, err error) {
+	var peer model.Peer
+
+	if err = c.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.logger.Error("peer not found in database", zap.String("uuid", uuid))
+			return
+		}
+		c.logger.Error("failed to get peer from database", zap.String("uuid", uuid), zap.Error(err))
+		return
+	}
+
+	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
+	return configPath, nil
+}
+
 func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {
 	filePath := fmt.Sprintf("%s/%s.conf", peerConfigsPath, uuid)
 

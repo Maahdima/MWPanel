@@ -292,6 +292,43 @@ func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 	return ctx.File(qrCode)
 }
 
+func (c *WgPeerController) GetPeerSessions(ctx echo.Context) error {
+	id := ctx.Param("id")
+	if id == "" {
+		c.logger.Error("Peer ID is required")
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	peerId, err := strconv.Atoi(id)
+	if err != nil {
+		c.logger.Error("Invalid peer ID", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+
+	sessions, err := c.peerService.GetPeerSessions(uint(peerId))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     "error",
+				Message:    "peer not found",
+			})
+		}
+
+		c.logger.Error("failed to get peer sessions", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    "failed to retrieve peer sessions: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerSessionsResponse]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          *sessions,
+	})
+}
+
 func (c *WgPeerController) GetPeerShareStatus(ctx echo.Context) error {
 	id := ctx.Param("id")
 	if id == "" {

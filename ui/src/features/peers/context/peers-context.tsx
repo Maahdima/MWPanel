@@ -12,6 +12,7 @@ type PeersDialogType =
   | 'show_config'
   | 'download_config'
   | 'sync'
+  | 'sessions'
 
 interface PeersContextType {
   open: PeersDialogType | null

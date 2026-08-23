@@ -3,6 +3,7 @@ import { PeersConfigDialog } from '@/features/peers/components/dialogs/peers-con
 import { PeersQRCodeDialog } from '@/features/peers/components/dialogs/peers-qrcode-dialog.tsx'
 import { PeersSyncDialog } from '@/features/peers/components/dialogs/peers-sync-dialog.tsx'
 import { PeersShareDialog } from '@/features/peers/components/dialogs/peers-share-dialog.tsx'
+import { PeersSessionsDialog } from '@/features/peers/components/dialogs/peers-sessions-dialog.tsx'
 import { usePeers } from '@/features/peers/context/peers-context.tsx'
 import { ActionDialog } from '@/features/shared-components/table/dialogs/action-dialog.tsx'
 import { DeleteEntityDialog } from '@/features/shared-components/table/dialogs/delete-entity-dialog.tsx'
@@ -50,6 +51,13 @@ export function PeersDialogs() {
             key={`peer-share-${currentRow.id}`}
             open={open === 'share'}
             onOpenChange={handleClose('share')}
+            currentRow={currentRow}
+          />
+
+          <PeersSessionsDialog
+            key={`peer-sessions-${currentRow.id}`}
+            open={open === 'sessions'}
+            onOpenChange={handleClose('sessions')}
             currentRow={currentRow}
           />
 

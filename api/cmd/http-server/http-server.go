@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
-	"github.com/maahdima/mwp/api/cmd/jobs"
+	traffic "github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/http"
@@ -19,7 +19,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator) error {
+func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator, telegramBot *service.TelegramBot) error {
 	appCfg := config.GetAppConfig()
 
 	authenticationService := service.NewAuthentication(db)
@@ -55,6 +55,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 		deviceDataService,
 		trafficCalculator,
 		syncService,
+		telegramBot,
 	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {

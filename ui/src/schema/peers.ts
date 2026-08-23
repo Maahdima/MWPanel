@@ -14,6 +14,7 @@ export const PeerSchema = z.object({
   disabled: z.boolean(),
   comment: z.string().nullable(),
   telegram_username: z.string().nullable(),
+  telegram_linked: z.boolean().default(false),
   name: z.string(),
   interface: z.string(),
   allowed_address: z.string(),
@@ -46,6 +47,7 @@ export const PeerShareSchema = z.object({
 
 export const PeerStatsSchema = z.object({
   name: z.string(),
+  uuid: z.string(),
   expire_time: z.string().nullable(),
   traffic_limit: z.string().nullable(),
   download_usage: z.string(),
@@ -63,8 +65,38 @@ export const PeerAllowedAddressResponseSchema = createApiResponseSchema(
 export const PeerCredentialsResponseSchema = createApiResponseSchema(
   PeerCredentialsSchema
 )
+export const PeerSessionStatusEnum = z.enum(['ongoing', 'ended'])
+
+export const PeerSessionSchema = z.object({
+  id: z.number(),
+  status: PeerSessionStatusEnum,
+  connected_at: z.string(),
+  disconnected_at: z.string().nullable(),
+  duration: z.number(),
+  duration_label: z.string(),
+  endpoint: z.string().nullable(),
+  download_usage: z.string(),
+  upload_usage: z.string(),
+  total_usage: z.string(),
+})
+
+export const PeerSessionsSchema = z.object({
+  peer_id: z.number(),
+  peer_name: z.string(),
+  total_sessions: z.number(),
+  ongoing_sessions: z.number(),
+  total_duration: z.number(),
+  total_duration_label: z.string(),
+  total_download_usage: z.string(),
+  total_upload_usage: z.string(),
+  total_usage: z.string(),
+  sessions: z.array(PeerSessionSchema),
+})
+
 export const PeerShareResponseSchema = createApiResponseSchema(PeerShareSchema)
 export const PeerStatsResponseSchema = createApiResponseSchema(PeerStatsSchema)
+export const PeerSessionsResponseSchema =
+  createApiResponseSchema(PeerSessionsSchema)
 
 export const FetchPeerAllowedAddressSchema = z.object({
   interface_id: z.number().int().positive(),
@@ -72,7 +104,6 @@ export const FetchPeerAllowedAddressSchema = z.object({
 
 export const CreatePeerSchema = z.object({
   comment: z.string().optional().nullable(),
-  telegram_username: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
   interface_id: z.number().min(1, 'Interface ID is required'),
   private_key: z.string().min(1, 'Private Key is required'),
@@ -91,7 +122,6 @@ export const UpdatePeerSchema = z.object({
   id: z.number().int().positive(),
   disabled: z.boolean().optional(),
   comment: z.string().optional().nullable(),
-  telegram_username: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
   allowed_address: z.string().min(1, 'Allowed Address is required'),
   persistent_keepalive: z.string().optional().nullable(),
@@ -120,3 +150,6 @@ export type PeerAllowedAddress = z.infer<typeof PeerAllowedAddressSchema>
 export type PeerCredentials = z.infer<typeof PeerCredentialsSchema>
 export type PeerShare = z.infer<typeof PeerShareSchema>
 export type PeerStats = z.infer<typeof PeerStatsSchema>
+export type PeerSession = z.infer<typeof PeerSessionSchema>
+export type PeerSessions = z.infer<typeof PeerSessionsSchema>
+export type PeerSessionStatus = z.infer<typeof PeerSessionStatusEnum>

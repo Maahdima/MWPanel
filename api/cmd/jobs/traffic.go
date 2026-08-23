@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
@@ -16,7 +15,8 @@ import (
 )
 
 type PeerUsageNotifier interface {
-	NotifyPeerUsage(ctx context.Context, peerName, telegramUsername string, percent int64, totalUsage, limit int64) error
+	Enabled() bool
+	NotifyPeerUsage(ctx context.Context, peer *model.Peer, percent, totalUsage, limit int64) error
 }
 
 type Calculator struct {
@@ -286,12 +286,7 @@ func (c *Calculator) applyPeerTrafficLimit(peer *model.Peer, updates map[string]
 }
 
 func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map[string]interface{}) {
-	if c.notifier == nil || peer.TrafficLimit == nil || peer.TelegramUsername == nil {
-		return
-	}
-
-	username := strings.TrimSpace(*peer.TelegramUsername)
-	if username == "" {
+	if c.notifier == nil || !c.notifier.Enabled() || peer.TrafficLimit == nil {
 		return
 	}
 
@@ -303,19 +298,19 @@ func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
 	percent := (totalUsage * 100) / limit
 
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 80, "first_notify", &peer.FirstNotify)
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 90, "second_notify", &peer.SecondNotify)
-	c.notifyThreshold(peer, updates, username, percent, totalUsage, limit, 100, "third_notify", &peer.ThirdNotify)
+	c.notifyThreshold(peer, updates, percent, totalUsage, limit, 80, "first_notify", &peer.FirstNotify)
+	c.notifyThreshold(peer, updates, percent, totalUsage, limit, 90, "second_notify", &peer.SecondNotify)
+	c.notifyThreshold(peer, updates, percent, totalUsage, limit, 100, "third_notify", &peer.ThirdNotify)
 }
 
-func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interface{}, username string, percent, totalUsage, limit, threshold int64, updateKey string, notified *bool) {
+func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interface{}, percent, totalUsage, limit, threshold int64, updateKey string, notified *bool) {
 	if percent < threshold || *notified {
 		return
 	}
 
-	err := c.notifier.NotifyPeerUsage(context.Background(), peer.Name, username, percent, totalUsage, limit)
+	err := c.notifier.NotifyPeerUsage(context.Background(), peer, percent, totalUsage, limit)
 	if err != nil {
-		c.logger.Error("Failed to send peer usage notification", zap.String("peerID", peer.PeerID), zap.Error(err))
+		c.logger.Warn("Failed to send peer usage notification", zap.String("peerID", peer.PeerID), zap.Error(err))
 		return
 	}
 
