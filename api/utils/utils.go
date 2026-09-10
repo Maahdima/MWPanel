@@ -131,23 +131,25 @@ func GBToBytes(s string) int64 {
 }
 
 func IsPeerExpired(expireTime *string, now time.Time) bool {
-	if expireTime == nil {
-		return false
-	}
-
-	raw := strings.TrimSpace(*expireTime)
-	if raw == "" {
-		return false
-	}
-
-	expireDay, err := time.ParseInLocation("2006-01-02", raw, now.Location())
-	if err != nil {
+	expireDay, ok := parsePeerExpireDay(expireTime, now)
+	if !ok {
 		return false
 	}
 
 	year, month, day := now.Date()
 	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location())
 	return !today.Before(expireDay)
+}
+
+func DaysUntilPeerExpire(expireTime *string, now time.Time) (int, bool) {
+	expireDay, ok := parsePeerExpireDay(expireTime, now)
+	if !ok {
+		return 0, false
+	}
+
+	year, month, day := now.Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location())
+	return int(expireDay.Sub(today).Hours() / 24), true
 }
 
 func IsPeerSharable(isShared bool, shareExpireTime *string) bool {
@@ -198,4 +200,22 @@ func FormatDuration(d time.Duration) string {
 	s := d / time.Second
 
 	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
+}
+
+func parsePeerExpireDay(expireTime *string, now time.Time) (time.Time, bool) {
+	if expireTime == nil {
+		return time.Time{}, false
+	}
+
+	raw := strings.TrimSpace(*expireTime)
+	if raw == "" {
+		return time.Time{}, false
+	}
+
+	expireDay, err := time.ParseInLocation("2006-01-02", raw, now.Location())
+	if err != nil {
+		return time.Time{}, false
+	}
+
+	return expireDay, true
 }

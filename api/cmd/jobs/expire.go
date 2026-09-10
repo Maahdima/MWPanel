@@ -22,6 +22,8 @@ func (c *Calculator) ExpireOverduePeers() {
 	}
 
 	now := time.Now()
+	c.notifyUpcomingExpiries(peers, now)
+
 	expiredCount := 0
 	for _, peer := range peersDueForExpiry(peers, now) {
 		if err := c.disableExpiredPeer(peer); err != nil {
@@ -44,6 +46,52 @@ func peersDueForExpiry(peers []model.Peer, now time.Time) []model.Peer {
 		due = append(due, peer)
 	}
 	return due
+}
+
+func (c *Calculator) notifyUpcomingExpiries(peers []model.Peer, now time.Time) {
+	if c.notifier == nil || !c.notifier.Enabled() {
+		return
+	}
+
+	for i := range peers {
+		peer := &peers[i]
+		if peer.Disabled {
+			continue
+		}
+
+		daysLeft, ok := utils.DaysUntilPeerExpire(peer.ExpireTime, now)
+		if !ok || daysLeft < 1 || daysLeft > 3 {
+			continue
+		}
+
+		updates := map[string]interface{}{}
+		c.notifyExpiryThreshold(peer, updates, daysLeft, 3, "expire_first_notify", &peer.ExpireFirstNotify)
+		c.notifyExpiryThreshold(peer, updates, daysLeft, 2, "expire_second_notify", &peer.ExpireSecondNotify)
+		c.notifyExpiryThreshold(peer, updates, daysLeft, 1, "expire_third_notify", &peer.ExpireThirdNotify)
+
+		if len(updates) == 0 {
+			continue
+		}
+
+		if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
+			c.logger.Error("Failed to update peer expiry notify flags", zap.String("peerID", peer.PeerID), zap.Error(err))
+		}
+	}
+}
+
+func (c *Calculator) notifyExpiryThreshold(peer *model.Peer, updates map[string]interface{}, daysLeft, threshold int, updateKey string, notified *bool) {
+	if daysLeft != threshold || *notified {
+		return
+	}
+
+	err := c.notifier.NotifyPeerExpiry(context.Background(), peer, daysLeft)
+	if err != nil {
+		c.logger.Warn("Failed to send peer expiry notification", zap.String("peerID", peer.PeerID), zap.Int("daysLeft", daysLeft), zap.Error(err))
+		return
+	}
+
+	*notified = true
+	updates[updateKey] = true
 }
 
 func (c *Calculator) disableExpiredPeer(peer model.Peer) error {

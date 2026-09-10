@@ -63,6 +63,12 @@ func AutoMigrate(db *gorm.DB) error {
 		_ = migrator.DropTable(&model.TelegramChat{})
 	}
 
+	if migrator.HasTable(&model.Peer{}) {
+		renamePeerColumn(migrator, "first_notify", "traffic_first_notify")
+		renamePeerColumn(migrator, "second_notify", "traffic_second_notify")
+		renamePeerColumn(migrator, "third_notify", "traffic_third_notify")
+	}
+
 	err := migrator.AutoMigrate(
 		&model.Interface{},
 		&model.IPPool{},
@@ -79,4 +85,10 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 	return nil
+}
+
+func renamePeerColumn(migrator gorm.Migrator, oldName, newName string) {
+	if migrator.HasColumn(&model.Peer{}, oldName) && !migrator.HasColumn(&model.Peer{}, newName) {
+		_ = migrator.RenameColumn(&model.Peer{}, oldName, newName)
+	}
 }

@@ -118,7 +118,7 @@ func (b *TelegramBot) run(ctx context.Context) {
 		{Command: "details", Description: "📊 Usage, status and expiry"},
 		{Command: "config", Description: "📄 Download WireGuard config"},
 		{Command: "qrcode", Description: "📱 Show config QR code"},
-		{Command: "notify", Description: "🔔 Turn traffic alerts on/off"},
+		{Command: "notify", Description: "🔔 Turn traffic & expiry alerts on/off"},
 		{Command: "unlink", Description: "🔓 Unlink this chat"},
 		{Command: "help", Description: "❓ How to use the bot"},
 	}); err != nil {
@@ -504,9 +504,9 @@ func (b *TelegramBot) toggleNotify(ctx context.Context, chatID, peerUUID string)
 		return
 	}
 
-	message := "🔕 Traffic alerts are now OFF for " + peer.Name + "."
+	message := "🔕 Alerts are now OFF for " + peer.Name + "."
 	if enabled {
-		message = "🔔 Traffic alerts are now ON for " + peer.Name + "."
+		message = "🔔 Alerts are now ON for " + peer.Name + " (traffic + expiry)."
 	}
 	b.reply(ctx, chatID, message, b.peerMenuMarkup(peer, enabled))
 }
@@ -653,7 +653,7 @@ func (b *TelegramBot) helpText() string {
 		"📊 /details — usage, status and expiry",
 		"📄 /config — download the WireGuard file",
 		"📱 /qrcode — show the QR code",
-		"🔔 /notify — turn traffic alerts on or off",
+		"🔔 /notify — turn traffic & expiry alerts on or off",
 		"📋 /menu — show the buttons again",
 		"🔓 /unlink — remove this chat from the config",
 		"❓ /help — show this message",

@@ -36,19 +36,8 @@ func (t *TelegramNotifier) Enabled() bool {
 }
 
 func (t *TelegramNotifier) NotifyPeerUsage(ctx context.Context, peer *model.Peer, percent int64, totalUsage, limit int64) error {
-	if !t.enabled {
-		return errors.New("telegram bot is disabled")
-	}
-	if t.client == nil {
-		return errors.New("telegram client is not configured")
-	}
 	if peer == nil || peer.UUID == "" {
 		return errors.New("peer is required")
-	}
-
-	var chats []model.TelegramChat
-	if err := t.db.Where("peer_uuid = ?", peer.UUID).Find(&chats).Error; err != nil {
-		return err
 	}
 
 	heading := "⚠️ Traffic alert"
@@ -64,6 +53,50 @@ func (t *TelegramNotifier) NotifyPeerUsage(ctx context.Context, peer *model.Peer
 		fmt.Sprintf("📊 Used: %d%%", percent),
 		fmt.Sprintf("💾 %s GB of %s GB", utils.BytesToGB(totalUsage), utils.BytesToGB(limit)),
 	)
+	return t.sendAlert(ctx, peer, message)
+}
+
+func (t *TelegramNotifier) NotifyPeerExpiry(ctx context.Context, peer *model.Peer, daysLeft int) error {
+	if peer == nil || peer.UUID == "" {
+		return errors.New("peer is required")
+	}
+
+	heading := "⏰ Expiry alert"
+	daysLabel := fmt.Sprintf("%d days", daysLeft)
+	if daysLeft == 1 {
+		heading = "🚨 Expires tomorrow"
+		daysLabel = "1 day"
+	} else if daysLeft == 2 {
+		heading = "🔥 Expiry approaching"
+	}
+
+	expireDate := ""
+	if peer.ExpireTime != nil {
+		expireDate = *peer.ExpireTime
+	}
+
+	message := telegramBlocks(
+		heading,
+		"📡 Config: "+peer.Name,
+		fmt.Sprintf("⏳ Expires in: %s", daysLabel),
+		"📆 Expire date: "+expireDate,
+	)
+	return t.sendAlert(ctx, peer, message)
+}
+
+func (t *TelegramNotifier) sendAlert(ctx context.Context, peer *model.Peer, message string) error {
+	if !t.enabled {
+		return errors.New("telegram bot is disabled")
+	}
+	if t.client == nil {
+		return errors.New("telegram client is not configured")
+	}
+
+	var chats []model.TelegramChat
+	if err := t.db.Where("peer_uuid = ?", peer.UUID).Find(&chats).Error; err != nil {
+		return err
+	}
+
 	markup := t.alertMarkup(peer)
 
 	var lastErr error
