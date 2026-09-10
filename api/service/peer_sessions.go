@@ -49,14 +49,14 @@ func (w *WgPeer) GetPeerSessions(id uint) (*schema.PeerSessionsResponse, error) 
 		if session.DisconnectedAt == nil {
 			ongoing++
 		}
-		totalDuration += sessionDuration(session.ConnectedAt, unixOrNow(session.DisconnectedAt, now))
+		totalDuration += w.sessionDuration(session.ConnectedAt, utils.UnixOrNow(session.DisconnectedAt, now))
 		totalDownload += session.DownloadUsage
 		totalUpload += session.UploadUsage
 	}
 
 	items := make([]schema.PeerSessionResponse, 0, len(sessions))
 	for _, session := range sessions {
-		items = append(items, transformPeerSession(session, now))
+		items = append(items, w.transformPeerSession(session, now))
 	}
 
 	return &schema.PeerSessionsResponse{
@@ -73,52 +73,41 @@ func (w *WgPeer) GetPeerSessions(id uint) (*schema.PeerSessionsResponse, error) 
 	}, nil
 }
 
-func transformPeerSession(session model.PeerSession, now time.Time) schema.PeerSessionResponse {
+func (w *WgPeer) transformPeerSession(session model.PeerSession, now time.Time) schema.PeerSessionResponse {
 	status := schema.PeerSessionEnded
 	var disconnectedAt *string
 	endedAt := now
 	if session.DisconnectedAt != nil {
-		formatted := formatUnixTime(*session.DisconnectedAt)
+		formatted := utils.FormatUnixTime(*session.DisconnectedAt)
 		disconnectedAt = &formatted
 		endedAt = time.Unix(*session.DisconnectedAt, 0)
 	} else {
 		status = schema.PeerSessionOngoing
 	}
 
-	duration := sessionDuration(session.ConnectedAt, endedAt.Unix())
+	duration := w.sessionDuration(session.ConnectedAt, endedAt.Unix())
 	return schema.PeerSessionResponse{
 		ID:             session.ID,
 		Status:         status,
-		ConnectedAt:    formatUnixTime(session.ConnectedAt),
+		ConnectedAt:    utils.FormatUnixTime(session.ConnectedAt),
 		DisconnectedAt: disconnectedAt,
 		Duration:       int64(duration.Seconds()),
 		DurationLabel:  utils.FormatPrettyDuration(duration),
-		Endpoint:       formatSessionEndpoint(session.Endpoint, session.EndpointPort),
+		Endpoint:       w.formatSessionEndpoint(session.Endpoint, session.EndpointPort),
 		DownloadUsage:  utils.FormatDataSize(session.DownloadUsage),
 		UploadUsage:    utils.FormatDataSize(session.UploadUsage),
 		TotalUsage:     utils.FormatDataSize(session.DownloadUsage + session.UploadUsage),
 	}
 }
 
-func sessionDuration(connectedAt, endedAt int64) time.Duration {
+func (w *WgPeer) sessionDuration(connectedAt, endedAt int64) time.Duration {
 	if endedAt < connectedAt {
 		return 0
 	}
 	return time.Duration(endedAt-connectedAt) * time.Second
 }
 
-func unixOrNow(value *int64, now time.Time) int64 {
-	if value == nil {
-		return now.Unix()
-	}
-	return *value
-}
-
-func formatUnixTime(value int64) string {
-	return time.Unix(value, 0).UTC().Format(time.RFC3339)
-}
-
-func formatSessionEndpoint(address, port *string) *string {
+func (w *WgPeer) formatSessionEndpoint(address, port *string) *string {
 	host := utils.DerefString(address)
 	if host == "" {
 		return nil
@@ -129,6 +118,6 @@ func formatSessionEndpoint(address, port *string) *string {
 	return utils.Ptr(host)
 }
 
-func deletePeerSessions(db *gorm.DB, peerID uint) error {
+func (w *WgPeer) deletePeerSessions(db *gorm.DB, peerID uint) error {
 	return db.Unscoped().Where("peer_id = ?", peerID).Delete(&model.PeerSession{}).Error
 }

@@ -57,7 +57,8 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 		return fmt.Errorf("cannot enable an expired peer; extend the expire date first")
 	}
 
-	disabled := strconv.FormatBool(!peer.Disabled)
+	newDisabled := !peer.Disabled
+	disabled := strconv.FormatBool(newDisabled)
 
 	wgPeer := mikrotik.WireGuardPeer{
 		Disabled: disabled,
@@ -87,7 +88,7 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 		}
 	}
 
-	if err := w.db.Model(&peer).Update("disabled", disabled).Error; err != nil {
+	if err := w.db.Model(&peer).Update("disabled", newDisabled).Error; err != nil {
 		w.logger.Error("failed to update peer status in database", zap.Error(err))
 		return fmt.Errorf("failed to update peer status in database: %w", err)
 	}
@@ -399,7 +400,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress); err != nil {
+	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress, 0); err != nil {
 		return nil, err
 	}
 
@@ -408,20 +409,36 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
-	schedulerId, err := w.scheduler.createScheduler(mtPeer.ID, mtPeer.Name, req.ExpireTime)
+	var (
+		schedulerId *string
+		queueId     *string
+		dbPeer      model.Peer
+		dbCreated   bool
+	)
+
+	cleanup := true
+	defer func() {
+		if !cleanup {
+			return
+		}
+		w.rollbackPartialPeerCreate(mtPeer, schedulerId, queueId, dbPeer, dbCreated)
+	}()
+
+	schedulerId, err = w.scheduler.createScheduler(mtPeer.ID, mtPeer.Name, req.ExpireTime)
 	if err != nil {
 		return nil, err
 	}
 
-	queueId, err := w.queue.createQueue(mtPeer.Name, mtPeer.AllowedAddress, req.DownloadBandwidth, req.UploadBandwidth)
+	queueId, err = w.queue.createQueue(mtPeer.Name, mtPeer.AllowedAddress, req.DownloadBandwidth, req.UploadBandwidth)
 	if err != nil {
 		return nil, err
 	}
 
-	dbPeer, err := w.buildAndStoreDbPeer(req, iface, mtPeer, schedulerId, queueId)
+	dbPeer, err = w.buildAndStoreDbPeer(req, iface, mtPeer, schedulerId, queueId)
 	if err != nil {
 		return nil, err
 	}
+	dbCreated = true
 
 	if err := w.generatePeerAssets(req.PrivateKey, dbPeer, iface.PublicKey); err != nil {
 		return nil, err
@@ -431,6 +448,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 		return nil, err
 	}
 
+	cleanup = false
 	resp := w.peerResponse(dbPeer)
 	return &resp, nil
 }
@@ -439,6 +457,10 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	var peer model.Peer
 	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
 		w.logger.Error("failed to get peer from database", zap.Error(err))
+		return nil, err
+	}
+
+	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress, peer.ID); err != nil {
 		return nil, err
 	}
 
@@ -480,6 +502,67 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("peer not found: %w", err)
 	}
 
+	return w.deletePeerRecord(&peer)
+}
+
+func (w *WgPeer) DeletePeersByInterfaceName(interfaceName string) error {
+	var peers []model.Peer
+	if err := w.db.Where("interface = ?", interfaceName).Find(&peers).Error; err != nil {
+		w.logger.Error("failed to fetch peers for interface", zap.String("interface", interfaceName), zap.Error(err))
+		return err
+	}
+
+	var firstErr error
+	for i := range peers {
+		if err := w.deletePeerRecord(&peers[i]); err != nil {
+			w.logger.Error("failed to delete peer during interface cascade",
+				zap.String("peerID", peers[i].PeerID),
+				zap.String("name", peers[i].Name),
+				zap.Error(err),
+			)
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+
+	return firstErr
+}
+
+func (w *WgPeer) rollbackPartialPeerCreate(mtPeer *mikrotik.WireGuardPeer, schedulerId, queueId *string, dbPeer model.Peer, dbCreated bool) {
+	if queueId != nil {
+		if err := w.queue.deleteQueue(queueId); err != nil {
+			w.logger.Warn("failed to rollback queue after create failure", zap.Error(err))
+		}
+	}
+	if schedulerId != nil {
+		if err := w.scheduler.deleteScheduler(schedulerId); err != nil {
+			w.logger.Warn("failed to rollback scheduler after create failure", zap.Error(err))
+		}
+	}
+	if mtPeer != nil && mtPeer.ID != "" {
+		if err := w.mikrotikAdaptor.DeleteWgPeer(context.Background(), mtPeer.ID); err != nil {
+			w.logger.Warn("failed to rollback mikrotik peer after create failure", zap.Error(err))
+		}
+	}
+	if !dbCreated || dbPeer.ID == 0 {
+		return
+	}
+
+	_ = w.qrCodeGenerator.RemovePeerQRCodeByUUID(dbPeer.UUID)
+	_ = w.configGenerator.RemovePeerConfigByUUID(dbPeer.UUID)
+	_ = w.deletePeerTelegramChats(w.db, dbPeer.UUID)
+	_ = deletePeerSessions(w.db, dbPeer.ID)
+	if err := w.db.Unscoped().Delete(&dbPeer).Error; err != nil {
+		w.logger.Warn("failed to rollback peer db row after create failure", zap.Error(err))
+	}
+}
+
+func (w *WgPeer) deletePeerRecord(peer *model.Peer) error {
+	if peer == nil {
+		return errors.New("peer is required")
+	}
+
 	if err := w.scheduler.deleteScheduler(peer.SchedulerID); err != nil {
 		return fmt.Errorf("failed to delete scheduler: %w", err)
 	}
@@ -493,16 +576,19 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("failed to delete wireguard peer: %w", err)
 	}
 
-	err := w.qrCodeGenerator.RemovePeerQRCode(id)
-	if err != nil {
+	if err := w.qrCodeGenerator.RemovePeerQRCodeByUUID(peer.UUID); err != nil {
 		w.logger.Error("failed to remove QR Code file", zap.Error(err))
 		return err
 	}
 
-	err = w.configGenerator.RemovePeerConfig(id)
-	if err != nil {
+	if err := w.configGenerator.RemovePeerConfigByUUID(peer.UUID); err != nil {
 		w.logger.Error("failed to remove peer config", zap.Error(err))
 		return err
+	}
+
+	if err := w.deletePeerTelegramChats(w.db, peer.UUID); err != nil {
+		w.logger.Error("failed to delete peer telegram chats", zap.Error(err))
+		return fmt.Errorf("failed to delete peer telegram chats: %w", err)
 	}
 
 	if err := deletePeerSessions(w.db, peer.ID); err != nil {
@@ -510,12 +596,19 @@ func (w *WgPeer) DeletePeer(id uint) error {
 		return fmt.Errorf("failed to delete peer sessions: %w", err)
 	}
 
-	if err := w.db.Unscoped().Delete(&peer).Error; err != nil {
+	if err := w.db.Unscoped().Delete(peer).Error; err != nil {
 		w.logger.Error("failed to delete peer from database", zap.Error(err))
 		return fmt.Errorf("failed to delete peer from database: %w", err)
 	}
 
 	return nil
+}
+
+func (w *WgPeer) deletePeerTelegramChats(db *gorm.DB, peerUUID string) error {
+	if strings.TrimSpace(peerUUID) == "" {
+		return nil
+	}
+	return db.Unscoped().Where("peer_uuid = ?", peerUUID).Delete(&model.TelegramChat{}).Error
 }
 
 func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
@@ -610,9 +703,14 @@ func (w *WgPeer) getInterface(id uint) (model.Interface, error) {
 	return iface, nil
 }
 
-func (w *WgPeer) ensureAllowedAddressIsUnique(address string) error {
+func (w *WgPeer) ensureAllowedAddressIsUnique(address string, excludePeerID uint) error {
 	var existing model.Peer
-	if err := w.db.Where("allowed_address = ?", address).First(&existing).Error; err == nil {
+	query := w.db.Where("allowed_address = ?", address)
+	if excludePeerID > 0 {
+		query = query.Where("id <> ?", excludePeerID)
+	}
+
+	if err := query.First(&existing).Error; err == nil {
 		return fmt.Errorf("allowed address %s is already in use by peer %s", address, existing.Name)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		w.logger.Error("allowed address lookup failed", zap.Error(err))

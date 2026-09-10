@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/maahdima/mwp/api/common"
+	"github.com/maahdima/mwp/api/utils/httphelper"
 )
 
 type WireGuardPeer struct {
@@ -108,6 +109,10 @@ func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
 		nil,
 	)
 	if err != nil {
+		if httphelper.IsNotFound(err) {
+			a.logger.Warn("wireguard peer already deleted", zap.String("peerID", peerID))
+			return nil
+		}
 		a.logger.Error("failed to delete wireguard peer", zap.Error(err))
 		return err
 	}

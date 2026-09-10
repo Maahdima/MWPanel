@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,11 @@ import (
 
 	"go.uber.org/zap"
 )
+
+type StatusError struct {
+	StatusCode int
+	Body       string
+}
 
 type Config struct {
 	BaseURL            string        // The base URL for all requests, e.g., "http://127.0.0.1/rest"
@@ -54,6 +60,15 @@ func NewClient(config Config) (*Client, error) {
 	}, nil
 }
 
+func IsNotFound(err error) bool {
+	var statusErr *StatusError
+	return errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusNotFound
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("request failed with status code %d: %s", e.StatusCode, e.Body)
+}
+
 func (c *Client) Do(req *http.Request, respBody interface{}) error {
 	if c.config.Username != "" || c.config.Password != "" {
 		req.SetBasicAuth(c.config.Username, c.config.Password)
@@ -79,7 +94,7 @@ func (c *Client) Do(req *http.Request, respBody interface{}) error {
 			zap.Int("statusCode", resp.StatusCode),
 			zap.String("responseBody", string(body)),
 		)
-		return fmt.Errorf("request failed with status code %d: %s", resp.StatusCode, string(body))
+		return &StatusError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	if respBody == nil || len(body) == 0 {

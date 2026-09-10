@@ -16,13 +16,15 @@ import (
 type WgInterface struct {
 	db              *gorm.DB
 	mikrotikAdaptor *mikrotik.Adaptor
+	peerService     *WgPeer
 	logger          *zap.Logger
 }
 
-func NewWgInterface(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor) *WgInterface {
+func NewWgInterface(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, peerService *WgPeer) *WgInterface {
 	return &WgInterface{
 		db:              db,
 		mikrotikAdaptor: mikrotikAdaptor,
+		peerService:     peerService,
 		logger:          zap.L().Named("WgInterfaceService"),
 	}
 }
@@ -38,11 +40,14 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 	for _, iface := range interfaces {
 		mtInterface, err := i.mikrotikAdaptor.FetchWgInterface(context.Background(), iface.InterfaceID)
 		if err != nil {
-			i.logger.Error("failed to fetch wireguard interface from Mikrotik", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
-			return nil, fmt.Errorf("failed to fetch wireguard interface from Mikrotik: %w", err)
+			i.logger.Warn("failed to fetch wireguard interface from Mikrotik; using local data",
+				zap.String("interfaceID", iface.InterfaceID),
+				zap.Error(err),
+			)
+			wgInterfaces = append(wgInterfaces, i.transformInterfaceToResponse(iface, "", "false"))
+			continue
 		}
-		wgInterface := i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running)
-		wgInterfaces = append(wgInterfaces, wgInterface)
+		wgInterfaces = append(wgInterfaces, i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running))
 	}
 
 	return &wgInterfaces, nil
@@ -72,6 +77,9 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 
 	if err := i.db.Create(&dbInterface).Error; err != nil {
 		i.logger.Error("failed to save wireguard interface to database", zap.Error(err))
+		if delErr := i.mikrotikAdaptor.DeleteWgInterface(context.Background(), mtInterface.ID); delErr != nil {
+			i.logger.Warn("failed to rollback mikrotik interface after db create failure", zap.Error(delErr))
+		}
 		return nil, err
 	}
 
@@ -86,7 +94,8 @@ func (i *WgInterface) ToggleInterfaceStatus(id uint) error {
 		return fmt.Errorf("failed to find wireguard interface in database: %w", err)
 	}
 
-	disabled := strconv.FormatBool(!iface.Disabled)
+	newDisabled := !iface.Disabled
+	disabled := strconv.FormatBool(newDisabled)
 
 	wgInterface := mikrotik.WireGuardInterface{
 		Disabled: disabled,
@@ -97,7 +106,7 @@ func (i *WgInterface) ToggleInterfaceStatus(id uint) error {
 		return fmt.Errorf("failed to update wireguard interface status: %w", err)
 	}
 
-	if err := i.db.Model(&iface).Update("disabled", disabled).Error; err != nil {
+	if err := i.db.Model(&iface).Update("disabled", newDisabled).Error; err != nil {
 		i.logger.Error("failed to update interface status in database", zap.Error(err))
 		return fmt.Errorf("failed to update interface status in database: %w", err)
 	}
@@ -112,17 +121,23 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		return nil, err
 	}
 
+	oldName := iface.Name
 	wgInterface := mikrotik.WireGuardInterface{}
 
 	if req.Disabled != nil {
 		disabledStr := strconv.FormatBool(*req.Disabled)
 		wgInterface.Disabled = disabledStr
+		iface.Disabled = *req.Disabled
 	}
 	if req.Comment != nil {
 		wgInterface.Comment = req.Comment
+		iface.Comment = req.Comment
 	}
 
-	wgInterface.Name = req.Name
+	if req.Name != "" {
+		wgInterface.Name = req.Name
+		iface.Name = req.Name
+	}
 
 	mtInterface, err := i.mikrotikAdaptor.UpdateWgInterface(context.Background(), iface.InterfaceID, wgInterface)
 	if err != nil {
@@ -130,11 +145,23 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		return nil, fmt.Errorf("failed to update wireguard interface: %w", err)
 	}
 
-	iface.Comment = req.Comment
-	iface.Name = wgInterface.Name
-	iface.ListenPort = wgInterface.ListenPort
+	if mtInterface.ListenPort != "" {
+		iface.ListenPort = mtInterface.ListenPort
+	}
 
-	if err := i.db.Save(&iface).Error; err != nil {
+	if err := i.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&iface).Error; err != nil {
+			return err
+		}
+		if oldName != iface.Name {
+			if err := tx.Model(&model.Peer{}).
+				Where("interface = ?", oldName).
+				Update("interface", iface.Name).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		i.logger.Error("failed to update wireguard interface in database", zap.Error(err))
 		return nil, fmt.Errorf("failed to update wireguard interface in database")
 	}
@@ -150,17 +177,7 @@ func (i *WgInterface) DeleteInterface(id uint) error {
 		return fmt.Errorf("failed to find wireguard interface in database: %w", err)
 	}
 
-	if err := i.mikrotikAdaptor.DeleteWgInterface(context.Background(), iface.InterfaceID); err != nil {
-		i.logger.Error("failed to delete wireguard interface from Mikrotik", zap.Error(err))
-		return fmt.Errorf("failed to delete wireguard interface from Mikrotik: %w", err)
-	}
-
-	if err := i.db.Unscoped().Delete(&iface).Error; err != nil {
-		i.logger.Error("failed to delete wireguard interface from database", zap.Error(err))
-		return fmt.Errorf("failed to delete wireguard interface from database: %w", err)
-	}
-
-	return nil
+	return i.deleteInterfaceRecord(&iface)
 }
 
 func (i *WgInterface) GetInterfacesData() (*schema.InterfaceStatsResponse, error) {
@@ -180,6 +197,40 @@ func (i *WgInterface) GetInterfacesData() (*schema.InterfaceStatsResponse, error
 		TotalInterfaces:  int(totalInterfaces),
 		ActiveInterfaces: int(activeInterfaces),
 	}, nil
+}
+
+func (i *WgInterface) deleteInterfaceRecord(iface *model.Interface) error {
+	if iface == nil {
+		return fmt.Errorf("interface is required")
+	}
+
+	if i.peerService != nil {
+		if err := i.peerService.DeletePeersByInterfaceName(iface.Name); err != nil {
+			return fmt.Errorf("failed to delete peers for interface: %w", err)
+		}
+	}
+
+	if err := i.db.Unscoped().Where("interface_id = ?", iface.ID).Delete(&model.Traffic{}).Error; err != nil {
+		i.logger.Error("failed to delete interface traffic records", zap.Uint("interfaceID", iface.ID), zap.Error(err))
+		return fmt.Errorf("failed to delete interface traffic records: %w", err)
+	}
+
+	if err := i.db.Unscoped().Where("interface_id = ?", iface.ID).Delete(&model.IPPool{}).Error; err != nil {
+		i.logger.Error("failed to delete interface IP pool", zap.Uint("interfaceID", iface.ID), zap.Error(err))
+		return fmt.Errorf("failed to delete interface IP pool: %w", err)
+	}
+
+	if err := i.mikrotikAdaptor.DeleteWgInterface(context.Background(), iface.InterfaceID); err != nil {
+		i.logger.Error("failed to delete wireguard interface from Mikrotik", zap.Error(err))
+		return fmt.Errorf("failed to delete wireguard interface from Mikrotik: %w", err)
+	}
+
+	if err := i.db.Unscoped().Delete(iface).Error; err != nil {
+		i.logger.Error("failed to delete wireguard interface from database", zap.Error(err))
+		return fmt.Errorf("failed to delete wireguard interface from database: %w", err)
+	}
+
+	return nil
 }
 
 func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface, mtu, status string) schema.InterfaceResponse {

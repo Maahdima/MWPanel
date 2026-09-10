@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/maahdima/mwp/api/common"
+	"github.com/maahdima/mwp/api/utils/httphelper"
 )
 
 type WireGuardInterface struct {
@@ -99,7 +100,11 @@ func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error
 		nil,
 	)
 	if err != nil {
-		a.logger.Error("failed to delete wireguard peer", zap.Error(err))
+		if httphelper.IsNotFound(err) {
+			a.logger.Warn("wireguard interface already deleted", zap.String("interfaceID", interfaceID))
+			return nil
+		}
+		a.logger.Error("failed to delete wireguard interface", zap.Error(err))
 		return err
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/utils"
+	"github.com/maahdima/mwp/api/utils/httphelper"
 )
 
 type Scheduler struct {
@@ -78,12 +79,16 @@ func (s *Scheduler) updateScheduler(schedulerID *string, peerID string, expireTi
 }
 
 func (s *Scheduler) deleteScheduler(schedulerID *string) error {
-	if schedulerID == nil {
+	if schedulerID == nil || *schedulerID == "" {
 		return nil
 	}
 
 	err := s.mikrotikAdaptor.DeleteScheduler(context.Background(), *schedulerID)
 	if err != nil {
+		if httphelper.IsNotFound(err) {
+			s.logger.Warn("scheduler already deleted", zap.String("schedulerID", *schedulerID))
+			return nil
+		}
 		s.logger.Error("failed to delete scheduler", zap.String("schedulerID", *schedulerID), zap.Error(err))
 		return err
 	}

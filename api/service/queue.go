@@ -8,6 +8,7 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/utils"
+	"github.com/maahdima/mwp/api/utils/httphelper"
 )
 
 type Queue struct {
@@ -74,12 +75,16 @@ func (q *Queue) updateQueue(queueID, downloadBandwidth, uploadBandwidth *string)
 }
 
 func (q *Queue) deleteQueue(queueID *string) error {
-	if queueID == nil {
+	if queueID == nil || *queueID == "" {
 		return nil
 	}
 
 	err := q.mikrotikAdaptor.DeleteSimpleQueue(context.Background(), *queueID)
 	if err != nil {
+		if httphelper.IsNotFound(err) {
+			q.logger.Warn("simple queue already deleted", zap.String("queueId", *queueID))
+			return nil
+		}
 		q.logger.Error("failed to delete simple queue", zap.String("queueId", *queueID), zap.Error(err))
 		return err
 	}

@@ -17,20 +17,31 @@ import (
 )
 
 type SyncService struct {
-	db              *gorm.DB
-	mikrotikAdaptor *mikrotik.Adaptor
-	configService   *ConfigGenerator
-	qrCodeService   *QRCodeGenerator
-	logger          *zap.Logger
+	db               *gorm.DB
+	mikrotikAdaptor  *mikrotik.Adaptor
+	configService    *ConfigGenerator
+	qrCodeService    *QRCodeGenerator
+	peerService      *WgPeer
+	interfaceService *WgInterface
+	logger           *zap.Logger
 }
 
-func NewSyncService(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, configService *ConfigGenerator, qrCodeService *QRCodeGenerator) *SyncService {
+func NewSyncService(
+	db *gorm.DB,
+	mikrotikAdaptor *mikrotik.Adaptor,
+	configService *ConfigGenerator,
+	qrCodeService *QRCodeGenerator,
+	peerService *WgPeer,
+	interfaceService *WgInterface,
+) *SyncService {
 	return &SyncService{
-		db:              db,
-		mikrotikAdaptor: mikrotikAdaptor,
-		configService:   configService,
-		qrCodeService:   qrCodeService,
-		logger:          zap.L().Named("SyncService"),
+		db:               db,
+		mikrotikAdaptor:  mikrotikAdaptor,
+		configService:    configService,
+		qrCodeService:    qrCodeService,
+		peerService:      peerService,
+		interfaceService: interfaceService,
+		logger:           zap.L().Named("SyncService"),
 	}
 }
 
@@ -43,11 +54,6 @@ func (s *SyncService) SyncPeers() error {
 	dbPeers, err := s.fetchDBPeers()
 	if err != nil {
 		return err
-	}
-
-	if len(mikrotikPeers) == len(dbPeers) {
-		s.logger.Info("no changes detected in peers, skipping sync")
-		return nil
 	}
 
 	mikrotikMap := s.mapMikrotikPeers(mikrotikPeers)
@@ -74,11 +80,6 @@ func (s *SyncService) SyncInterfaces() error {
 	dbIfaces, err := s.fetchDBInterfaces()
 	if err != nil {
 		return err
-	}
-
-	if len(mikrotikIfaces) == len(dbIfaces) {
-		s.logger.Info("no changes detected in interfaces, skipping sync")
-		return nil
 	}
 
 	mikrotikMap := s.mapMikrotikInterfaces(mikrotikIfaces)
@@ -187,17 +188,27 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 
 func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range dbMap {
-		if _, found := mikrotikMap[id]; !found {
+		if _, found := mikrotikMap[id]; found {
+			continue
+		}
+
+		peerCopy := peer
+		if s.peerService != nil {
+			if err := s.peerService.deletePeerRecord(&peerCopy); err != nil {
+				s.logger.Error("failed to delete stale peer", zap.String("peerId", id), zap.Error(err))
+				return err
+			}
+		} else {
 			if err := deletePeerSessions(s.db, peer.ID); err != nil {
 				s.logger.Error("failed to delete peer sessions", zap.String("peerId", id), zap.Error(err))
 				return err
 			}
-			if err := s.db.Unscoped().Delete(&peer).Error; err != nil {
+			if err := s.db.Unscoped().Delete(&peerCopy).Error; err != nil {
 				s.logger.Error("failed to delete peer", zap.String("peerId", id), zap.Error(err))
 				return err
 			}
-			s.logger.Info("deleted stale peer from DB", zap.String("peerId", id))
 		}
+		s.logger.Info("deleted stale peer from DB", zap.String("peerId", id))
 	}
 	return nil
 }
@@ -222,23 +233,6 @@ func (s *SyncService) fetchInterface(name, peerID string) (model.Interface, erro
 		s.logger.Error("failed to get interface", zap.String("peerId", peerID), zap.Error(err))
 	}
 	return iface, err
-}
-
-func (s *SyncService) buildDBPeer(peer mikrotik.WireGuardPeer, server model.Server, iface model.Interface) model.Peer {
-	return model.Peer{
-		UUID:                uuid.New().String(),
-		PeerID:              peer.ID,
-		Disabled:            parseBool(peer.Disabled),
-		Comment:             peer.Comment,
-		Name:                peer.Name,
-		PrivateKey:          *peer.PrivateKey,
-		PublicKey:           peer.PublicKey,
-		Interface:           peer.Interface,
-		AllowedAddress:      peer.AllowedAddress,
-		Endpoint:            server.IPAddress,
-		EndpointPort:        iface.ListenPort,
-		PersistentKeepalive: common.DefaultKeepalive,
-	}
 }
 
 func (s *SyncService) buildConfig(peer mikrotik.WireGuardPeer, dbPeer model.Peer, iface model.Interface) string {
@@ -296,6 +290,7 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 			}
 		}
 
+		oldName := dbIface.Name
 		dbIface.Disabled = parseBool(mikrotikIface.Disabled)
 		dbIface.Comment = mikrotikIface.Comment
 		dbIface.Name = mikrotikIface.Name
@@ -303,7 +298,19 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 		dbIface.PublicKey = mikrotikIface.PublicKey
 		dbIface.ListenPort = mikrotikIface.ListenPort
 
-		if err := s.db.Save(&dbIface).Error; err != nil {
+		if err := s.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Save(&dbIface).Error; err != nil {
+				return err
+			}
+			if oldName != "" && oldName != dbIface.Name {
+				if err := tx.Model(&model.Peer{}).
+					Where("interface = ?", oldName).
+					Update("interface", dbIface.Name).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
 			s.logger.Error("failed to upsert interface", zap.String("id", id), zap.Error(err))
 			return err
 		}
@@ -313,13 +320,21 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 
 func (s *SyncService) removeStaleInterfaces(mikrotikMap map[string]mikrotik.WireGuardInterface, dbMap map[string]model.Interface) error {
 	for id, dbIface := range dbMap {
-		if _, exists := mikrotikMap[id]; !exists {
-			if err := s.db.Delete(dbIface.ID).Unscoped().Error; err != nil {
-				s.logger.Error("failed to delete interface", zap.String("interfaceId", id), zap.Error(err))
+		if _, exists := mikrotikMap[id]; exists {
+			continue
+		}
+
+		ifaceCopy := dbIface
+		if s.interfaceService != nil {
+			if err := s.interfaceService.deleteInterfaceRecord(&ifaceCopy); err != nil {
+				s.logger.Error("failed to delete stale interface", zap.String("interfaceId", id), zap.Error(err))
 				return err
 			}
-			s.logger.Info("deleted stale interface from DB", zap.String("interfaceId", id))
+		} else if err := s.db.Unscoped().Delete(&ifaceCopy).Error; err != nil {
+			s.logger.Error("failed to delete interface", zap.String("interfaceId", id), zap.Error(err))
+			return err
 		}
+		s.logger.Info("deleted stale interface from DB", zap.String("interfaceId", id))
 	}
 	return nil
 }

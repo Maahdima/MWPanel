@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,6 +20,13 @@ func DerefString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+func RemoveFileIfExists(path string) error {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 func ParseStringToInt(s string) int64 {
@@ -200,6 +208,17 @@ func FormatDuration(d time.Duration) string {
 	s := d / time.Second
 
 	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
+}
+
+func UnixOrNow(value *int64, now time.Time) int64 {
+	if value == nil {
+		return now.Unix()
+	}
+	return *value
+}
+
+func FormatUnixTime(value int64) string {
+	return time.Unix(value, 0).UTC().Format(time.RFC3339)
 }
 
 func parsePeerExpireDay(expireTime *string, now time.Time) (time.Time, bool) {

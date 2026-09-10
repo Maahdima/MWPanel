@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -122,10 +123,16 @@ func (c *ConfigGenerator) RemovePeerConfig(id uint) error {
 		return err
 	}
 
-	configPath := fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
+	return c.RemovePeerConfigByUUID(peer.UUID)
+}
 
-	err := os.Remove(configPath)
-	if err != nil {
+func (c *ConfigGenerator) RemovePeerConfigByUUID(peerUUID string) error {
+	if strings.TrimSpace(peerUUID) == "" {
+		return nil
+	}
+
+	configPath := fmt.Sprintf("%s/%s.conf", peerConfigsPath, peerUUID)
+	if err := utils.RemoveFileIfExists(configPath); err != nil {
 		c.logger.Error("failed to remove Config file", zap.String("path", configPath), zap.Error(err))
 		return err
 	}
