@@ -48,6 +48,7 @@ export const PeerShareSchema = z.object({
 export const PeerStatsSchema = z.object({
   name: z.string(),
   uuid: z.string(),
+  disabled: z.boolean(),
   expire_time: z.string().nullable(),
   traffic_limit: z.string().nullable(),
   download_usage: z.string(),

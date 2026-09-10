@@ -303,6 +303,7 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 	return &schema.PeerDetailsResponse{
 		Name:          peer.Name,
 		UUID:          peer.UUID,
+		Disabled:      peer.Disabled,
 		TrafficLimit:  trafficLimit,
 		ExpireTime:    peer.ExpireTime,
 		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
@@ -797,9 +798,15 @@ func (w *WgPeer) preparePeerUpdate(peer *model.Peer, req *schema.UpdatePeerReque
 	}
 
 	if !int64PtrEqual(peer.TrafficLimit, trafficLimit) {
-		updateData["first_notify"] = false
-		updateData["second_notify"] = false
-		updateData["third_notify"] = false
+		updateData["traffic_first_notify"] = false
+		updateData["traffic_second_notify"] = false
+		updateData["traffic_third_notify"] = false
+	}
+
+	if !w.bandwidthsEqual(peer.ExpireTime, req.ExpireTime) {
+		updateData["expire_first_notify"] = false
+		updateData["expire_second_notify"] = false
+		updateData["expire_third_notify"] = false
 	}
 
 	updateData["disabled"] = req.Disabled

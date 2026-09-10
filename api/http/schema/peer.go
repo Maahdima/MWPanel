@@ -58,6 +58,7 @@ type PeerCredentialsResponse struct {
 type PeerDetailsResponse struct {
 	Name          string  `json:"name"`
 	UUID          string  `json:"uuid"`
+	Disabled      bool    `json:"disabled"`
 	TrafficLimit  *string `json:"traffic_limit"`
 	ExpireTime    *string `json:"expire_time"`
 	DownloadUsage string  `json:"download_usage"`

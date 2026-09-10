@@ -9,6 +9,7 @@ import {
   ClockFadingIcon,
   EthernetPortIcon,
   GaugeIcon,
+  PowerIcon,
   WifiHighIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +30,10 @@ function remainingDays(expireTime: string | null | undefined): number {
 }
 
 export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
+  const configEnabled = stats ? !stats.disabled : false
+  const configStatus = configEnabled ? 'Enabled' : 'Disabled'
+  const configStatusColor = configEnabled ? 'text-green-500' : 'text-red-500'
+
   const status = stats?.is_online ? 'Online' : 'Offline'
   const statusColor = stats?.is_online ? 'text-green-500' : 'text-red-500'
 
@@ -50,6 +55,23 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
           </div>
         ) : (
           <div className='space-y-4 pt-2 text-sm'>
+            <div className='flex items-center justify-between'>
+              <span className='flex items-center gap-2'>
+                <PowerIcon className='h-4 w-4' />
+                Config Status
+              </span>
+              <span>
+                <div className='flex items-center gap-2 text-sm font-medium'>
+                  <IconCircleFilled
+                    className={clsx('h-3 w-3', configStatusColor)}
+                  />
+                  <span className={clsx('capitalize', configStatusColor)}>
+                    {configStatus}
+                  </span>
+                </div>
+              </span>
+            </div>
+
             <div className='flex items-center justify-between'>
               <span className='flex items-center gap-2'>
                 <EthernetPortIcon className='h-4 w-5' />
