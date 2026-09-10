@@ -199,7 +199,7 @@ func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuard
 				return err
 			}
 		} else {
-			if err := deletePeerSessions(s.db, peer.ID); err != nil {
+			if err := s.peerService.deletePeerSessions(s.db, peer.ID); err != nil {
 				s.logger.Error("failed to delete peer sessions", zap.String("peerId", id), zap.Error(err))
 				return err
 			}

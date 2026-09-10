@@ -552,7 +552,7 @@ func (w *WgPeer) rollbackPartialPeerCreate(mtPeer *mikrotik.WireGuardPeer, sched
 	_ = w.qrCodeGenerator.RemovePeerQRCodeByUUID(dbPeer.UUID)
 	_ = w.configGenerator.RemovePeerConfigByUUID(dbPeer.UUID)
 	_ = w.deletePeerTelegramChats(w.db, dbPeer.UUID)
-	_ = deletePeerSessions(w.db, dbPeer.ID)
+	_ = w.deletePeerSessions(w.db, dbPeer.ID)
 	if err := w.db.Unscoped().Delete(&dbPeer).Error; err != nil {
 		w.logger.Warn("failed to rollback peer db row after create failure", zap.Error(err))
 	}
@@ -591,7 +591,7 @@ func (w *WgPeer) deletePeerRecord(peer *model.Peer) error {
 		return fmt.Errorf("failed to delete peer telegram chats: %w", err)
 	}
 
-	if err := deletePeerSessions(w.db, peer.ID); err != nil {
+	if err := w.deletePeerSessions(w.db, peer.ID); err != nil {
 		w.logger.Error("failed to delete peer sessions", zap.Error(err))
 		return fmt.Errorf("failed to delete peer sessions: %w", err)
 	}
