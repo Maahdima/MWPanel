@@ -1,4 +1,4 @@
-import { HTMLAttributes, useEffect, useState } from 'react'
+import { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -38,6 +38,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
   const navigate = useNavigate()
   const authStore = useAuthStore()
   const [useRecovery, setUseRecovery] = useState(false)
+  const submittingRef = useRef(false)
   const { mutateAsync: verify2FA, isPending } = useVerify2FAMutation()
 
   useEffect(() => {
@@ -57,31 +58,35 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
     defaultValues: { code: '' },
   })
 
-  const otp = totpForm.watch('otp')
-
   async function completeLogin(code: string) {
+    if (submittingRef.current) return
+    submittingRef.current = true
+
     const tempToken = sessionStorage.getItem(TEMP_2FA_TOKEN_KEY)
     if (!tempToken) {
+      submittingRef.current = false
       navigate({ to: '/sign-in' })
       return
     }
 
-    const response = await verify2FA({ temp_token: tempToken, code })
-    if (!response.access_token || !response.user_id || !response.username) {
-      return
+    try {
+      const response = await verify2FA({ temp_token: tempToken, code })
+      if (!response.access_token || !response.user_id || !response.username) {
+        submittingRef.current = false
+        return
+      }
+
+      sessionStorage.removeItem(TEMP_2FA_TOKEN_KEY)
+      authStore.auth.setAccessToken(response.access_token)
+      authStore.auth.setAdmin({
+        user_id: response.user_id,
+        username: response.username,
+      })
+      navigate({ to: '/' })
+    } catch {
+      submittingRef.current = false
+      totpForm.setValue('otp', '')
     }
-
-    sessionStorage.removeItem(TEMP_2FA_TOKEN_KEY)
-    authStore.auth.setAccessToken(response.access_token)
-    authStore.auth.setAdmin({
-      user_id: response.user_id,
-      username: response.username,
-    })
-    navigate({ to: '/' })
-  }
-
-  async function onTotpSubmit(data: z.infer<typeof totpSchema>) {
-    await completeLogin(data.otp)
   }
 
   async function onRecoverySubmit(data: z.infer<typeof recoverySchema>) {
@@ -127,7 +132,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
   return (
     <Form {...totpForm}>
       <form
-        onSubmit={totpForm.handleSubmit(onTotpSubmit)}
+        onSubmit={(e) => e.preventDefault()}
         className={cn('grid gap-2', className)}
         {...props}
       >
@@ -140,7 +145,14 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
               <FormControl>
                 <InputOTP
                   maxLength={6}
-                  {...field}
+                  value={field.value}
+                  disabled={isPending}
+                  onChange={(value) => {
+                    field.onChange(value)
+                    if (value.length === 6) {
+                      void completeLogin(value)
+                    }
+                  }}
                   containerClassName='justify-between sm:[&>[data-slot="input-otp-group"]>div]:w-12'
                 >
                   <InputOTPGroup>
@@ -160,12 +172,10 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={otp.length < 6 || isPending}>
-          Verify
-        </Button>
         <Button
           type='button'
           variant='ghost'
+          disabled={isPending}
           onClick={() => setUseRecovery(true)}
         >
           Use a recovery code

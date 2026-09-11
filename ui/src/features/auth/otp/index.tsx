@@ -26,8 +26,8 @@ export default function Otp() {
         <CardContent>
           <OtpForm />
         </CardContent>
-        <CardFooter>
-          <p className='text-muted-foreground px-8 text-center text-sm'>
+        <CardFooter className='justify-center'>
+          <p className='text-muted-foreground text-center text-sm'>
             <Link
               to='/sign-in'
               className='hover:text-primary underline underline-offset-4'
