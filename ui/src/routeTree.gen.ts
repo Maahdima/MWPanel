@@ -27,6 +27,7 @@ import { Route as AuthenticatedPoolsIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPeersIndexRouteImport } from './routes/_authenticated/peers/index'
 import { Route as AuthenticatedInterfacesIndexRouteImport } from './routes/_authenticated/interfaces/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
+import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings/security'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 
@@ -124,6 +125,12 @@ const AuthenticatedHelpCenterIndexRoute =
     path: '/help-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsSecurityRoute =
+  AuthenticatedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
+  } as any)
 const AuthenticatedSettingsAppearanceRoute =
   AuthenticatedSettingsAppearanceRouteImport.update({
     id: '/appearance',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/interfaces/': typeof AuthenticatedInterfacesIndexRoute
   '/_authenticated/peers/': typeof AuthenticatedPeersIndexRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/security'
     | '/help-center'
     | '/interfaces'
     | '/peers'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/security'
     | '/help-center'
     | '/interfaces'
     | '/peers'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/security'
     | '/_authenticated/help-center/'
     | '/_authenticated/interfaces/'
     | '/_authenticated/peers/'
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/security': {
+      id: '/_authenticated/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof AuthenticatedSettingsSecurityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
     '/_authenticated/settings/appearance': {
       id: '/_authenticated/settings/appearance'
       path: '/appearance'
@@ -428,6 +448,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedSettingsRouteRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
@@ -435,6 +456,7 @@ const AuthenticatedSettingsRouteRouteChildren: AuthenticatedSettingsRouteRouteCh
   {
     AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
     AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+    AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
     AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   }
 

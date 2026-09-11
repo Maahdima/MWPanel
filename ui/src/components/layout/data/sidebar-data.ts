@@ -5,6 +5,7 @@ import {
   IconLink,
   IconPalette,
   IconSettings,
+  IconShieldLock,
   IconTool,
   IconUsers,
   IconWorld,
@@ -59,6 +60,11 @@ export const sidebarData: SidebarData = {
               title: 'Account',
               url: '/settings/account',
               icon: IconTool,
+            },
+            {
+              title: 'Security',
+              url: '/settings/security',
+              icon: IconShieldLock,
             },
             {
               title: 'Appearance',

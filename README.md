@@ -120,7 +120,7 @@ No PostgreSQL is required for a default install. SQLite is created automatically
 > Default admin credentials are **`mwpadmin` / `mwpadmin`**. Change them immediately.
 
 > [!IMPORTANT]
-> `ADMIN_USERNAME` and `ADMIN_PASSWORD` are used **only on the first run**, when the admin row is seeded. After that, change the account from **Settings → Account**. Setting the env vars later will not update an existing admin. Optional TOTP 2FA is also configured under **Settings → Account**.
+> `ADMIN_USERNAME` and `ADMIN_PASSWORD` are used **only on the first run**, when the admin row is seeded. After that, change the account from **Settings → Account**. Setting the env vars later will not update an existing admin. Optional TOTP 2FA is configured under **Settings → Security**.
 
 ### Binary releases
 
