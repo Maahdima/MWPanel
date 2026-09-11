@@ -239,7 +239,7 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	config, err := c.configGeneratorService.GetPeerConfig(uint(peerId))
+	config, downloadName, err := c.configGeneratorService.GetPeerConfig(uint(peerId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -256,7 +256,7 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.File(config)
+	return ctx.Attachment(config, downloadName)
 }
 
 func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {

@@ -96,7 +96,7 @@ func (u *UserController) GetUserConfig(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	config, err := u.peerConfigService.GetUserConfig(uuid)
+	config, downloadName, err := u.peerConfigService.GetUserConfig(uuid)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -113,7 +113,7 @@ func (u *UserController) GetUserConfig(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.File(config)
+	return ctx.Attachment(config, downloadName)
 }
 
 func (u *UserController) GetUserQRCode(ctx echo.Context) error {

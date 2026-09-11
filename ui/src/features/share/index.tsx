@@ -39,7 +39,7 @@ export default function PeerShare() {
       isLoading={configLoading}
       blob={
         configBlob
-          ? new Blob([configBlob], { type: 'text/plain' })
+          ? new Blob([configBlob], { type: 'application/octet-stream' })
           : undefined
       }
       peerName={stats?.name}

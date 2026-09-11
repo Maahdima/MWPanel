@@ -40,7 +40,7 @@ func NewConfigGenerator(db *gorm.DB) *ConfigGenerator {
 	}
 }
 
-func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) {
+func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, downloadName string, err error) {
 	var peer model.Peer
 
 	if err = c.db.First(&peer, "id = ?", id).Error; err != nil {
@@ -53,11 +53,11 @@ func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, err error) 
 	}
 
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
-
-	return configPath, nil
+	downloadName = confDownloadName(peer.Name)
+	return configPath, downloadName, nil
 }
 
-func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, err error) {
+func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, downloadName string, err error) {
 	var peer model.Peer
 
 	if err = c.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
@@ -71,12 +71,12 @@ func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, err err
 
 	utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
 	if !peer.IsShared {
-		return "", common.ErrPeerNotShared
+		return "", "", common.ErrPeerNotShared
 	}
 
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
-
-	return configPath, nil
+	downloadName = confDownloadName(peer.Name)
+	return configPath, downloadName, nil
 }
 
 func (c *ConfigGenerator) GetConfigByUUID(uuid string) (configPath string, err error) {
@@ -93,6 +93,22 @@ func (c *ConfigGenerator) GetConfigByUUID(uuid string) (configPath string, err e
 
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
 	return configPath, nil
+}
+
+func confDownloadName(peerName string) string {
+	name := strings.TrimSpace(peerName)
+	if name == "" {
+		name = "peer"
+	}
+	name = strings.Map(func(r rune) rune {
+		switch r {
+		case '/', '\\', ':', '*', '?', '"', '<', '>', '|':
+			return '_'
+		default:
+			return r
+		}
+	}, name)
+	return name + ".conf"
 }
 
 func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {

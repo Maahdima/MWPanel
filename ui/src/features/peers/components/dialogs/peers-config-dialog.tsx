@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Peer } from '@/schema/peers.ts'
 import { CopyIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { downloadWireGuardConfig } from '@/utils/helper.ts'
 import { usePeerConfigQuery } from '@/hooks/peers/usePeerConfigQuery.ts'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,13 +48,7 @@ export function PeersConfigDialog({
 
       if (download && !hasDownloaded.current) {
         hasDownloaded.current = true
-        const url = URL.createObjectURL(new Blob([peerConfigBlob]))
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${currentRow.name || 'peer'}.conf`
-        a.click()
-        URL.revokeObjectURL(url)
-
+        downloadWireGuardConfig(peerConfigBlob, currentRow.name)
         onOpenChange(false)
       }
     }

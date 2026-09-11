@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CopyIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { downloadWireGuardConfig } from '@/utils/helper.ts'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -43,13 +44,7 @@ export default function PeerConfigCard({
 
   const handleDownload = () => {
     if (!configText) return
-    const file = new Blob([configText], { type: 'text/plain;charset=utf-8' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(file)
-    link.download = `${peerName || 'peer'}.conf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadWireGuardConfig(configText, peerName)
   }
 
   const toggleBlur = () => {
@@ -71,38 +66,38 @@ export default function PeerConfigCard({
             <Skeleton className='mt-4 h-10 w-32' />
           </div>
         ) : (
-            <div
-              className='bg-muted relative min-h-[12rem] flex-1 cursor-pointer overflow-auto rounded-md px-4 py-3'
-              onClick={toggleBlur}
-              title={isBlurred ? 'Click to reveal' : 'Click to hide'}
+          <div
+            className='bg-muted relative min-h-[12rem] flex-1 cursor-pointer overflow-auto rounded-md px-4 py-3'
+            onClick={toggleBlur}
+            title={isBlurred ? 'Click to reveal' : 'Click to hide'}
+          >
+            <pre
+              className={`text-sm break-words whitespace-pre-wrap transition-all duration-300 ${
+                isBlurred ? 'blur-md' : 'blur-0'
+              }`}
             >
-              <pre
-                className={`text-sm break-words whitespace-pre-wrap transition-all duration-300 ${
-                  isBlurred ? 'blur-md' : 'blur-0'
-                }`}
-              >
-                <code>{configText}</code>
-              </pre>
+              <code>{configText}</code>
+            </pre>
 
-              {isBlurred && (
-                <div className='pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-black/40 font-semibold text-white'>
-                  Click to reveal
-                </div>
-              )}
+            {isBlurred && (
+              <div className='pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-black/40 font-semibold text-white'>
+                Click to reveal
+              </div>
+            )}
 
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCopy()
-                }}
-                className='absolute top-2 right-2'
-              >
-                <CopyIcon className='mr-1 h-4 w-4' />
-                Copy
-              </Button>
-            </div>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={(e) => {
+                e.stopPropagation()
+                handleCopy()
+              }}
+              className='absolute top-2 right-2'
+            >
+              <CopyIcon className='mr-1 h-4 w-4' />
+              Copy
+            </Button>
+          </div>
         )}
       </CardContent>
       {!isLoading && (

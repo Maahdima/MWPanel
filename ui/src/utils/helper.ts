@@ -53,3 +53,19 @@ export function getAvatarInitials(name: string | undefined): string {
   const single = words[0]
   return single.slice(0, 2).toUpperCase()
 }
+
+export function downloadWireGuardConfig(
+  content: BlobPart,
+  peerName?: string | null
+) {
+  const safeName = (peerName?.trim() || 'peer').replace(/[\\/:*?"<>|]+/g, '_')
+  const blob = new Blob([content], { type: 'application/octet-stream' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${safeName}.conf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
