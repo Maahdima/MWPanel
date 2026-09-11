@@ -120,7 +120,7 @@ No PostgreSQL is required for a default install. SQLite is created automatically
 > Default admin credentials are **`mwpadmin` / `mwpadmin`**. Change them immediately.
 
 > [!IMPORTANT]
-> `ADMIN_USERNAME` and `ADMIN_PASSWORD` are used **only on the first run**, when the admin row is seeded. After that, change the account from **Settings → Account**. Setting the env vars later will not update an existing admin.
+> `ADMIN_USERNAME` and `ADMIN_PASSWORD` are used **only on the first run**, when the admin row is seeded. After that, change the account from **Settings → Account**. Setting the env vars later will not update an existing admin. Optional TOTP 2FA is also configured under **Settings → Account**.
 
 ### Binary releases
 
@@ -409,7 +409,7 @@ The HTTP API is served under `/api`. Admin routes require a Bearer JWT from `POS
 
 | Prefix | Auth | Purpose |
 | --- | --- | --- |
-| `/api/auth` | Login public; profile JWT | Sign-in and admin profile |
+| `/api/auth` | Login / 2FA verify public; profile & TOTP JWT | Sign-in, optional TOTP 2FA, admin profile |
 | `/api/server` | JWT | MikroTik server CRUD |
 | `/api/interface` | JWT + live router | WireGuard interfaces |
 | `/api/ip-pool` | JWT | Address pools |
@@ -488,6 +488,7 @@ Production embeds `ui/dist`. Run `pnpm run build` in `ui/` before `go build`, or
 - [x] Stats dashboard (handshake, usage, device resources)
 - [x] Import / sync from the router
 - [x] JWT authentication
+- [x] Admin TOTP two-factor authentication (authenticator app + recovery codes)
 - [x] Light / dark theme
 - [x] Docker images (amd64, arm64, armv7)
 - [x] Single-binary releases

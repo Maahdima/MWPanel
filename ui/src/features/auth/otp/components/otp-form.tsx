@@ -1,10 +1,12 @@
-import { HTMLAttributes, useState } from 'react'
+import { HTMLAttributes, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
+import { TEMP_2FA_TOKEN_KEY } from '@/lib/auth-2fa'
+import { useAuthStore } from '@/stores/authStore.ts'
 import { cn } from '@/lib/utils'
-import { showSubmittedData } from '@/utils/show-submitted-data'
+import { useVerify2FAMutation } from '@/hooks/authentication/useVerify2FAMutation.tsx'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -14,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   InputOTP,
   InputOTPGroup,
@@ -23,40 +26,113 @@ import {
 
 type OtpFormProps = HTMLAttributes<HTMLFormElement>
 
-const formSchema = z.object({
-  otp: z.string().min(1, { message: 'Please enter your otp code.' }),
+const totpSchema = z.object({
+  otp: z.string().length(6, { message: 'Enter the 6-digit code from your app.' }),
+})
+
+const recoverySchema = z.object({
+  code: z.string().min(8, { message: 'Enter a valid recovery code.' }),
 })
 
 export function OtpForm({ className, ...props }: OtpFormProps) {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
+  const authStore = useAuthStore()
+  const [useRecovery, setUseRecovery] = useState(false)
+  const { mutateAsync: verify2FA, isPending } = useVerify2FAMutation()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  useEffect(() => {
+    const tempToken = sessionStorage.getItem(TEMP_2FA_TOKEN_KEY)
+    if (!tempToken) {
+      navigate({ to: '/sign-in' })
+    }
+  }, [navigate])
+
+  const totpForm = useForm<z.infer<typeof totpSchema>>({
+    resolver: zodResolver(totpSchema),
     defaultValues: { otp: '' },
   })
 
-  const otp = form.watch('otp')
+  const recoveryForm = useForm<z.infer<typeof recoverySchema>>({
+    resolver: zodResolver(recoverySchema),
+    defaultValues: { code: '' },
+  })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    showSubmittedData(data)
+  const otp = totpForm.watch('otp')
 
-    setTimeout(() => {
-      setIsLoading(false)
-      navigate({ to: '/' })
-    }, 1000)
+  async function completeLogin(code: string) {
+    const tempToken = sessionStorage.getItem(TEMP_2FA_TOKEN_KEY)
+    if (!tempToken) {
+      navigate({ to: '/sign-in' })
+      return
+    }
+
+    const response = await verify2FA({ temp_token: tempToken, code })
+    if (!response.access_token || !response.user_id || !response.username) {
+      return
+    }
+
+    sessionStorage.removeItem(TEMP_2FA_TOKEN_KEY)
+    authStore.auth.setAccessToken(response.access_token)
+    authStore.auth.setAdmin({
+      user_id: response.user_id,
+      username: response.username,
+    })
+    navigate({ to: '/' })
+  }
+
+  async function onTotpSubmit(data: z.infer<typeof totpSchema>) {
+    await completeLogin(data.otp)
+  }
+
+  async function onRecoverySubmit(data: z.infer<typeof recoverySchema>) {
+    await completeLogin(data.code)
+  }
+
+  if (useRecovery) {
+    return (
+      <Form {...recoveryForm}>
+        <form
+          onSubmit={recoveryForm.handleSubmit(onRecoverySubmit)}
+          className={cn('grid gap-3', className)}
+          {...props}
+        >
+          <FormField
+            control={recoveryForm.control}
+            name='code'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Recovery code</FormLabel>
+                <FormControl>
+                  <Input placeholder='XXXX-XXXX' autoComplete='off' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button className='mt-2' disabled={isPending}>
+            Verify
+          </Button>
+          <Button
+            type='button'
+            variant='ghost'
+            onClick={() => setUseRecovery(false)}
+          >
+            Use authenticator code
+          </Button>
+        </form>
+      </Form>
+    )
   }
 
   return (
-    <Form {...form}>
+    <Form {...totpForm}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={totpForm.handleSubmit(onTotpSubmit)}
         className={cn('grid gap-2', className)}
         {...props}
       >
         <FormField
-          control={form.control}
+          control={totpForm.control}
           name='otp'
           render={({ field }) => (
             <FormItem>
@@ -87,8 +163,15 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={otp.length < 6 || isLoading}>
+        <Button className='mt-2' disabled={otp.length < 6 || isPending}>
           Verify
+        </Button>
+        <Button
+          type='button'
+          variant='ghost'
+          onClick={() => setUseRecovery(true)}
+        >
+          Use a recovery code
         </Button>
       </form>
     </Form>

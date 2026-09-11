@@ -67,10 +67,15 @@ func SetupMwpAPI(
 func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, authController *AuthController) {
 	authGroup := router.Group("/auth")
 	authGroup.POST("/login", authController.Login)
+	authGroup.POST("/totp/verify", authController.Verify2FA)
 
 	authProtected := authGroup.Group("")
 	authProtected.Use(echojwt.WithConfig(jwtConfig))
 	authProtected.PUT("/profile", authController.UpdateProfile)
+	authProtected.GET("/totp", authController.GetTotpStatus)
+	authProtected.POST("/totp/setup", authController.StartTotpSetup)
+	authProtected.POST("/totp/confirm", authController.ConfirmTotpSetup)
+	authProtected.POST("/totp/disable", authController.DisableTotp)
 }
 
 func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverController *ServerController) {

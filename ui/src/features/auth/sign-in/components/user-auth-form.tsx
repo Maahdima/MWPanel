@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from '@tanstack/react-router'
 import { loginRequestSchema } from '@/schema/authentication.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { TEMP_2FA_TOKEN_KEY } from '@/lib/auth-2fa'
 import { cn } from '@/lib/utils'
 import { useLoginMutation } from '@/hooks/authentication/useLoginMutation.tsx'
 import { Button } from '@/components/ui/button'
@@ -41,19 +42,27 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   async function onSubmit(data: z.infer<typeof loginRequestSchema>) {
     const response = await loginMutation(data)
 
-    if (response) {
-      const admin = {
-        user_id: response.user_id,
-        username: response.username,
-      }
+    if (!response) return
 
-      authStore.auth.setAccessToken(response.access_token)
-      authStore.auth.setAdmin(admin)
-      
+    if (response.requires_2fa && response.temp_token) {
+      sessionStorage.setItem(TEMP_2FA_TOKEN_KEY, response.temp_token)
       form.reset()
-
-      router.navigate({ to: '/' })
+      router.navigate({ to: '/otp' })
+      return
     }
+
+    if (!response.access_token || !response.user_id || !response.username) {
+      return
+    }
+
+    authStore.auth.setAccessToken(response.access_token)
+    authStore.auth.setAdmin({
+      user_id: response.user_id,
+      username: response.username,
+    })
+
+    form.reset()
+    router.navigate({ to: '/' })
   }
 
   return (

@@ -1,8 +1,7 @@
-import { useNavigate, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 
 export default function NotFoundError() {
-  const navigate = useNavigate()
   const { history } = useRouter()
   return (
     <div className='h-svh'>
@@ -17,7 +16,6 @@ export default function NotFoundError() {
           <Button variant='outline' onClick={() => history.go(-1)}>
             Go Back
           </Button>
-          <Button onClick={() => navigate({ to: '/' })}>Back to Home</Button>
         </div>
       </div>
     </div>

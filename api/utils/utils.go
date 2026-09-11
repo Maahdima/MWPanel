@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"github.com/labstack/gommon/log"
+	"github.com/maahdima/mwp/api/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Ptr(s string) *string { return &s }
@@ -178,6 +181,38 @@ func IsPeerSharable(isShared bool, shareExpireTime *string) bool {
 	}
 
 	return true
+}
+
+func GenerateRecoveryCodes() ([]string, string, error) {
+	const recoveryCodeCount = 10
+
+	plain := make([]string, recoveryCodeCount)
+	hashes := make([]string, recoveryCodeCount)
+
+	for i := 0; i < recoveryCodeCount; i++ {
+		raw := utils.RandomString(8)
+		code := strings.ToUpper(raw[:4] + "-" + raw[4:])
+		plain[i] = code
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(NormalizeRecoveryCode(code)), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, "", err
+		}
+		hashes[i] = string(hash)
+	}
+
+	encoded, err := json.Marshal(hashes)
+	if err != nil {
+		return nil, "", err
+	}
+	return plain, string(encoded), nil
+}
+
+func NormalizeRecoveryCode(code string) string {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	code = strings.ReplaceAll(code, "-", "")
+	code = strings.ReplaceAll(code, " ", "")
+	return code
 }
 
 func RandomString(n int) string {
