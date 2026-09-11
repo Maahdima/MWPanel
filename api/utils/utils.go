@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/labstack/gommon/log"
-	"github.com/maahdima/mwp/api/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -190,7 +189,7 @@ func GenerateRecoveryCodes() ([]string, string, error) {
 	hashes := make([]string, recoveryCodeCount)
 
 	for i := 0; i < recoveryCodeCount; i++ {
-		raw := utils.RandomString(8)
+		raw := RandomString(8)
 		code := strings.ToUpper(raw[:4] + "-" + raw[4:])
 		plain[i] = code
 
