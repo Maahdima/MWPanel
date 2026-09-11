@@ -40,7 +40,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	e.Use(middleware.CORS())
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
-	http.SetupMwpUI(e, appCfg.UIAssetsFs)
+	http.SetupMwpUI(e, appCfg.UIAssetsFs, appCfg.AdminPanelPath)
 	http.SetupMwpAPI(
 		e,
 		mwpClients,

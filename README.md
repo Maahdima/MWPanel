@@ -114,7 +114,7 @@ No PostgreSQL is required for a default install. SQLite is created automatically
 ## Getting started
 
 > [!TIP]
-> The web panel listens on **port `3000`** by default.
+> The web panel listens on **port `3000`** by default. Open `http://localhost:3000` (or `http://localhost:3000{ADMIN_PANEL_PATH}/sign-in` if you set a custom panel path).
 
 > [!CAUTION]
 > Default admin credentials are **`mwpadmin` / `mwpadmin`**. Change them immediately.
@@ -305,6 +305,7 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 | --- | --- | --- |
 | `ADMIN_USERNAME` | Seeded admin username (first run only) | `mwpadmin` |
 | `ADMIN_PASSWORD` | Seeded admin password (first run only) | `mwpadmin` |
+| `ADMIN_PANEL_PATH` | Obscure admin UI path (e.g. `/my-panel`). Empty keeps admin at `/`. Public share links stay at `/share`. Restart required after change. | _(empty)_ |
 | `AUTH_ACCESS_TOKEN_TTL` | Access token lifetime, seconds | `900` |
 | `AUTH_REFRESH_TOKEN_TTL` | Refresh token lifetime, seconds | `86400` |
 
@@ -327,7 +328,7 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 
 ## Usage
 
-1. **Sign in** at `http://localhost:3000` with the panel admin (not the MikroTik user).
+1. **Sign in** at `http://localhost:3000` (or `http://localhost:3000{ADMIN_PANEL_PATH}/sign-in`) with the panel admin (not the MikroTik user).
 2. **Add a server** under **Servers** — router IP, REST port, username, and password. MWP verifies the connection against `/rest/system/identity`.
 3. **Interfaces** — create a WireGuard interface or **sync** ones that already exist on the router.
 4. **Pools** — define the IPv4 range used when allocating peer addresses.
@@ -450,6 +451,7 @@ Stack: **Go (Echo, GORM, Zap, JWT)** · **React 19, TypeScript, Vite, Tailwind, 
 - Change the default admin password before exposing the panel.
 - Give MikroTik a dedicated user with only the rights MWP needs; do not reuse the full `admin` account if you can avoid it.
 - Prefer HTTPS to the panel (`443` / `8443`, or a reverse proxy) and HTTPS (`www-ssl`) to the router when the path is untrusted.
+- Optionally set `ADMIN_PANEL_PATH` (e.g. `/my-panel`) so the admin UI is not at `/` or `/sign-in`. Bookmark `https://your-host/my-panel/sign-in`. Public share URLs stay at `/share`.
 - Treat share links as secrets. Disable sharing or set a share expiry when a config should no longer be public.
 - `ADMIN_*` env vars are not a password-reset mechanism. Use the account settings page.
 - Keep MWP and RouterOS updated; REST access to the router is equivalent to control of WireGuard on that device.

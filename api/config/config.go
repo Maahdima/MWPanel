@@ -1,10 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -23,6 +25,7 @@ type AppConfig struct {
 	PeerFilesDir       string
 	TrafficJobInterval string
 	SessionJobInterval string
+	AdminPanelPath     string
 }
 
 type DBConfig struct {
@@ -50,6 +53,30 @@ type TelegramConfig struct {
 	ApiBaseURL string
 }
 
+var (
+	adminPanelPathPattern   = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	reservedAdminPanelPaths = map[string]struct{}{
+		"api":             {},
+		"share":           {},
+		"assets":          {},
+		"images":          {},
+		"sign-in":         {},
+		"otp":             {},
+		"forgot-password": {},
+		"settings":        {},
+		"servers":         {},
+		"interfaces":      {},
+		"pools":           {},
+		"peers":           {},
+		"help-center":     {},
+		"401":             {},
+		"403":             {},
+		"404":             {},
+		"500":             {},
+		"503":             {},
+	}
+)
+
 func init() {
 	_ = loadEnv()
 }
@@ -69,6 +96,11 @@ func GetAppConfig() AppConfig {
 		log.Fatalf("Failed to create data directory: %v", err)
 	}
 
+	adminPanelPath, err := NormalizeAdminPanelPath(getEnv("ADMIN_PANEL_PATH", ""))
+	if err != nil {
+		log.Fatalf("Invalid ADMIN_PANEL_PATH: %v", err)
+	}
+
 	return AppConfig{
 		Mode:               getEnv("MODE", "production"),
 		Host:               getEnv("SERVER_HOST", "0.0.0.0"),
@@ -79,6 +111,7 @@ func GetAppConfig() AppConfig {
 		DataDirPath:        dataDir,
 		TrafficJobInterval: getEnv("TRAFFIC_JOB_INTERVAL", "300"),
 		SessionJobInterval: getEnv("SESSION_JOB_INTERVAL", "30"),
+		AdminPanelPath:     adminPanelPath,
 	}
 }
 
@@ -137,6 +170,35 @@ func getEnvBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return value == "1" || value == "true" || value == "yes" || value == "y"
+}
+
+// NormalizeAdminPanelPath returns "" for root, or a path like "/my-panel".
+func NormalizeAdminPanelPath(raw string) (string, error) {
+	path := strings.TrimSpace(raw)
+	if path == "" || path == "/" {
+		return "", nil
+	}
+
+	path = "/" + strings.Trim(path, "/")
+	segment := strings.TrimPrefix(path, "/")
+	if segment == "" {
+		return "", nil
+	}
+
+	if strings.Contains(segment, "/") {
+		return "", fmt.Errorf("only a single path segment is allowed")
+	}
+	if len(segment) < 2 || len(segment) > 64 {
+		return "", fmt.Errorf("length must be between 2 and 64 characters")
+	}
+	if !adminPanelPathPattern.MatchString(segment) {
+		return "", fmt.Errorf("use only letters, numbers, underscores, and hyphens")
+	}
+	if _, reserved := reservedAdminPanelPaths[strings.ToLower(segment)]; reserved {
+		return "", fmt.Errorf("%q is reserved", segment)
+	}
+
+	return "/" + segment, nil
 }
 
 func loadEnv() error {
