@@ -944,6 +944,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		AllowedAddress:    peer.AllowedAddress,
 		TrafficLimit:      trafficLimit,
 		ExpireTime:        peer.ExpireTime,
+		CreatedAt:         utils.FormatUnixTime(int64(peer.CreatedAt)),
 		DownloadBandwidth: peer.DownloadBandwidth,
 		UploadBandwidth:   peer.UploadBandwidth,
 		TotalUsage:        utils.BytesToGB(peer.DownloadUsage + peer.UploadUsage),

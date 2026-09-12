@@ -20,6 +20,7 @@ export const PeerSchema = z.object({
   allowed_address: z.string(),
   traffic_limit: z.string().nullable(),
   expire_time: z.string().nullable(),
+  created_at: z.string(),
   download_bandwidth: z.string().nullable(),
   upload_bandwidth: z.string().nullable(),
   total_usage: z.string(),

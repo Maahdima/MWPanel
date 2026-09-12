@@ -92,6 +92,7 @@ type PeerResponse struct {
 	AllowedAddress    string       `json:"allowed_address"`
 	TrafficLimit      *string      `json:"traffic_limit"`
 	ExpireTime        *string      `json:"expire_time"`
+	CreatedAt         string       `json:"created_at"`
 	DownloadBandwidth *string      `json:"download_bandwidth"`
 	UploadBandwidth   *string      `json:"upload_bandwidth"`
 	TotalUsage        string       `json:"total_usage"`

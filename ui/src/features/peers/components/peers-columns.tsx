@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { IconRestore } from '@tabler/icons-react'
+import { format, parseISO } from 'date-fns'
 import { Peer, PeerStatus } from '@/schema/peers.ts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -234,6 +235,25 @@ export const peersColumns: ColumnDef<Peer>[] = [
           <ColoredBadge color='green' text='linked' />
         </div>
       )
+    },
+    meta: {
+      className: cn('border-l border-r'),
+    },
+  },
+  {
+    accessorKey: 'created_at',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Created' />
+    ),
+    cell: ({ row }) => {
+      const { created_at } = row.original
+      let label = created_at
+      try {
+        label = format(parseISO(created_at), 'yyyy-MM-dd')
+      } catch {
+        // keep raw value
+      }
+      return <div className='w-fit text-nowrap'>{label}</div>
     },
     meta: {
       className: cn('border-l border-r'),
