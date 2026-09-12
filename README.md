@@ -103,8 +103,8 @@ Typical first-run path:
 
 | Component | Notes |
 | --- | --- |
-| **MikroTik RouterOS 7+** | REST API must be enabled (`/ip/service` → `www` or `www-ssl`). The panel user needs rights to manage WireGuard, simple queues, and schedulers. |
-| **Network path** | MWP must reach the router on the REST port (commonly `80` or `443`). |
+| **MikroTik RouterOS 7+** | The panel talks to the router over the REST API. On the router, enable **`www`** (`/ip/service` → `www`, typically port `80`) for plain HTTP, or **`www-ssl`** (`www-ssl`, typically port `443`) when using TLS to the router. At least one of these must be on for MWP to work. The panel user needs rights to manage WireGuard, simple queues, and schedulers. |
+| **Network path** | MWP must reach the router on the REST port you enabled (`80` for `www`, `443` for `www-ssl`, or whatever custom ports you set). |
 | **Runtime** | A binary, Docker, or Go 1.24+ if you build from source. |
 
 No PostgreSQL is required for a default install. SQLite is created automatically under the data directory.
@@ -178,6 +178,9 @@ docker pull ghcr.io/maahdima/mwp:latest
 and use `ghcr.io/maahdima/mwp:latest` as the image name.
 
 Images are published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`.
+
+> [!IMPORTANT]
+> If MWP runs in Docker, the **Docker network MTU must match the host Ethernet interface MTU**. A mismatch (common on cloud VMs, VPS hosts, or custom bridges) can cause flaky or broken REST calls to the router even when the container itself looks healthy. Check the host with `ip link show` (or `ifconfig`), then set the same MTU on Docker — for example via `daemon.json` `"mtu": <value>`, Compose `network_mode` / custom networks with `driver_opts: com.docker.network.driver.mtu`, or `--mtu` when creating the network.
 
 ### Docker Compose
 
@@ -464,7 +467,7 @@ Stack: **Go (Echo, GORM, Zap, JWT)** · **React 19, TypeScript, Vite, Tailwind, 
 The seed runs only when no admin exists. Change the password in the UI, or (last resort) clear the admin table / SQLite file if this is a disposable install.
 
 **`Client is not connected to the server` (HTTP 503)**  
-No reachable MikroTik is configured, the REST service is off, the port/IP is wrong, or credentials failed. Confirm `/rest/system/identity` from the MWP host.
+No reachable MikroTik is configured, the REST service is off (`www` / `www-ssl`), the port/IP is wrong, or credentials failed. Confirm `/rest/system/identity` from the MWP host. If MWP is in Docker and connectivity is intermittent, also verify the Docker MTU matches the host Ethernet MTU.
 
 **Peers exist on the router but not in the panel**  
 Use **Sync** on the Interfaces and Peers pages to import selected items.
