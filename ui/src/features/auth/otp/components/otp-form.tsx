@@ -39,6 +39,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
   const authStore = useAuthStore()
   const [useRecovery, setUseRecovery] = useState(false)
   const submittingRef = useRef(false)
+  const otpInputRef = useRef<HTMLInputElement>(null)
   const { mutateAsync: verify2FA, isPending } = useVerify2FAMutation()
 
   useEffect(() => {
@@ -47,6 +48,19 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
       navigate({ to: '/sign-in' })
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (useRecovery || isPending) return
+
+    const focusOtp = () => otpInputRef.current?.focus()
+    const frame = requestAnimationFrame(focusOtp)
+    const timer = window.setTimeout(focusOtp, 50)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [useRecovery, isPending])
 
   const totpForm = useForm<z.infer<typeof totpSchema>>({
     resolver: zodResolver(totpSchema),
@@ -144,6 +158,8 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
               <FormLabel className='sr-only'>One-Time Password</FormLabel>
               <FormControl>
                 <InputOTP
+                  ref={otpInputRef}
+                  autoFocus
                   maxLength={6}
                   value={field.value}
                   disabled={isPending}
