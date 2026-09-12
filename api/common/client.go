@@ -141,6 +141,7 @@ func (c *MwpClients) SetClient(serverData *schema.CreateServerRequest) {
 		Username:           serverData.Username,
 		Password:           serverData.Password,
 		InsecureSkipVerify: !isSSL,
+		Timeout:            30 * time.Second,
 	})
 	if err != nil {
 		c.logger.Panic("Failed to create HTTP client", zap.Error(err))
@@ -166,6 +167,7 @@ func (c *MwpClients) InitClient() {
 			Username:           server.Username,
 			Password:           server.Password,
 			InsecureSkipVerify: true,
+			Timeout:            30 * time.Second,
 		})
 		if err != nil {
 			c.logger.Panic("Failed to create HTTP client", zap.Error(err))

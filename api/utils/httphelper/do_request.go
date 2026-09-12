@@ -38,9 +38,6 @@ func NewClient(config Config) (*Client, error) {
 	if config.BaseURL == "" {
 		return nil, fmt.Errorf("BaseURL is a required configuration field")
 	}
-	if config.Timeout == 0 {
-		config.Timeout = 5 * time.Second
-	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 
