@@ -66,15 +66,36 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 		return nil, err
 	}
 
-	var dailyTrafficUsages []schema.DailyTrafficUsageResponse
+	type dayTotals struct {
+		download int64
+		upload   int64
+		total    int64
+	}
+	totalsByDate := make(map[string]*dayTotals)
+	dateOrder := make([]string, 0)
+
 	for _, data := range trafficData {
-		dailyUsage := schema.DailyTrafficUsageResponse{
-			Date:          time.Unix(int64(data.CreatedAt), 0).Format("2006-01-02"),
-			DownloadUsage: utils.BytesToGB(data.DownloadUsage),
-			UploadUsage:   utils.BytesToGB(data.UploadUsage),
-			TotalUsage:    utils.BytesToGB(data.TotalUsage),
+		date := time.Unix(int64(data.CreatedAt), 0).Format("2006-01-02")
+		totals, exists := totalsByDate[date]
+		if !exists {
+			totals = &dayTotals{}
+			totalsByDate[date] = totals
+			dateOrder = append(dateOrder, date)
 		}
-		dailyTrafficUsages = append(dailyTrafficUsages, dailyUsage)
+		totals.download += data.DownloadUsage
+		totals.upload += data.UploadUsage
+		totals.total += data.TotalUsage
+	}
+
+	dailyTrafficUsages := make([]schema.DailyTrafficUsageResponse, 0, len(dateOrder))
+	for _, date := range dateOrder {
+		totals := totalsByDate[date]
+		dailyTrafficUsages = append(dailyTrafficUsages, schema.DailyTrafficUsageResponse{
+			Date:          date,
+			DownloadUsage: utils.BytesToGB(totals.download),
+			UploadUsage:   utils.BytesToGB(totals.upload),
+			TotalUsage:    utils.BytesToGB(totals.total),
+		})
 	}
 
 	return &dailyTrafficUsages, nil

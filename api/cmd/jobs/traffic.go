@@ -2,7 +2,6 @@ package traffic
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"sync"
 
@@ -82,27 +81,35 @@ func (c *Calculator) CalculateDailyTraffic() {
 			continue
 		}
 
+		// MikroTik tx-byte is traffic sent by the interface (download for peers),
+		// rx-byte is traffic received (upload from peers).
 		currentDownload := utils.ParseStringToInt(wgInterface.TxByte)
 		currentUpload := utils.ParseStringToInt(wgInterface.RxByte)
-		currentTotal := currentDownload + currentUpload
 
-		var lastTraffic model.Traffic
-		err = c.db.
-			Where("interface_id = ?", iface.ID).
-			Order("created_at DESC").
-			First(&lastTraffic).Error
+		var diffDownload, diffUpload int64
+		if iface.DailyTrafficReady {
+			diffDownload = interfaceDailyDelta(iface.LastTx, currentDownload)
+			diffUpload = interfaceDailyDelta(iface.LastRx, currentUpload)
+		}
 
-		var diffDownload, diffUpload, diffTotal int64
-		if err == nil {
-			diffDownload = currentDownload - lastTraffic.DownloadUsage
-			diffUpload = currentUpload - lastTraffic.UploadUsage
-			diffTotal = currentTotal - lastTraffic.TotalUsage
-		} else if errors.Is(err, gorm.ErrRecordNotFound) {
-			diffDownload = currentDownload
-			diffUpload = currentUpload
-			diffTotal = currentTotal
-		} else {
-			c.logger.Error("Failed to fetch previous traffic record", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+		if err := c.db.Model(&model.Interface{}).
+			Where("id = ?", iface.ID).
+			Updates(map[string]interface{}{
+				"last_tx":             currentDownload,
+				"last_rx":             currentUpload,
+				"daily_traffic_ready": true,
+			}).Error; err != nil {
+			c.logger.Error("Failed to update interface traffic counters", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
+			continue
+		}
+
+		// First sample after deploy/reset only establishes the baseline.
+		if !iface.DailyTrafficReady {
+			c.logger.Info("Established daily traffic baseline",
+				zap.String("interfaceID", iface.InterfaceID),
+				zap.Int64("lastTx", currentDownload),
+				zap.Int64("lastRx", currentUpload),
+			)
 			continue
 		}
 
@@ -110,7 +117,7 @@ func (c *Calculator) CalculateDailyTraffic() {
 			InterfaceID:   iface.ID,
 			DownloadUsage: diffDownload,
 			UploadUsage:   diffUpload,
-			TotalUsage:    diffTotal,
+			TotalUsage:    diffDownload + diffUpload,
 		}
 
 		if err := c.db.Create(&newTraffic).Error; err != nil {
@@ -120,6 +127,15 @@ func (c *Calculator) CalculateDailyTraffic() {
 	}
 
 	c.logger.Info("Daily traffic calculation completed")
+}
+
+// interfaceDailyDelta returns bytes transferred since the previous absolute counter.
+// A drop in the counter is treated as a reset (reboot / interface recreate).
+func interfaceDailyDelta(prev, current int64) int64 {
+	if current >= prev {
+		return current - prev
+	}
+	return current
 }
 
 func (c *Calculator) ResetPeerUsage(id uint) error {

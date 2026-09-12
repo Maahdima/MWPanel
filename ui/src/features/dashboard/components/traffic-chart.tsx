@@ -230,7 +230,7 @@ export function TrafficChart() {
                 type='natural'
                 fill='url(#fillTotal)'
                 stroke='var(--color-total)'
-                stackId='a'
+                fillOpacity={0}
               />
 
               <ChartLegend content={<ChartLegendContent />} />
