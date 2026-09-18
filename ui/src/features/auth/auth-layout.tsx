@@ -6,11 +6,11 @@ interface Props {
 
 export default function AuthLayout({ children }: Props) {
   return (
-    <div className='bg-primary-foreground container grid h-svh max-w-none items-center justify-center'>
-      <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:w-[480px] sm:p-8'>
+    <div className='bg-primary-foreground flex min-h-svh w-full items-center justify-center px-4 py-8'>
+      <div className='flex w-full min-w-0 flex-col justify-center space-y-2 sm:w-[32rem] lg:w-[36rem]'>
         <div className='mb-4 flex items-center justify-center gap-3'>
-          <IconRoute />
-          <h1 className='text-xl font-medium'>MWPanel</h1>
+          <IconRoute className='size-6' />
+          <h1 className='text-xl font-medium sm:text-2xl'>MWPanel</h1>
         </div>
         {children}
       </div>

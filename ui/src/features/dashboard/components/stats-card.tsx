@@ -12,7 +12,7 @@ type StatsCardProps = {
 export function StatsCard({ title, icon, value, isLoading }: StatsCardProps) {
   return (
     <Card className='border-border/60 py-0'>
-      <CardContent className='flex items-center gap-5 px-6 py-5'>
+      <CardContent className='flex items-center gap-4 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5'>
         <div className='bg-white/10 text-white flex size-11 shrink-0 items-center justify-center rounded-lg [&>svg]:size-5'>
           {icon}
         </div>

@@ -169,7 +169,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
                       void completeLogin(value)
                     }
                   }}
-                  containerClassName='justify-between sm:[&>[data-slot="input-otp-group"]>div]:w-12'
+                  containerClassName='justify-center gap-1.5 sm:justify-between sm:gap-2 sm:[&>[data-slot="input-otp-group"]>div]:w-12'
                 >
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />

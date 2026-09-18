@@ -175,7 +175,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
           actionText='Confirm Reset'
           mutateAsync={handleResetUsage}
           trigger={
-            <div className='min-w-[140px] text-nowrap'>
+            <div className='min-w-0 text-nowrap'>
               <div className='flex items-center gap-3'>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -284,7 +284,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
     cell: ({ row }) => {
       const { download_bandwidth, upload_bandwidth } = row.original
       return (
-        <div className='w-fit min-w-[150px] text-nowrap'>
+        <div className='w-fit min-w-0 text-nowrap'>
           {row.original ? (
             <div className='text-foreground flex items-center gap-2 text-sm'>
               <div className='flex items-center gap-1'>

@@ -67,7 +67,7 @@ export function AppearanceForm() {
                   <select
                     className={cn(
                       buttonVariants({ variant: 'outline' }),
-                      'w-[200px] appearance-none font-normal capitalize',
+                      'w-full max-w-[200px] appearance-none font-normal capitalize',
                       'dark:bg-background dark:hover:bg-background'
                     )}
                     {...field}
@@ -101,7 +101,7 @@ export function AppearanceForm() {
               <RadioGroup
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                className='grid max-w-md grid-cols-2 gap-8 pt-2'
+                className='grid max-w-md grid-cols-1 gap-4 pt-2 sm:grid-cols-2 sm:gap-8'
               >
                 <FormItem>
                   <FormLabel className='[&:has([data-state=checked])>div]:border-primary'>

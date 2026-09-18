@@ -11,14 +11,14 @@ import { ForgotPasswordForm } from './components/forgot-password-form'
 export default function ForgotPassword() {
   return (
     <AuthLayout>
-      <Card className='gap-4'>
+      <Card className='w-full gap-4'>
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>
             Forgot Password
           </CardTitle>
           <CardDescription>
-            Enter your registered email and <br /> we will send you a link to
-            reset your password.
+            Enter your registered email and we will send you a link to reset
+            your password.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -22,15 +22,12 @@ export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {
   return (
-    <div
-      className='flex items-center justify-between overflow-clip px-2'
-      style={{ overflowClipMargin: 1 }}
-    >
+    <div className='flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between sm:overflow-clip sm:px-2'>
       <div className='text-muted-foreground hidden flex-1 text-sm sm:block'>
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
-      <div className='flex items-center sm:space-x-6 lg:space-x-8'>
+      <div className='flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end sm:space-x-6 lg:space-x-8'>
         <div className='flex items-center space-x-2'>
           <p className='hidden text-sm font-medium sm:block'>Rows per page</p>
           <Select
@@ -51,7 +48,7 @@ export function DataTablePagination<TData>({
             </SelectContent>
           </Select>
         </div>
-        <div className='flex w-[100px] items-center justify-center text-sm font-medium'>
+        <div className='flex min-w-0 items-center justify-center text-sm font-medium sm:w-[100px]'>
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getPageCount()}
         </div>

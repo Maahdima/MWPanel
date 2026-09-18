@@ -34,7 +34,7 @@ export function ActionDialog<T>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-lg'>
+      <DialogContent className='max-h-[min(90dvh,100svh)] overflow-y-auto sm:max-w-lg md:max-w-2xl'>
         <DialogHeader className='text-left'>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

@@ -54,7 +54,7 @@ export function PeersSyncDialog() {
 
   return (
     <Dialog open={enabled} onOpenChange={(value) => !value && setOpen(null)}>
-      <DialogContent className='max-w-4xl'>
+      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>Sync Peers</DialogTitle>
           <DialogDescription>
@@ -62,8 +62,8 @@ export function PeersSyncDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='space-y-4'>
-          <div className='max-w-sm'>
+        <div className='min-h-0 flex-1 space-y-4 overflow-hidden'>
+          <div className='w-full max-w-sm'>
             <Select value={selectedInterface} onValueChange={setSelectedInterface}>
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Filter by interface' />
@@ -79,7 +79,7 @@ export function PeersSyncDialog() {
             </Select>
           </div>
 
-          <div className='max-h-[60vh] overflow-auto rounded-md border'>
+          <div className='max-h-[50vh] overflow-auto rounded-md border sm:max-h-[60vh]'>
             <Table>
               <TableHeader>
                 <TableRow>

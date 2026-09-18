@@ -14,7 +14,7 @@ export default function Settings() {
       {/* ===== Top Heading ===== */}
       <Header>
         <Search />
-        <div className='ml-auto flex items-center space-x-4'>
+        <div className='ml-auto flex shrink-0 items-center gap-2 sm:gap-4'>
           <ThemeSwitch />
           <ProfileDropdown />
         </div>
@@ -28,11 +28,11 @@ export default function Settings() {
           <p className='text-muted-foreground'>Manage your account settings</p>
         </div>
         <Separator className='my-4 lg:my-6' />
-        <div className='flex flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
+        <div className='flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
           <aside className='top-0 lg:sticky lg:w-1/5'>
             <SidebarNav items={sidebarNavItems} />
           </aside>
-          <div className='flex w-full overflow-y-hidden p-1'>
+          <div className='flex min-h-0 w-full min-w-0 flex-1 overflow-y-auto p-1'>
             <Outlet />
           </div>
         </div>

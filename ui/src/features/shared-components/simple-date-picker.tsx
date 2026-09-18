@@ -53,7 +53,7 @@ export function SimpleDatepicker({
         )}
       </div>
 
-      <PopoverContent className='rounded-md p-0 shadow-md'>
+      <PopoverContent className='w-auto max-w-[calc(100vw-2rem)] p-0 shadow-md'>
         <Calendar
           mode='single'
           hidden={{ before: minDate }}

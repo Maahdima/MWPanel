@@ -92,7 +92,7 @@ export function TwoFactorForm() {
             <li key={code}>{code}</li>
           ))}
         </ul>
-        <div className='flex gap-2'>
+        <div className='flex flex-wrap gap-2'>
           <Button type='button' onClick={copyRecoveryCodes}>
             Copy codes
           </Button>
@@ -117,7 +117,7 @@ export function TwoFactorForm() {
         <img
           src={setup.qr_code_data_url}
           alt='TOTP QR code'
-          className='border-border size-48 rounded-md border bg-white p-2'
+          className='border-border size-48 max-w-full rounded-md border bg-white p-2'
         />
         <p className='text-muted-foreground text-xs break-all'>
           Manual secret: <span className='font-mono'>{setup.secret}</span>
@@ -140,7 +140,7 @@ export function TwoFactorForm() {
                 </FormItem>
               )}
             />
-            <div className='flex gap-2'>
+            <div className='flex flex-wrap gap-2'>
               <Button type='submit' disabled={confirmSetup.isPending}>
                 Enable 2FA
               </Button>
@@ -196,7 +196,7 @@ export function TwoFactorForm() {
                   </FormItem>
                 )}
               />
-              <div className='flex gap-2'>
+              <div className='flex flex-wrap gap-2'>
                 <Button
                   type='submit'
                   variant='destructive'

@@ -38,7 +38,7 @@ export default function SidebarNav({
     <>
       <div className='p-1 md:hidden'>
         <Select value={val} onValueChange={handleSelect}>
-          <SelectTrigger className='h-12 sm:w-48'>
+          <SelectTrigger className='h-12 w-full sm:w-48'>
             <SelectValue placeholder='Theme' />
           </SelectTrigger>
           <SelectContent>

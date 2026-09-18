@@ -115,11 +115,12 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
                     <LinkIcon className='h-4 w-4 opacity-60' />
                     Share Link
                   </Label>
-                  <div className='flex items-center gap-2'>
-                    <Input value={shareLink ?? ''} readOnly />
+                  <div className='flex min-w-0 items-center gap-2'>
+                    <Input className='min-w-0' value={shareLink ?? ''} readOnly />
                     <Button
                       variant='outline'
                       size='icon'
+                      className='shrink-0'
                       onClick={() =>
                         handleCopy(shareLink, 'Share link copied to clipboard')
                       }

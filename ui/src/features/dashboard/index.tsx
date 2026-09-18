@@ -22,8 +22,10 @@ export default function Dashboard() {
     <>
       {/* ===== Top Heading ===== */}
       <Header>
-        <h1 className='text-2xl font-bold tracking-tight'>Dashboard</h1>
-        <div className='ml-auto flex items-center space-x-4'>
+        <h1 className='hidden truncate text-lg font-bold tracking-tight sm:block sm:text-2xl'>
+          Dashboard
+        </h1>
+        <div className='ml-auto flex min-w-0 items-center gap-2 sm:gap-4'>
           <Search />
           <ThemeSwitch />
           <ProfileDropdown />
@@ -32,8 +34,8 @@ export default function Dashboard() {
 
       {/* ===== Main ===== */}
       <Main>
-        <div className='mb-2 flex items-center justify-between space-y-2 pb-2'>
-          <h1 className='text-2xl font-bold tracking-tight'>
+        <div className='mb-2 flex flex-wrap items-center justify-between gap-2 pb-2'>
+          <h1 className='text-xl font-bold tracking-tight sm:text-2xl'>
             Servers/Clients Summary
           </h1>
         </div>

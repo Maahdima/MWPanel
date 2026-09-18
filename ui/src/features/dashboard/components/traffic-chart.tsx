@@ -55,15 +55,15 @@ export function TrafficChart() {
 
   return (
     <Card className='col-span-1 flex flex-col pt-0 lg:col-span-5'>
-      <CardHeader className='flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row'>
-        <div className='grid flex-1 gap-1'>
+      <CardHeader className='flex flex-col items-stretch gap-2 space-y-0 border-b py-4 sm:flex-row sm:items-center sm:py-5'>
+        <div className='grid min-w-0 flex-1 gap-1'>
           <CardTitle>
-            <h2 className='mb-4 text-lg font-semibold'>Daily Traffic Usage</h2>
+            <h2 className='mb-0 text-lg font-semibold'>Daily Traffic Usage</h2>
           </CardTitle>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger
-            className='hidden w-[160px] rounded-lg sm:ml-auto sm:flex'
+            className='w-full rounded-lg sm:ml-auto sm:w-[160px]'
             aria-label='Select a value'
           >
             <SelectValue placeholder='Last 3 months' />

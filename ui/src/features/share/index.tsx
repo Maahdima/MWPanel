@@ -55,14 +55,14 @@ export default function PeerShare() {
   }
 
   return (
-    <div className='max-w-8xl mx-auto space-y-4 p-6'>
+    <div className='mx-auto max-w-8xl space-y-4 p-4 sm:p-6'>
       <div className='space-y-3 text-center'>
         <div className='text-primary flex items-center justify-center gap-2'>
-          <IconRoute className='h-6 w-6' />
-          <h1 className='text-3xl font-bold'>MWPanel</h1>
-          <IconRoute className='h-6 w-6' />
+          <IconRoute className='h-5 w-5 sm:h-6 sm:w-6' />
+          <h1 className='text-2xl font-bold sm:text-3xl'>MWPanel</h1>
+          <IconRoute className='h-5 w-5 sm:h-6 sm:w-6' />
         </div>
-        <h2 className='text-foreground text-xl font-semibold'>
+        <h2 className='text-foreground px-1 text-lg font-semibold break-words sm:text-xl'>
           Welcome to your panel{stats?.name ? `: ${stats.name}` : ''}
         </h2>
         <p className='text-muted-foreground text-sm'>

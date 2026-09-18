@@ -16,7 +16,7 @@ export function InterfacesPrimaryButtons({
   const { setOpen } = useInterfaces()
 
   return (
-    <div className='flex gap-2'>
+    <div className='flex flex-wrap items-center gap-2'>
       <div className='inline-flex w-fit -space-x-px rounded-md shadow-xs rtl:space-x-reverse'>
         <Button
           variant='outline'

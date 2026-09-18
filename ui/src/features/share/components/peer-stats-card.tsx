@@ -55,13 +55,13 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
           </div>
         ) : (
           <div className='space-y-4 pt-2 text-sm'>
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <PowerIcon className='h-4 w-4' />
                 Config Status
               </span>
-              <span>
-                <div className='flex items-center gap-2 text-sm font-medium'>
+              <span className='min-w-0 text-right'>
+                <div className='flex items-center justify-end gap-2 text-sm font-medium'>
                   <IconCircleFilled
                     className={clsx('h-3 w-3', configStatusColor)}
                   />
@@ -72,13 +72,13 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
               </span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <EthernetPortIcon className='h-4 w-5' />
                 Connection Status
               </span>
-              <span>
-                <div className='flex items-center gap-2 text-sm font-medium'>
+              <span className='min-w-0 text-right'>
+                <div className='flex items-center justify-end gap-2 text-sm font-medium'>
                   <IconCircleFilled className={clsx('h-3 w-3', statusColor)} />
                   <span className={clsx('capitalize', statusColor)}>
                     {status}
@@ -87,52 +87,52 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
               </span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <WifiHighIcon className='h-5 w-5' />
                 Traffic Limit
               </span>
-              <span>
+              <span className='min-w-0 text-right'>
                 {stats?.traffic_limit
                   ? `${stats.traffic_limit} GB`
                   : 'Unlimited'}
               </span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <ClockFadingIcon className='h-4 w-4' />
                 Expire Time
               </span>
-              <span>
+              <span className='min-w-0 text-right break-words'>
                 {stats?.expire_time
                   ? `${stats?.expire_time} (${remainingDays(stats?.expire_time)} Days)`
                   : 'Never'}
               </span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <ArrowDownIcon className='h-4 w-4' />
                 Download
               </span>
-              <span>{stats?.download_usage ?? 0} GB</span>
+              <span className='min-w-0 text-right'>{stats?.download_usage ?? 0} GB</span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <ArrowUpIcon className='h-4 w-4' />
                 Upload
               </span>
-              <span>{stats?.upload_usage ?? 0} GB</span>
+              <span className='min-w-0 text-right'>{stats?.upload_usage ?? 0} GB</span>
             </div>
 
-            <div className='text-foreground flex items-center justify-between font-semibold'>
-              <span className='flex items-center gap-2'>
+            <div className='text-foreground flex items-center justify-between gap-3 font-semibold'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <GaugeIcon className='h-4 w-4' />
                 Total Used
               </span>
-              <span>
+              <span className='min-w-0 text-right'>
                 {stats?.total_usage ?? 0} GB{' '}
                 {stats?.traffic_limit ? `(${stats.usage_percent}%)` : ''}
               </span>

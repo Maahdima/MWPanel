@@ -23,16 +23,16 @@ export default function Interfaces() {
     <InterfacesProvider>
       <Header fixed>
         <Search />
-        <div className='ml-auto flex items-center space-x-4'>
+        <div className='ml-auto flex shrink-0 items-center gap-2 sm:gap-4'>
           <ThemeSwitch />
           <ProfileDropdown />
         </div>
       </Header>
 
       <Main>
-        <div className='mb-2 flex flex-wrap items-center justify-between space-y-2'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Interfaces</h2>
+        <div className='mb-2 flex flex-wrap items-center justify-between gap-2 space-y-2'>
+          <div className='min-w-0'>
+            <h2 className='text-xl font-bold tracking-tight sm:text-2xl'>Interfaces</h2>
             <p className='text-muted-foreground'>Manage your interfaces here</p>
           </div>
           <InterfacesPrimaryButtons

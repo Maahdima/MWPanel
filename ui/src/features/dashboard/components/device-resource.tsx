@@ -17,13 +17,17 @@ export default function DeviceResource({ stats }: Props) {
           {items.map(({ label, value }, idx) => (
             <div
               key={idx}
-              className='flex items-start justify-between border-b border-white/10 py-4'
+              className='flex items-start justify-between gap-3 border-b border-white/10 py-4'
             >
-              <span className='text-sm font-medium text-gray-300'>{label}</span>
-              <div className='flex flex-col items-end text-sm'>
+              <span className='shrink-0 text-sm font-medium text-gray-300'>
+                {label}
+              </span>
+              <div className='flex min-w-0 flex-col items-end text-sm'>
                 <span
                   className={
-                    value === 'N/A' ? 'text-muted-foreground' : 'text-white'
+                    value === 'N/A'
+                      ? 'text-muted-foreground'
+                      : 'max-w-full break-all text-white'
                   }
                 >
                   {value}

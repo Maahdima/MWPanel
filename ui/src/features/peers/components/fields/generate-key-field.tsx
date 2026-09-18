@@ -24,7 +24,7 @@ export function GenerateKeyField({ control }: Props) {
           control={control}
           name='private_key'
           render={({ field }) => (
-            <FormItem className='flex-grow'>
+            <FormItem className='min-w-0 flex-grow'>
               <FormLabel>Private Key</FormLabel>
               <FormControl>
                 <PasswordInput

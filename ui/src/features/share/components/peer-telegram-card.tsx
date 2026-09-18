@@ -61,28 +61,28 @@ export default function PeerTelegramCard({
           </div>
         ) : (
           <div className='space-y-3 text-sm'>
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <IconBrandTelegram className='h-4 w-4' />
                 Bot
               </span>
-              <span>{botName}</span>
+              <span className='min-w-0 truncate text-right'>{botName}</span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <UserIcon className='h-4 w-4' />
                 Account
               </span>
-              <span>{account}</span>
+              <span className='min-w-0 truncate text-right'>{account}</span>
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span className='flex items-center gap-2'>
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
                 <BellIcon className='h-4 w-4' />
                 Alerts
               </span>
-              <span>{alertsLabel}</span>
+              <span className='min-w-0 text-right'>{alertsLabel}</span>
             </div>
           </div>
         )}

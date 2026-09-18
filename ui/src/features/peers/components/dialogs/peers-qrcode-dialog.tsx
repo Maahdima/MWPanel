@@ -32,14 +32,14 @@ export function PeersQRCodeDialog({ open, onOpenChange, currentRow }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex justify-center py-6'>
+        <div className='flex justify-center py-2 sm:py-6'>
           {isLoading ? (
             <Skeleton className='h-48 w-48 rounded-md' />
           ) : peerQRCode ? (
             <img
               src={peerQRCode}
               alt='Peer QR Code'
-              className='rounded-md border object-contain'
+              className='max-h-[min(50vh,20rem)] w-full max-w-full rounded-md border object-contain'
             />
           ) : (
             <div className='text-muted-foreground'>QR Code not available</div>

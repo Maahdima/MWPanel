@@ -48,7 +48,7 @@ export function InterfacesSyncDialog() {
 
   return (
     <Dialog open={enabled} onOpenChange={(value) => !value && setOpen(null)}>
-      <DialogContent className='max-w-3xl'>
+      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>Sync Interfaces</DialogTitle>
           <DialogDescription>
@@ -56,7 +56,7 @@ export function InterfacesSyncDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='max-h-[60vh] overflow-auto rounded-md border'>
+        <div className='min-h-0 max-h-[50vh] flex-1 overflow-auto rounded-md border sm:max-h-[60vh]'>
           <Table>
             <TableHeader>
               <TableRow>

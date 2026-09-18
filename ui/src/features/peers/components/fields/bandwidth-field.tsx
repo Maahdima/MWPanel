@@ -57,7 +57,7 @@ export function BandwidthField({ control, name, label }: Props) {
         return (
           <FormItem>
             <FormLabel>{label}</FormLabel>
-            <div className='flex gap-2'>
+            <div className='flex min-w-0 gap-2'>
               <FormControl>
                 <div className='relative w-full'>
                   <Input
@@ -93,7 +93,7 @@ export function BandwidthField({ control, name, label }: Props) {
                   field.onChange(getCombinedValue(rawValue, newUnit))
                 }}
               >
-                <SelectTrigger className='w-[80px]'>
+                <SelectTrigger className='w-[72px] shrink-0'>
                   <SelectValue placeholder='Unit' />
                 </SelectTrigger>
                 <SelectContent>

@@ -70,7 +70,7 @@ export function PeersConfigDialog({
           <DialogDescription>Copy the configuration below.</DialogDescription>
         </DialogHeader>
 
-        <div className='bg-muted relative max-h-[60vh] overflow-auto rounded-md px-4 py-3'>
+        <div className='bg-muted relative max-h-[50vh] overflow-auto rounded-md px-3 py-3 sm:max-h-[60vh] sm:px-4'>
           {isLoading ? (
             <Skeleton className='h-[200px] w-full' />
           ) : configText ? (

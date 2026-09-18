@@ -111,7 +111,7 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
           value={filter}
           onValueChange={(value) => setFilter(value as SessionFilter)}
         >
-          <TabsList>
+          <TabsList className='grid h-auto w-full grid-cols-3'>
             <TabsTrigger value='all'>
               <span>All</span>
               <span className='text-muted-foreground'>
@@ -153,13 +153,13 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='flex max-h-[85vh] flex-col gap-5 overflow-hidden sm:max-w-3xl'>
+      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-3xl sm:gap-5'>
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2'>
             <HistoryIcon className='size-5' />
             Session History
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className='break-words'>
             Connection timeline for{' '}
             <span className='text-foreground font-medium'>
               {currentRow.name}
@@ -171,7 +171,7 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        {body}
+        <div className='min-h-0 flex-1 overflow-y-auto'>{body}</div>
       </DialogContent>
     </Dialog>
   )

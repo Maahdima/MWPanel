@@ -11,12 +11,11 @@ import { UserAuthForm } from './components/user-auth-form'
 export default function SignIn() {
   return (
     <AuthLayout>
-      <Card className='gap-4'>
+      <Card className='w-full gap-4'>
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>Login</CardTitle>
           <CardDescription>
-            Enter your username and password below to <br />
-            log into your account
+            Enter your username and password below to log into your account
           </CardDescription>
         </CardHeader>
         <CardContent>
