@@ -5,17 +5,19 @@ import { Button } from './ui/button'
 
 interface Props {
   className?: string
-  type?: React.HTMLInputTypeAttribute
   placeholder?: string
 }
 
-export function Search({ className = '', placeholder = 'Search' }: Props) {
+export function Search({
+  className = '',
+  placeholder = 'Search',
+}: Readonly<Props>) {
   const { setOpen } = useSearch()
   return (
     <Button
       variant='outline'
       className={cn(
-        'bg-muted/25 text-muted-foreground hover:bg-muted/50 relative h-8 w-full min-w-0 max-w-[9rem] flex-1 justify-start rounded-md text-sm font-normal shadow-none sm:max-w-none sm:pr-12 md:w-40 md:flex-none lg:w-56 xl:w-64',
+        'bg-muted/25 text-muted-foreground hover:bg-muted/50 relative h-8 w-full max-w-[9rem] min-w-0 flex-1 justify-start rounded-md text-sm font-normal shadow-none sm:max-w-none sm:pr-12 md:w-40 md:flex-none lg:w-56 xl:w-64',
         className
       )}
       onClick={() => setOpen(true)}

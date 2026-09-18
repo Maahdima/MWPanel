@@ -32,7 +32,7 @@ export default function Pools() {
       <Main>
         <div className='mb-2 flex flex-wrap items-center justify-between gap-2 space-y-2'>
           <div className='min-w-0'>
-            <h2 className='text-xl font-bold tracking-tight sm:text-2xl'>IP Pools</h2>
+            <h2 className='text-xl font-semibold tracking-tight'>IP Pools</h2>
             <p className='text-muted-foreground'>
               Manage your mikrotik ip pools here
             </p>

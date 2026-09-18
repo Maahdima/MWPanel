@@ -24,8 +24,8 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
   } = useInterfacesListQuery()
 
   return (
-    <div className='grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2'>
-      <div className='md:col-span-2'>
+    <div className='grid grid-cols-1 gap-x-4 gap-y-4 @min-[28rem]:grid-cols-2'>
+      <div className='@min-[28rem]:col-span-2'>
         <SimpleField
           name='name'
           label='Name'
@@ -33,7 +33,7 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
           control={control}
         />
       </div>
-      <div className='md:col-span-2'>
+      <div className='@min-[28rem]:col-span-2'>
         <SimpleField
           name='comment'
           label='Comment'
@@ -43,28 +43,26 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
       </div>
 
       {!isEdit && (
-        <div className='md:col-span-2'>
-          <div className='grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2'>
-            <InterfaceSelect
-              name='interface_id'
-              label='Interface'
-              control={control}
-              setValue={setValue}
-              options={interfacesList}
-              isLoading={isInterfacesLoading}
-              error={interfacesError}
-            />
-            <SimpleField
-              name='endpoint'
-              label='Endpoint'
-              placeholder='e.g., 185.51.200.10'
-              control={control}
-            />
-            <div className='md:col-span-2'>
-              <GenerateKeyField control={control} />
-            </div>
+        <>
+          <InterfaceSelect
+            name='interface_id'
+            label='Interface'
+            control={control}
+            setValue={setValue}
+            options={interfacesList}
+            isLoading={isInterfacesLoading}
+            error={interfacesError}
+          />
+          <SimpleField
+            name='endpoint'
+            label='Endpoint'
+            placeholder='e.g., 185.51.200.10'
+            control={control}
+          />
+          <div className='@min-[28rem]:col-span-2'>
+            <GenerateKeyField control={control} />
           </div>
-        </div>
+        </>
       )}
 
       <SimpleField
@@ -83,18 +81,16 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
       <TrafficInput control={control} />
       <ExpireDateField control={control} />
 
-      <div className='space-y-4 md:col-span-2'>
-        <BandwidthField
-          name='download_bandwidth'
-          label='Download Bandwidth'
-          control={control}
-        />
-        <BandwidthField
-          name='upload_bandwidth'
-          label='Upload Bandwidth'
-          control={control}
-        />
-      </div>
+      <BandwidthField
+        name='download_bandwidth'
+        label='Download Bandwidth'
+        control={control}
+      />
+      <BandwidthField
+        name='upload_bandwidth'
+        label='Upload Bandwidth'
+        control={control}
+      />
     </div>
   )
 }

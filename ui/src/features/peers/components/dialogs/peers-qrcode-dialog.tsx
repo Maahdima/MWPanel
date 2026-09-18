@@ -3,6 +3,7 @@ import { usePeerQRCodeQuery } from '@/hooks/peers/usePeerQRCodeQuery.ts'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -24,27 +25,29 @@ export function PeersQRCodeDialog({ open, onOpenChange, currentRow }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader className='text-left'>
+      <DialogContent className='sm:max-w-sm'>
+        <DialogHeader>
           <DialogTitle>QR Code</DialogTitle>
           <DialogDescription>
-            Scan this code with a compatible device.
+            Scan this code with a compatible WireGuard client.
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex justify-center py-2 sm:py-6'>
+        <DialogBody className='flex justify-center py-3'>
           {isLoading ? (
-            <Skeleton className='h-48 w-48 rounded-md' />
+            <Skeleton className='size-52 rounded-xl' />
           ) : peerQRCode ? (
             <img
               src={peerQRCode}
               alt='Peer QR Code'
-              className='max-h-[min(50vh,20rem)] w-full max-w-full rounded-md border object-contain'
+              className='size-52 rounded-xl border bg-white object-contain p-2'
             />
           ) : (
-            <div className='text-muted-foreground'>QR Code not available</div>
+            <div className='text-muted-foreground py-8 text-sm'>
+              QR Code not available
+            </div>
           )}
-        </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>Close</Button>

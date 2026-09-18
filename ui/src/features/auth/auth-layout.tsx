@@ -7,10 +7,10 @@ interface Props {
 export default function AuthLayout({ children }: Props) {
   return (
     <div className='bg-primary-foreground flex min-h-svh w-full items-center justify-center px-4 py-8'>
-      <div className='flex w-full min-w-0 flex-col justify-center space-y-2 sm:w-[32rem] lg:w-[36rem]'>
-        <div className='mb-4 flex items-center justify-center gap-3'>
-          <IconRoute className='size-6' />
-          <h1 className='text-xl font-medium sm:text-2xl'>MWPanel</h1>
+      <div className='flex w-full max-w-[26.25rem] flex-col justify-center space-y-3'>
+        <div className='mb-1 flex items-center justify-center gap-2.5'>
+          <IconRoute className='size-5' />
+          <h1 className='text-lg font-medium tracking-tight'>MWPanel</h1>
         </div>
         {children}
       </div>

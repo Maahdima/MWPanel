@@ -117,7 +117,7 @@ export function ServerForm({ currentRow, onClose, setPending }: Props) {
         onSubmit={form.handleSubmit(onSubmit)}
         className='space-y-4'
       >
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+        <div className='grid grid-cols-1 gap-4 @min-[28rem]:grid-cols-2'>
           {simpleFormFields.map(({ name, label, placeholder }) => (
             <SimpleField
               key={name}
@@ -147,14 +147,14 @@ export function ServerForm({ currentRow, onClose, setPending }: Props) {
           control={form.control}
           name='is_ssl'
           render={({ field }) => (
-            <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm'>
-              <div className='space-y-0.5'>
-                <FormLabel className='flex items-center text-base'>
-                  <ShieldCheck className='mr-2 h-5 w-5 text-green-600' />
+            <FormItem className='flex flex-row items-center justify-between rounded-xl border px-3.5 py-3'>
+              <div className='space-y-0.5 pr-3'>
+                <FormLabel className='flex items-center text-sm'>
+                  <ShieldCheck className='mr-2 size-4 text-green-600' />
                   Use SSL/TLS
                 </FormLabel>
                 <FormDescription>
-                  Connect to the server's API using a secure connection.
+                  Connect to the server API over a secure connection.
                 </FormDescription>
               </div>
               <FormControl>

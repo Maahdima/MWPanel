@@ -18,32 +18,30 @@ interface Props {
 
 export function GenerateKeyField({ control }: Props) {
   return (
-    <div className='space-y-4'>
-      <div className='flex items-end gap-2'>
-        <FormField
-          control={control}
-          name='private_key'
-          render={({ field }) => (
-            <FormItem className='min-w-0 flex-grow'>
-              <FormLabel>Private Key</FormLabel>
-              <FormControl>
-                <PasswordInput
-                  className='bg-input/30'
-                  {...field}
-                  placeholder='Private key'
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+    <div className='grid grid-cols-1 gap-4'>
+      <FormField
+        control={control}
+        name='private_key'
+        render={({ field }) => (
+          <FormItem className='min-w-0'>
+            <FormLabel>Private Key</FormLabel>
+            <FormControl>
+              <PasswordInput
+                className='bg-input/30'
+                {...field}
+                placeholder='Private key'
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={control}
         name='public_key'
         render={({ field }) => (
-          <FormItem>
+          <FormItem className='min-w-0'>
             <FormLabel>Public Key</FormLabel>
             <FormControl>
               <Input {...field} placeholder='Public key' />

@@ -57,9 +57,9 @@ export function TrafficStatsCard({ value, isLoading }: TrafficStatsCardProps) {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader className='items-start'>
+          <DialogHeader>
             <DialogTitle>Reset total traffic usage?</DialogTitle>
-            <DialogDescription className='text-left'>
+            <DialogDescription>
               This will reset the accumulated traffic counter to zero. Peer
               usage statistics will not be affected.
             </DialogDescription>

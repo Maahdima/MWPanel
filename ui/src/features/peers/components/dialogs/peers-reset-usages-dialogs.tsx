@@ -48,13 +48,13 @@ export const ResetUsagesDialog = ({
       </DialogTrigger>
 
       <DialogContent>
-        <DialogHeader className='items-start'>
-          <div className='bg-destructive/10 mb-2 flex size-12 items-center justify-center rounded-full'>
-            <TriangleAlertIcon className='size-6 text-amber-400' />
+        <DialogHeader>
+          <div className='bg-amber-500/10 mb-1 flex size-10 items-center justify-center rounded-full'>
+            <TriangleAlertIcon className='size-5 text-amber-500' />
           </div>
           <DialogTitle>Reset all peer usages?</DialogTitle>
-          <DialogDescription className='text-left'>
-            This action cannot be undone. All peer usage data will be reset!
+          <DialogDescription>
+            This action cannot be undone. All peer usage data will be reset.
           </DialogDescription>
         </DialogHeader>
 

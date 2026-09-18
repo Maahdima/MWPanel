@@ -35,11 +35,9 @@ export function SimpleDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            <div className='flex items-center justify-start'>
-              <IconAlertCircle className='mr-1' size={22} />
-              {title}
-            </div>
+          <DialogTitle className='flex items-center gap-2'>
+            <IconAlertCircle className='size-4' />
+            {title}
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>

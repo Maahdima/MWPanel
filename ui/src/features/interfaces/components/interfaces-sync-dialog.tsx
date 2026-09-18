@@ -7,6 +7,7 @@ import { useSyncInterfacesQuery } from '@/hooks/interfaces/useSyncInterfacesQuer
 import { syncSelectedInterfaces } from '@/api/interfaces.ts'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -48,60 +49,62 @@ export function InterfacesSyncDialog() {
 
   return (
     <Dialog open={enabled} onOpenChange={(value) => !value && setOpen(null)}>
-      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-3xl'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Sync Interfaces</DialogTitle>
           <DialogDescription>
-            Fetch interfaces from Mikrotik, select the ones you want, and add only the checked items.
+            Fetch interfaces from Mikrotik, then add only the ones you select.
           </DialogDescription>
         </DialogHeader>
 
-        <div className='min-h-0 max-h-[50vh] flex-1 overflow-auto rounded-md border sm:max-h-[60vh]'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className='w-12'>
-                  <CheckIcon className='h-4 w-4 opacity-0' />
-                </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Listen Port</TableHead>
-                <TableHead>MTU</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+        <DialogBody>
+          <div className='overflow-hidden rounded-xl border'>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5}>Loading interfaces...</TableCell>
+                  <TableHead className='w-12'>
+                    <CheckIcon className='h-4 w-4 opacity-0' />
+                  </TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Listen Port</TableHead>
+                  <TableHead>MTU</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ) : data?.length ? (
-                data.map((iface) => (
-                  <TableRow key={iface.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selected[iface.id] ?? false}
-                        onCheckedChange={(checked) =>
-                          setSelected((prev) => ({
-                            ...prev,
-                            [iface.id]: Boolean(checked),
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>{iface.name}</TableCell>
-                    <TableCell>{iface.listen_port}</TableCell>
-                    <TableCell>{iface.mtu}</TableCell>
-                    <TableCell>{iface.is_running ? 'Running' : 'Not Running'}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>Loading interfaces...</TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5}>No interfaces found.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ) : data?.length ? (
+                  data.map((iface) => (
+                    <TableRow key={iface.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected[iface.id] ?? false}
+                          onCheckedChange={(checked) =>
+                            setSelected((prev) => ({
+                              ...prev,
+                              [iface.id]: Boolean(checked),
+                            }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>{iface.name}</TableCell>
+                      <TableCell>{iface.listen_port}</TableCell>
+                      <TableCell>{iface.mtu}</TableCell>
+                      <TableCell>{iface.is_running ? 'Running' : 'Not Running'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5}>No interfaces found.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button variant='outline' onClick={() => setOpen(null)}>

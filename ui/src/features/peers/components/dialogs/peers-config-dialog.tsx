@@ -7,6 +7,7 @@ import { usePeerConfigQuery } from '@/hooks/peers/usePeerConfigQuery.ts'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -64,37 +65,41 @@ export function PeersConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
-        <DialogHeader className='text-left'>
+      <DialogContent className='sm:max-w-lg'>
+        <DialogHeader>
           <DialogTitle>Configuration</DialogTitle>
-          <DialogDescription>Copy the configuration below.</DialogDescription>
+          <DialogDescription>
+            Copy this WireGuard config or download it from the peer actions.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className='bg-muted relative max-h-[50vh] overflow-auto rounded-md px-3 py-3 sm:max-h-[60vh] sm:px-4'>
-          {isLoading ? (
-            <Skeleton className='h-[200px] w-full' />
-          ) : configText ? (
-            <pre className='text-sm break-words whitespace-pre-wrap'>
-              <code>{configText}</code>
-            </pre>
-          ) : (
-            <div className='text-muted-foreground'>
-              Configuration not available
-            </div>
-          )}
+        <DialogBody>
+          <div className='bg-muted relative overflow-auto rounded-xl px-3.5 py-3'>
+            {isLoading ? (
+              <Skeleton className='h-40 w-full' />
+            ) : configText ? (
+              <pre className='text-[13px] leading-relaxed break-words whitespace-pre-wrap'>
+                <code>{configText}</code>
+              </pre>
+            ) : (
+              <div className='text-muted-foreground text-sm'>
+                Configuration not available
+              </div>
+            )}
 
-          {!isLoading && configText && (
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleCopy}
-              className='absolute top-2 right-2'
-            >
-              <CopyIcon className='mr-1 h-4 w-4' />
-              Copy
-            </Button>
-          )}
-        </div>
+            {!isLoading && configText && (
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleCopy}
+                className='absolute top-2 right-2'
+              >
+                <CopyIcon className='size-3.5' />
+                Copy
+              </Button>
+            )}
+          </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>Close</Button>

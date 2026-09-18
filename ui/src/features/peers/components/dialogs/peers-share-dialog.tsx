@@ -14,7 +14,10 @@ import { useUpdatePeerShareStatusMutation } from '@/hooks/peers/useUpdatePeerSha
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -86,33 +89,30 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='space-y-2 sm:max-w-lg'>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Share Peer</DialogTitle>
+          <DialogDescription>
+            {shareData?.is_shared
+              ? 'Anyone with the link can view this peer until you stop sharing.'
+              : 'Create a public link so others can view this peer.'}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className='gap-2 space-y-4'>
-          {isLoading || isFetching ? (
-            <>
-              <Skeleton className='h-4 w-3/4' />
-              <Skeleton className='h-10 w-full' />
-              <Skeleton className='h-4 w-1/2' />
-              <Skeleton className='h-10 w-full' />
-              <Skeleton className='h-10 w-full' />
-            </>
-          ) : (
-            <>
-              {!shareData?.is_shared && (
-                <Label>
-                  Currently, this peer is not shared. You can start sharing it
-                  by clicking the button below.
-                </Label>
-              )}
-
-              {shareData?.is_shared && (
-                <div className='space-y-3'>
-                  <Label className='flex items-center gap-1'>
-                    <LinkIcon className='h-4 w-4 opacity-60' />
+        {(isLoading || isFetching || shareData?.is_shared) && (
+          <DialogBody className='space-y-4'>
+            {isLoading || isFetching ? (
+              <>
+                <Skeleton className='h-4 w-3/4' />
+                <Skeleton className='h-9 w-full' />
+                <Skeleton className='h-4 w-1/2' />
+                <Skeleton className='h-9 w-full' />
+              </>
+            ) : (
+              <>
+                <div className='space-y-2'>
+                  <Label className='flex items-center gap-1.5'>
+                    <LinkIcon className='size-3.5 opacity-60' />
                     Share Link
                   </Label>
                   <div className='flex min-w-0 items-center gap-2'>
@@ -126,49 +126,48 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
                       }
                       disabled={isMutating}
                     >
-                      <ClipboardCopyIcon className='h-4 w-4' />
+                      <ClipboardCopyIcon className='size-4' />
                     </Button>
                   </div>
                 </div>
-              )}
 
-              {shareData?.is_shared && (
-                <div className='space-y-3'>
-                  <Label className='flex items-center gap-1'>
-                    <CalendarIcon className='h-4 w-4 opacity-60' />
+                <div className='space-y-2'>
+                  <Label className='flex items-center gap-1.5'>
+                    <CalendarIcon className='size-3.5 opacity-60' />
                     Expire At
                   </Label>
                   <SimpleDatepicker
-                    value={shareData.expire_time ?? null}
+                    value={shareData?.expire_time ?? null}
                     onChange={handleExpireDateChange}
                     placeholder='Pick an expiration date'
                   />
                 </div>
-              )}
+              </>
+            )}
+          </DialogBody>
+        )}
 
-              {shareData?.is_shared ? (
-                <Button
-                  variant='destructive'
-                  className='w-full'
-                  onClick={handleToggleStatus}
-                  disabled={isMutating}
-                >
-                  <XIcon className='mr-2 h-4 w-4' />
-                  Stop Sharing
-                </Button>
-              ) : (
-                <Button
-                  className='w-full text-white shadow-xs hover:bg-green-600/90 focus-visible:ring-green-600/20 dark:bg-green-600/60 dark:focus-visible:ring-green-600/40'
-                  onClick={handleToggleStatus}
-                  disabled={isMutating}
-                >
-                  <CheckIcon className='mr-2 h-4 w-4' />
-                  Start Sharing
-                </Button>
-              )}
-            </>
+        <DialogFooter>
+          {shareData?.is_shared ? (
+            <Button
+              variant='destructive'
+              onClick={handleToggleStatus}
+              disabled={isMutating || isLoading || isFetching}
+            >
+              <XIcon className='size-4' />
+              Stop Sharing
+            </Button>
+          ) : (
+            <Button
+              className='text-white shadow-xs hover:bg-green-600/90 focus-visible:ring-green-600/20 dark:bg-green-600/60 dark:focus-visible:ring-green-600/40'
+              onClick={handleToggleStatus}
+              disabled={isMutating || isLoading || isFetching}
+            >
+              <CheckIcon className='size-4' />
+              Start Sharing
+            </Button>
           )}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

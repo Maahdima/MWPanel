@@ -6,6 +6,7 @@ import { useSyncPeersQuery } from '@/hooks/peers/useSyncPeersQuery.ts'
 import { syncSelectedPeers } from '@/api/peers.ts'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -54,7 +55,7 @@ export function PeersSyncDialog() {
 
   return (
     <Dialog open={enabled} onOpenChange={(value) => !value && setOpen(null)}>
-      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-4xl'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Sync Peers</DialogTitle>
           <DialogDescription>
@@ -62,8 +63,8 @@ export function PeersSyncDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='min-h-0 flex-1 space-y-4 overflow-hidden'>
-          <div className='w-full max-w-sm'>
+        <DialogBody className='space-y-3'>
+          <div className='w-full max-w-xs'>
             <Select value={selectedInterface} onValueChange={setSelectedInterface}>
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Filter by interface' />
@@ -79,7 +80,7 @@ export function PeersSyncDialog() {
             </Select>
           </div>
 
-          <div className='max-h-[50vh] overflow-auto rounded-md border sm:max-h-[60vh]'>
+          <div className='overflow-hidden rounded-xl border'>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -121,7 +122,7 @@ export function PeersSyncDialog() {
               </TableBody>
             </Table>
           </div>
-        </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button variant='outline' onClick={() => setOpen(null)}>

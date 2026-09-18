@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -31,42 +32,58 @@ export function ActionDialog<T>({
   formId,
 }: Props<T>) {
   const [pending, setPending] = useState(false)
+  const maxWidth =
+    formId === 'peer-form'
+      ? 'sm:max-w-xl'
+      : formId === 'server-form'
+        ? 'sm:max-w-lg'
+        : 'sm:max-w-md'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-h-[min(90dvh,100svh)] overflow-y-auto sm:max-w-lg md:max-w-2xl'>
-        <DialogHeader className='text-left'>
+      <DialogContent className={maxWidth}>
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {formId === 'server-form' ? (
-          <ServerForm
-            currentRow={currentRow}
-            onClose={() => onOpenChange(false)}
-            setPending={setPending}
-          />
-        ) : formId === 'interface-form' ? (
-          <InterfaceForm
-            currentRow={currentRow}
-            onClose={() => onOpenChange(false)}
-            setPending={setPending}
-          />
-        ) : formId === 'pool-form' ? (
-          <PoolForm
-            currentRow={currentRow}
-            onClose={() => onOpenChange(false)}
-            setPending={setPending}
-          />
-        ) : (
-          <PeerForm
-            currentRow={currentRow}
-            onClose={() => onOpenChange(false)}
-            setIsLoading={setPending}
-          />
-        )}
+        <DialogBody>
+          {formId === 'server-form' ? (
+            <ServerForm
+              currentRow={currentRow}
+              onClose={() => onOpenChange(false)}
+              setPending={setPending}
+            />
+          ) : formId === 'interface-form' ? (
+            <InterfaceForm
+              currentRow={currentRow}
+              onClose={() => onOpenChange(false)}
+              setPending={setPending}
+            />
+          ) : formId === 'pool-form' ? (
+            <PoolForm
+              currentRow={currentRow}
+              onClose={() => onOpenChange(false)}
+              setPending={setPending}
+            />
+          ) : (
+            <PeerForm
+              currentRow={currentRow}
+              onClose={() => onOpenChange(false)}
+              setIsLoading={setPending}
+            />
+          )}
+        </DialogBody>
 
         <DialogFooter>
+          <Button
+            variant='outline'
+            type='button'
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
+            Cancel
+          </Button>
           <Button disabled={pending} type='submit' form={formId}>
             Save changes
           </Button>

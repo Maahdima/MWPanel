@@ -22,7 +22,7 @@ export default function Dashboard() {
     <>
       {/* ===== Top Heading ===== */}
       <Header>
-        <h1 className='hidden truncate text-lg font-bold tracking-tight sm:block sm:text-2xl'>
+        <h1 className='hidden truncate text-lg font-semibold tracking-tight sm:block'>
           Dashboard
         </h1>
         <div className='ml-auto flex min-w-0 items-center gap-2 sm:gap-4'>
@@ -35,7 +35,7 @@ export default function Dashboard() {
       {/* ===== Main ===== */}
       <Main>
         <div className='mb-2 flex flex-wrap items-center justify-between gap-2 pb-2'>
-          <h1 className='text-xl font-bold tracking-tight sm:text-2xl'>
+          <h1 className='text-xl font-semibold tracking-tight'>
             Servers/Clients Summary
           </h1>
         </div>

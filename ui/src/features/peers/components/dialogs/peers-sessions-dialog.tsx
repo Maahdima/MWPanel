@@ -14,12 +14,12 @@ import { usePeerSessionsQuery } from '@/hooks/peers/usePeerSessionsQuery.ts'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
@@ -134,18 +134,16 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
         {filteredSessions.length === 0 ? (
           <EmptySessions hasAny={sessions.length > 0} />
         ) : (
-          <ScrollArea className='h-[min(28rem,46vh)] pr-3'>
-            <ol className='relative space-y-4 pb-2'>
-              {filteredSessions.map((session, index) => (
-                <SessionRow
-                  key={session.id}
-                  session={session}
-                  now={now}
-                  isLast={index === filteredSessions.length - 1}
-                />
-              ))}
-            </ol>
-          </ScrollArea>
+          <ol className='relative space-y-3 pb-2'>
+            {filteredSessions.map((session, index) => (
+              <SessionRow
+                key={session.id}
+                session={session}
+                now={now}
+                isLast={index === filteredSessions.length - 1}
+              />
+            ))}
+          </ol>
         )}
       </>
     )
@@ -153,10 +151,10 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='flex max-h-[min(90dvh,100svh)] flex-col gap-4 overflow-hidden sm:max-w-3xl sm:gap-5'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2'>
-            <HistoryIcon className='size-5' />
+            <HistoryIcon className='size-4' />
             Session History
           </DialogTitle>
           <DialogDescription className='break-words'>
@@ -171,7 +169,7 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='min-h-0 flex-1 overflow-y-auto'>{body}</div>
+        <DialogBody className='space-y-4'>{body}</DialogBody>
       </DialogContent>
     </Dialog>
   )
@@ -179,7 +177,7 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
 
 function SessionSummary({ data }: { data?: PeerSessions }) {
   return (
-    <div className='grid gap-3 sm:grid-cols-3'>
+    <div className='grid gap-3 @min-[32rem]:grid-cols-3'>
       <SummaryCard
         icon={<RadioIcon className='size-4' />}
         label='Sessions'
@@ -218,13 +216,15 @@ function SummaryCard({
   hint: string
 }) {
   return (
-    <div className='bg-muted/40 rounded-xl border p-4'>
-      <div className='text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase'>
+    <div className='bg-muted/40 rounded-xl border px-3.5 py-3'>
+      <div className='text-muted-foreground flex items-center gap-2 text-[11px] font-medium tracking-wide uppercase'>
         {icon}
         {label}
       </div>
-      <div className='mt-2 text-lg font-semibold tracking-tight'>{value}</div>
-      <div className='text-muted-foreground mt-1 text-xs'>{hint}</div>
+      <div className='mt-1.5 text-base font-semibold tracking-tight'>
+        {value}
+      </div>
+      <div className='text-muted-foreground mt-0.5 text-xs'>{hint}</div>
     </div>
   )
 }
@@ -259,7 +259,7 @@ function SessionRow({
         {!isLast && <span className='bg-border mt-1 w-px flex-1' />}
       </div>
 
-      <div className='bg-card mb-1 flex-1 rounded-xl border p-4'>
+      <div className='bg-card mb-1 flex-1 rounded-xl border p-3.5'>
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div className='space-y-1'>
             <div className='flex flex-wrap items-center gap-2'>
@@ -307,7 +307,7 @@ function SessionRow({
 
 function EmptySessions({ hasAny }: { hasAny: boolean }) {
   return (
-    <div className='flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center'>
+    <div className='flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center'>
       <div className='bg-muted mb-3 rounded-full p-3'>
         <HistoryIcon className='text-muted-foreground size-5' />
       </div>
@@ -326,7 +326,7 @@ function EmptySessions({ hasAny }: { hasAny: boolean }) {
 function SessionsSkeleton() {
   return (
     <div className='space-y-4'>
-      <div className='grid gap-3 sm:grid-cols-3'>
+      <div className='grid gap-3 @min-[32rem]:grid-cols-3'>
         <Skeleton className='h-24 rounded-xl' />
         <Skeleton className='h-24 rounded-xl' />
         <Skeleton className='h-24 rounded-xl' />
