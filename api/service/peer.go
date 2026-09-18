@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -131,8 +130,8 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 		return &schema.NewPeerAllowedAddressResponse{AllowedAddress: ""}, nil
 	}
 
-	startIP := net.ParseIP(strings.TrimSuffix(iface.IPPool.StartIP, "/32")).To4()
-	endIP := net.ParseIP(strings.TrimSuffix(iface.IPPool.EndIP, "/32")).To4()
+	startIP := net.ParseIP(strings.TrimSpace(strings.Split(iface.IPPool.StartIP, "/")[0])).To4()
+	endIP := net.ParseIP(strings.TrimSpace(strings.Split(iface.IPPool.EndIP, "/")[0])).To4()
 
 	if startIP == nil || endIP == nil {
 		w.logger.Error("invalid IP pool format",
@@ -147,52 +146,24 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 		return nil, fmt.Errorf("failed to find peers: %w", err)
 	}
 
-	var lastIP net.IP
-
-	if len(peers) == 0 {
-		w.logger.Info("no peers found for interface, assigning start IP", zap.Uint("interfaceId", interfaceId))
-		lastIP = make(net.IP, len(startIP))
-		copy(lastIP, startIP)
-		for i := len(lastIP) - 1; i >= 0; i-- {
-			lastIP[i]--
-			if lastIP[i] != 255 {
-				break
-			}
+	usedIPs := make([]net.IP, 0, len(peers))
+	for _, peer := range peers {
+		ipStr := strings.TrimSpace(strings.Split(peer.AllowedAddress, "/")[0])
+		currentIP := net.ParseIP(ipStr).To4()
+		if currentIP == nil {
+			w.logger.Warn("skipping peer with invalid allowed_address",
+				zap.String("allowed_address", peer.AllowedAddress))
+			continue
 		}
-	} else {
-		var highestIP net.IP
-		for _, peer := range peers {
-			currentIP, _, err := net.ParseCIDR(peer.AllowedAddress)
-			if err != nil {
-				w.logger.Warn("skipping peer with invalid allowed_address",
-					zap.String("allowed_address", peer.AllowedAddress), zap.Error(err))
-				continue
-			}
-			currentIP = currentIP.To4()
-			if currentIP == nil {
-				continue
-			}
-
-			if highestIP == nil || bytes.Compare(currentIP, highestIP) > 0 {
-				highestIP = currentIP
-			}
-		}
-		lastIP = highestIP
+		usedIPs = append(usedIPs, currentIP)
 	}
 
-	nextIP := make(net.IP, len(lastIP))
-	copy(nextIP, lastIP)
-	for i := len(nextIP) - 1; i >= 0; i-- {
-		nextIP[i]++
-		if nextIP[i] != 0 {
-			break
-		}
-	}
-
-	if bytes.Compare(nextIP, endIP) > 0 {
+	nextIP, err := utils.NextAvailableIPv4(startIP, endIP, usedIPs)
+	if err != nil {
 		w.logger.Error("IP pool exhausted or next IP out of range",
-			zap.String("next_ip", nextIP.String()),
-			zap.String("end_ip", endIP.String()))
+			zap.String("start_ip", startIP.String()),
+			zap.String("end_ip", endIP.String()),
+			zap.Error(err))
 		return nil, fmt.Errorf("IP pool exhausted for interface %d", interfaceId)
 	}
 

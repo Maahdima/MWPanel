@@ -232,6 +232,43 @@ func IPToUint32(ip net.IP) uint32 {
 	return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
 }
 
+func Uint32ToIP(n uint32) net.IP {
+	return net.IPv4(byte(n>>24), byte(n>>16), byte(n>>8), byte(n)).To4()
+}
+
+// NextAvailableIPv4 returns the first unused IPv4 in [startIP, endIP].
+func NextAvailableIPv4(startIP, endIP net.IP, usedIPs []net.IP) (net.IP, error) {
+	start := startIP.To4()
+	end := endIP.To4()
+	if start == nil || end == nil {
+		return nil, fmt.Errorf("invalid IPv4 address")
+	}
+
+	startN := IPToUint32(start)
+	endN := IPToUint32(end)
+	if endN < startN {
+		return nil, fmt.Errorf("end IP cannot be before start IP")
+	}
+
+	used := make(map[uint32]struct{}, len(usedIPs))
+	for _, ip := range usedIPs {
+		v4 := ip.To4()
+		if v4 == nil {
+			continue
+		}
+		used[IPToUint32(v4)] = struct{}{}
+	}
+
+	for n := startN; ; n++ {
+		if _, taken := used[n]; !taken {
+			return Uint32ToIP(n), nil
+		}
+		if n == endN {
+			return nil, fmt.Errorf("IP pool exhausted")
+		}
+	}
+}
+
 func FormatDuration(d time.Duration) string {
 	d = d.Truncate(time.Second)
 
