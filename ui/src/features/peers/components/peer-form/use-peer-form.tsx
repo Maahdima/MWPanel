@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { addMonths, format } from 'date-fns'
 import {
   CreatePeerRequest,
   CreatePeerSchema,
@@ -30,7 +31,11 @@ export function usePeerForm({
     resolver: zodResolver(
       (isEdit ? UpdatePeerSchema : CreatePeerSchema) as never
     ),
-    defaultValues: (isEdit ? currentRow : {}) as never,
+    defaultValues: (isEdit
+      ? currentRow
+      : {
+          expire_time: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+        }) as never,
   })
 
   const [shouldRefetch, setShouldRefetch] = useState(false)

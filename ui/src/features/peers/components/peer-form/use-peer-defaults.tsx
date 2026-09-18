@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { UseFormReturn, useWatch } from 'react-hook-form'
+import { addMonths, format } from 'date-fns'
 import { CreatePeerRequest } from '@/schema/peers'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
 import { usePeerAllowedAddressMutation } from '@/hooks/peers/usePeerAllowedAddressMutation.ts'
@@ -63,6 +64,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
         interface_id: defaultInterface.id,
         endpoint: defaultServer.ip_address,
         persistent_keepalive: '00:00:25',
+        expire_time: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
       }))
 
       hasSetDefaults.current = true
