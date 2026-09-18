@@ -67,13 +67,13 @@ export const peersColumns: ColumnDef<Peer>[] = [
     cell: ({ row }) => {
       const { name, is_online } = row.original
       return (
-        <div className='flex w-fit items-center justify-center gap-3 text-nowrap'>
+        <div className='flex w-full min-w-0 items-center gap-3'>
           {is_online ? (
             <OnlineBadge peerName={name} />
           ) : (
             <OfflineBadge peerName={name} />
           )}
-          {name}
+          <span className='min-w-0 flex-1 truncate'>{name}</span>
         </div>
       )
     },

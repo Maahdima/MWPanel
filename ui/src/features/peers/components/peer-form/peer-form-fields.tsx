@@ -25,12 +25,14 @@ export function PeerFormFields({ control, setValue, isEdit }: Props) {
 
   return (
     <div className='grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2'>
-      <SimpleField
-        name='name'
-        label='Name'
-        placeholder='Peer Name'
-        control={control}
-      />
+      <div className='md:col-span-2'>
+        <SimpleField
+          name='name'
+          label='Name'
+          placeholder='Peer Name'
+          control={control}
+        />
+      </div>
       <div className='md:col-span-2'>
         <SimpleField
           name='comment'

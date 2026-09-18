@@ -24,9 +24,9 @@ export function SimpleField({ name, label, placeholder, control }: Props) {
             <FormLabel>{label}</FormLabel>
             <FormControl>
               {name === 'name' ? (
-                <div className='flex items-center gap-2'>
+                <div className='flex w-full items-center gap-2'>
                   <Input
-                    className='flex-1'
+                    className='min-w-0 flex-1'
                     placeholder={placeholder}
                     {...rest}
                     value={String(value ?? '')}
