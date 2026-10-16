@@ -10,11 +10,14 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { NavGroup } from '@/components/layout/nav-group'
-import { sidebarData } from './data/sidebar-data'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
+import { sidebarDataForShop } from './data/sidebar-data'
 import React from 'react'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open } = useSidebar()
+  const { enabled } = useShopEnabled()
+  const sidebarData = sidebarDataForShop(enabled)
 
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>

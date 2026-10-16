@@ -11,6 +11,7 @@ import (
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/http"
 	"github.com/maahdima/mwp/api/service"
+	"github.com/maahdima/mwp/api/shopclient"
 	"github.com/maahdima/mwp/api/utils/validate"
 
 	"github.com/go-playground/validator/v10"
@@ -19,7 +20,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor, trafficCalculator *traffic.Calculator, telegramBot *service.TelegramBot) error {
+func StartHttpServer(
+	db *gorm.DB,
+	mwpClients *common.MwpClient,
+	mikrotikAdaptor *mikrotik.Adaptor,
+	trafficCalculator *traffic.Calculator,
+	shopAPI *shopclient.Client,
+) error {
 	appCfg := config.GetAppConfig()
 
 	authenticationService := service.NewAuthentication(db)
@@ -30,8 +37,9 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 	excelGenerator := service.NewExcelGenerator(db)
 	serverService := service.NewServerService(db, mwpClients, mikrotikAdaptor)
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator, qrCodeGenerator)
+	peerService.SetShopLinks(shopAPI)
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor, peerService)
-	ipPoolService := service.NewIPPool(db)
+	ipPoolService := service.NewIPPool(db, mikrotikAdaptor)
 	deviceDataService := service.NewDeviceData(db, mikrotikAdaptor, serverService, interfaceService, peerService)
 	syncService := service.NewSyncService(db, mikrotikAdaptor, configGenerator, qrCodeGenerator, peerService, interfaceService)
 
@@ -55,7 +63,7 @@ func StartHttpServer(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor
 		deviceDataService,
 		trafficCalculator,
 		syncService,
-		telegramBot,
+		shopAPI,
 	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {

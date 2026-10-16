@@ -269,6 +269,60 @@ func NextAvailableIPv4(startIP, endIP net.IP, usedIPs []net.IP) (net.IP, error) 
 	}
 }
 
+// ReservedIPv4s returns the host, network, and broadcast of a CIDR such as 10.10.10.2/24.
+// An address without a prefix returns only that host.
+func ReservedIPv4s(raw string) []net.IP {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	if ip, network, err := net.ParseCIDR(raw); err == nil {
+		var out []net.IP
+		if v4 := ip.To4(); v4 != nil {
+			out = append(out, v4)
+		}
+		if network != nil {
+			if n := network.IP.To4(); n != nil && !containsIPv4(out, n) {
+				out = append(out, n)
+			}
+			if b := IPv4Broadcast(network); b != nil && !containsIPv4(out, b) {
+				out = append(out, b)
+			}
+		}
+		return out
+	}
+	host := strings.TrimSpace(strings.Split(raw, "/")[0])
+	if ip := net.ParseIP(host).To4(); ip != nil {
+		return []net.IP{ip}
+	}
+	return nil
+}
+
+func IPv4Broadcast(network *net.IPNet) net.IP {
+	if network == nil {
+		return nil
+	}
+	ip := network.IP.To4()
+	mask := net.IP(network.Mask).To4()
+	if ip == nil || mask == nil {
+		return nil
+	}
+	broadcast := make(net.IP, 4)
+	for i := 0; i < 4; i++ {
+		broadcast[i] = ip[i] | ^mask[i]
+	}
+	return broadcast
+}
+
+func containsIPv4(ips []net.IP, target net.IP) bool {
+	for _, ip := range ips {
+		if ip.Equal(target) {
+			return true
+		}
+	}
+	return false
+}
+
 func FormatDuration(d time.Duration) string {
 	d = d.Truncate(time.Second)
 

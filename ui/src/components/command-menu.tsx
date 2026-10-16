@@ -18,13 +18,16 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
-import { sidebarData } from './layout/data/sidebar-data'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
+import { sidebarDataForShop } from './layout/data/sidebar-data'
 import { ScrollArea } from './ui/scroll-area'
 
 export function CommandMenu() {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
+  const { enabled: shopEnabled } = useShopEnabled()
+  const sidebarData = sidebarDataForShop(shopEnabled)
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {

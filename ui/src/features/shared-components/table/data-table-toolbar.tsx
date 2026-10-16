@@ -7,7 +7,7 @@ import { DataTableViewOptions } from './data-table-view-options.tsx'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
-  type: 'Servers' | 'Interfaces' | 'Pools' | 'Peers'
+  type: 'Servers' | 'Interfaces' | 'Pools' | 'Peers' | 'Orders' | 'Plans'
 }
 
 const serverStatusOptions = [
@@ -18,6 +18,20 @@ const serverStatusOptions = [
 const interfaceStatusOptions = [
   { label: 'Running', value: 'running' },
   { label: 'Not Running', value: 'not_running' },
+]
+
+const orderStatusOptions = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Fulfilling', value: 'fulfilling' },
+  { label: 'Paid', value: 'paid' },
+  { label: 'Failed', value: 'failed' },
+  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Expired', value: 'expired' },
+]
+
+const planStatusOptions = [
+  { label: 'Enabled', value: 'enabled' },
+  { label: 'Disabled', value: 'disabled' },
 ]
 
 const peerStatusOptions = [
@@ -54,7 +68,11 @@ export function DataTableToolbar<TData>({
                   ? serverStatusOptions
                   : type === 'Interfaces'
                     ? interfaceStatusOptions
-                    : peerStatusOptions
+                    : type === 'Orders'
+                      ? orderStatusOptions
+                      : type === 'Plans'
+                        ? planStatusOptions
+                        : peerStatusOptions
               }
             />
           )}

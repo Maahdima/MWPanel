@@ -46,6 +46,7 @@ func (c *UIController) Serve(ctx echo.Context) error {
 func (c *UIController) isStaticAssetPath(path string) bool {
 	return strings.HasPrefix(path, "/assets/") ||
 		strings.HasPrefix(path, "/images/") ||
+		strings.HasPrefix(path, "/fonts/") ||
 		path == "/favicon.ico" ||
 		path == "/favicon.svg"
 }

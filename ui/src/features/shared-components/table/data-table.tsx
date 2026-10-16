@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/table.tsx'
 import { interfacesColumns } from '@/features/interfaces/components/interfaces-columns.tsx'
 import { poolsColumns } from '@/features/ip-pools/components/pools-columns.tsx'
+import { ordersColumns } from '@/features/orders/components/orders-columns.tsx'
+import { plansColumns } from '@/features/plans/components/plans-columns.tsx'
 import { serversColumns } from '@/features/servers/components/servers-columns.tsx'
 import { DataTablePagination } from '@/features/shared-components/table/data-table-pagination.tsx'
 import { DataTableToolbar } from '@/features/shared-components/table/data-table-toolbar.tsx'
@@ -81,8 +83,12 @@ export function DataTable<T>({
             ? 'Servers'
             : columns === interfacesColumns
               ? 'Interfaces'
-              : columns === poolsColumns
-                ? 'Pools'
+              :           columns === poolsColumns
+            ? 'Pools'
+            : columns === ordersColumns
+              ? 'Orders'
+              : columns === plansColumns
+                ? 'Plans'
                 : 'Peers'
         }
         table={table}

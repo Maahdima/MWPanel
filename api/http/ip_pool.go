@@ -137,7 +137,7 @@ func (c *IPPoolController) DeleteIPPool(ctx echo.Context) error {
 				Message:    "IP Pool not found",
 			})
 		}
-		
+
 		c.logger.Error("Invalid IP Pool ID", zap.Error(err))
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}

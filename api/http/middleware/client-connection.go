@@ -9,7 +9,7 @@ import (
 	"github.com/maahdima/mwp/api/http/schema"
 )
 
-func ClientConnectionMiddleware(mwpClients *common.MwpClients) echo.MiddlewareFunc {
+func ClientConnectionMiddleware(mwpClients *common.MwpClient) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// TODO : multiple server support

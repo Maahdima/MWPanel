@@ -34,7 +34,7 @@ type Props = {
 
 function formatDateTime(value: string) {
   try {
-    return format(parseISO(value), 'MMM d, yyyy HH:mm:ss')
+    return format(parseISO(value), 'yyyy-MM-dd HH:mm:ss')
   } catch {
     return value
   }

@@ -24,7 +24,7 @@ type WireGuardInterface struct {
 func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, error) {
 	var wgInterfaces []WireGuardInterface
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Get(
 		c,
@@ -41,7 +41,7 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*WireGuardInterface, error) {
 	var wgInterface WireGuardInterface
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Get(
 		c,
@@ -58,7 +58,7 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var createdInterface WireGuardInterface
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Put(
 		c,
@@ -76,7 +76,7 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var updatedInterface WireGuardInterface
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Patch(
 		c,
@@ -92,7 +92,7 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 }
 
 func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error {
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Delete(
 		c,

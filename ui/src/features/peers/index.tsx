@@ -5,6 +5,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { peersColumns } from '@/features/peers/components/peers-columns.tsx'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 import { DataTableSkeleton } from '../shared-components/table/data-table-skeleton.tsx'
 import { PeersDialogs } from './components/peers-dialogs.tsx'
@@ -18,6 +19,13 @@ export default function Peers() {
     refetch: refetchPeersList,
     isRefetching: isPeersListRefetching,
   } = usePeersListQuery()
+  const { enabled: shopEnabled } = useShopEnabled()
+  const columns = shopEnabled
+    ? peersColumns
+    : peersColumns.filter(
+        (column) =>
+          !('accessorKey' in column) || column.accessorKey !== 'telegram_username'
+      )
 
   return (
     <PeersProvider>
@@ -45,11 +53,11 @@ export default function Peers() {
 
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-y-0 lg:space-x-12'>
           {isPeersListLoading ? (
-            <DataTableSkeleton columns={5} />
+            <DataTableSkeleton columns={columns.length} />
           ) : (
             <DataTable
               data={peersList ?? []}
-              columns={peersColumns}
+              columns={columns}
               initialSorting={[{ id: 'allowed_address', desc: false }]}
             />
           )}

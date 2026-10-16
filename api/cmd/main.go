@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -15,7 +14,7 @@ import (
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice"
 	"github.com/maahdima/mwp/api/dataservice/seeds"
-	"github.com/maahdima/mwp/api/service"
+	"github.com/maahdima/mwp/api/shopclient"
 	"github.com/maahdima/mwp/api/utils/log"
 
 	"go.uber.org/zap"
@@ -48,18 +47,13 @@ func main() {
 	}
 
 	// Initialize http client for Mikrotik API
-	mwpClients := common.NewMwpClients(db)
+	mwpClients := common.NewMwpClient(db)
 	mwpClients.InitClient()
 
 	mikrotikAdaptor := mikrotik.NewAdaptor(mwpClients)
-	telegramCfg := config.GetTelegramConfig()
-	telegramClient := service.NewTelegramClient(telegramCfg)
-	telegramNotifier := service.NewTelegramNotifier(db, telegramCfg, telegramClient)
-	configGenerator := service.NewConfigGenerator(db)
-	qrCodeGenerator := service.NewQRCodeGenerator(db)
-	telegramBot := service.NewTelegramBot(db, telegramCfg, telegramClient, configGenerator, qrCodeGenerator, mikrotikAdaptor)
-	telegramBot.Start(context.Background())
-	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor, telegramNotifier)
+	integration := config.GetIntegrationConfig()
+	shopAPI := shopclient.New(integration.ShopURL, integration.ServiceToken)
+	trafficCalculator := traffic.NewTrafficCalculator(db, mikrotikAdaptor, shopclient.NewNotifier(shopAPI))
 
 	// Start the traffic calculation job
 	scheduler, err := gocron.NewScheduler()
@@ -113,7 +107,7 @@ func main() {
 	scheduler.Start()
 
 	// Start the HTTP server
-	if err := httpserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator, telegramBot); err != nil {
+	if err := httpserver.StartHttpServer(db, mwpClients, mikrotikAdaptor, trafficCalculator, shopAPI); err != nil {
 		logger.Panic("Failed to start HTTP server", zap.Error(err))
 	}
 }

@@ -21,7 +21,7 @@ type Scheduler struct {
 func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Scheduler, error) {
 	var createdScheduler Scheduler
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Put(
 		c,
@@ -39,7 +39,7 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, scheduler Scheduler) (*Scheduler, error) {
 	var updatedScheduler Scheduler
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Patch(
 		c,
@@ -55,7 +55,7 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 }
 
 func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Delete(
 		c,

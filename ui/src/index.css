@@ -1,6 +1,80 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Persian letters and digits use IranYekan. Latin text keeps the selected panel font. */
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebthinfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanweblightfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebregularfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebmediumfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebboldfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebboldfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebextraboldfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebblackfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: IRANYekan;
+  font-style: normal;
+  font-weight: 950;
+  font-display: swap;
+  src: url('/fonts/iranyekan/iranyekanwebextrablackfanum.woff') format('woff');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -66,8 +140,10 @@
 }
 
 @theme inline {
-  --font-inter: 'Inter', 'sans-serif';
-  --font-manrope: 'Manrope', 'sans-serif';
+  --font-iranyekan: 'IRANYekan', 'Inter', sans-serif;
+  --font-inter: 'IRANYekan', 'Inter', sans-serif;
+  --font-manrope: 'IRANYekan', 'Manrope', sans-serif;
+  --font-system: 'IRANYekan', ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

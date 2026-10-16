@@ -31,7 +31,7 @@ type WireGuardPeer struct {
 func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 	var wgPeers []WireGuardPeer
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Get(
 		c,
@@ -49,7 +49,7 @@ func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer, error) {
 	var wgPeer WireGuardPeer
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Get(
 		c,
@@ -67,7 +67,7 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var createdPeer WireGuardPeer
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Put(
 		c,
@@ -85,7 +85,7 @@ func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGu
 func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var updatedPeer WireGuardPeer
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Patch(
 		c,
@@ -101,7 +101,7 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 }
 
 func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Delete(
 		c,

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -9,20 +10,23 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/utils"
 )
 
 type IPPool struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db       *gorm.DB
+	mikrotik *mikrotik.Adaptor
+	logger   *zap.Logger
 }
 
-func NewIPPool(db *gorm.DB) *IPPool {
+func NewIPPool(db *gorm.DB, adaptor *mikrotik.Adaptor) *IPPool {
 	return &IPPool{
-		db:     db,
-		logger: zap.L().Named("IPPoolService"),
+		db:       db,
+		mikrotik: adaptor,
+		logger:   zap.L().Named("IPPoolService"),
 	}
 }
 
@@ -152,7 +156,7 @@ func (s *IPPool) transformPoolToResponse(pool model.IPPool) schema.IPPoolRespons
 		return schema.IPPoolResponse{}
 	}
 
-	totalIPs, usedIPs, remainingIPs, err := s.getIPCounts(startIP, endIP)
+	totalIPs, usedIPs, remainingIPs, err := s.getIPCounts(pool, startIP, endIP)
 	if err != nil {
 		s.logger.Error("failed to get IP counts", zap.Error(err))
 		return schema.IPPoolResponse{}
@@ -169,7 +173,7 @@ func (s *IPPool) transformPoolToResponse(pool model.IPPool) schema.IPPoolRespons
 	}
 }
 
-func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainingIPs int, err error) {
+func (s *IPPool) getIPCounts(pool model.IPPool, startIP, endIP net.IP) (totalIPs, usedIPs, remainingIPs int, err error) {
 	start := utils.IPToUint32(startIP)
 	end := utils.IPToUint32(endIP)
 
@@ -185,22 +189,22 @@ func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainin
 		return 0, 0, 0, err
 	}
 
-	usedIPCount := 0
-	poolStartUint32 := utils.IPToUint32(startIP)
-	poolEndUint32 := utils.IPToUint32(endIP)
-
+	usedSet := map[uint32]struct{}{}
 	for _, peer := range peers {
 		ipStr := strings.Split(peer.AllowedAddress, "/")[0]
 		if ip := net.ParseIP(ipStr); ip != nil {
 			ipUint32 := utils.IPToUint32(ip)
-			if ipUint32 >= poolStartUint32 && ipUint32 <= poolEndUint32 {
-				usedIPCount++
+			if ipUint32 >= start && ipUint32 <= end {
+				usedSet[ipUint32] = struct{}{}
 			}
 		}
 	}
+	for n := range s.reservedInPool(pool, start, end) {
+		usedSet[n] = struct{}{}
+	}
 
 	totalIPs = int(end - start + 1)
-	usedIPs = usedIPCount
+	usedIPs = len(usedSet)
 	remainingIPs = totalIPs - usedIPs
 
 	if remainingIPs < 0 {
@@ -209,4 +213,34 @@ func (s *IPPool) getIPCounts(startIP, endIP net.IP) (totalIPs, usedIPs, remainin
 	}
 
 	return totalIPs, usedIPs, remainingIPs, nil
+}
+
+func (s *IPPool) reservedInPool(pool model.IPPool, start, end uint32) map[uint32]struct{} {
+	reserved := map[uint32]struct{}{}
+	if s.mikrotik == nil || pool.InterfaceID == 0 {
+		return reserved
+	}
+	var iface model.Interface
+	if err := s.db.First(&iface, pool.InterfaceID).Error; err != nil {
+		return reserved
+	}
+	addrs, err := s.mikrotik.FetchIPv4Addresses(context.Background())
+	if err != nil {
+		s.logger.Warn("failed to read interface addresses for IP pool counts",
+			zap.String("interface", iface.Name),
+			zap.Error(err))
+		return reserved
+	}
+	for _, addr := range addrs {
+		if !strings.EqualFold(addr.Interface, iface.Name) && !strings.EqualFold(addr.ActualInterface, iface.Name) {
+			continue
+		}
+		for _, ip := range utils.ReservedIPv4s(addr.Address) {
+			n := utils.IPToUint32(ip)
+			if n >= start && n <= end {
+				reserved[n] = struct{}{}
+			}
+		}
+	}
+	return reserved
 }

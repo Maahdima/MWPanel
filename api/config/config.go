@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -53,6 +55,18 @@ type TelegramConfig struct {
 	ApiBaseURL string
 }
 
+type ShopConfig struct {
+	Enabled       bool
+	CardNumber    string
+	CardHolder    string
+	AccountNumber string
+	PricePerGB    int64
+	InterfaceID   uint
+	Endpoint      string
+	OrderTTL      time.Duration
+	WebhookToken  string
+}
+
 var (
 	adminPanelPathPattern   = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	reservedAdminPanelPaths = map[string]struct{}{
@@ -68,6 +82,8 @@ var (
 		"interfaces":      {},
 		"pools":           {},
 		"peers":           {},
+		"orders":          {},
+		"plans":           {},
 		"help-center":     {},
 		"401":             {},
 		"403":             {},
@@ -148,11 +164,58 @@ func GetAuthConfig() AuthConfig {
 	}
 }
 
+type IntegrationConfig struct {
+	ShopURL      string
+	ServiceToken string
+}
+
+func GetIntegrationConfig() IntegrationConfig {
+	return IntegrationConfig{
+		ShopURL:      strings.TrimSpace(getEnv("SHOP_URL", "http://127.0.0.1:3001")),
+		ServiceToken: strings.TrimSpace(os.Getenv("SERVICE_TOKEN")),
+	}
+}
+
 func GetTelegramConfig() TelegramConfig {
 	return TelegramConfig{
 		Enabled:    getEnvBool("TELEGRAM_BOT_ENABLED", false),
 		BotToken:   getEnv("TELEGRAM_BOT_TOKEN", ""),
 		ApiBaseURL: getEnv("TELEGRAM_BOT_API_BASE_URL", "https://api.telegram.org"),
+	}
+}
+
+func GetShopConfig() ShopConfig {
+	price := int64(10000)
+	if raw := strings.TrimSpace(os.Getenv("PRICE_PER_GB")); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 {
+			price = parsed
+		}
+	}
+
+	var interfaceID uint
+	if raw := strings.TrimSpace(os.Getenv("INTERFACE_ID")); raw != "" {
+		if parsed, err := strconv.ParseUint(raw, 10, 64); err == nil {
+			interfaceID = uint(parsed)
+		}
+	}
+
+	ttlMinutes := 30
+	if raw := strings.TrimSpace(os.Getenv("ORDER_TTL_MINUTES")); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			ttlMinutes = parsed
+		}
+	}
+
+	return ShopConfig{
+		Enabled:       getEnvBool("SHOP_ENABLED", false),
+		CardNumber:    strings.TrimSpace(getEnv("CARD_NUMBER", "")),
+		CardHolder:    strings.TrimSpace(getEnv("CARD_HOLDER", "")),
+		AccountNumber: strings.TrimSpace(getEnv("ACCOUNT_NUMBER", "")),
+		PricePerGB:    price,
+		InterfaceID:   interfaceID,
+		Endpoint:      strings.TrimSpace(getEnv("ENDPOINT", "")),
+		OrderTTL:      time.Duration(ttlMinutes) * time.Minute,
+		WebhookToken:  strings.TrimSpace(getEnv("BALE_WEBHOOK_TOKEN", "")),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/http/middleware"
 	"github.com/maahdima/mwp/api/service"
+	"github.com/maahdima/mwp/api/shopclient"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -14,7 +15,7 @@ import (
 
 func SetupMwpAPI(
 	app *echo.Echo,
-	mwpClients *common.MwpClients,
+	mwpClients *common.MwpClient,
 	authenticationService *service.Authentication,
 	serverService *service.Server,
 	interfaceService *service.WgInterface,
@@ -26,7 +27,7 @@ func SetupMwpAPI(
 	deviceDataService *service.DeviceData,
 	trafficCalculator *traffic.Calculator,
 	syncService *service.SyncService,
-	telegramBot *service.TelegramBot,
+	shopAPI *shopclient.Client,
 ) {
 	router := app.Group("/api")
 
@@ -51,7 +52,8 @@ func SetupMwpAPI(
 	deviceInfoController := NewDeviceDataController(deviceDataService, trafficCalculator)
 	syncController := NewSyncController(syncService)
 	userController := NewUserController(peerService, configGeneratorService, qrCodeGeneratorService)
-	telegramController := NewTelegramController(telegramBot)
+	shopProxy := NewShopProxy(shopAPI)
+	serviceController := NewServiceController(peerService, configGeneratorService, qrCodeGeneratorService)
 
 	setupAuthenticationRoutes(router, jwtConfig, authController)
 	setupServerRoutes(router, jwtConfig, serverController)
@@ -61,7 +63,8 @@ func SetupMwpAPI(
 	setupDeviceInfoRoutes(router, mwpClients, jwtConfig, deviceInfoController)
 	setupSyncRoutes(router, mwpClients, jwtConfig, syncController)
 	setupUserRoutes(router, userController)
-	setupTelegramRoutes(router, telegramController)
+	setupShopProxyRoutes(router, jwtConfig, shopProxy)
+	setupServiceRoutes(router, serviceController, shopAPI)
 }
 
 func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, authController *AuthController) {
@@ -89,7 +92,7 @@ func setupServerRoutes(router *echo.Group, jwtConfig echojwt.Config, serverContr
 	serverGroup.DELETE("/:id", serverController.DeleteServer)
 }
 
-func setupInterfaceRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, wgInterfaceController *WgInterfaceController) {
+func setupInterfaceRoutes(router *echo.Group, mwpClients *common.MwpClient, jwtConfig echojwt.Config, wgInterfaceController *WgInterfaceController) {
 	interfaceGroup := router.Group("/interface")
 	interfaceGroup.Use(echojwt.WithConfig(jwtConfig))
 
@@ -113,7 +116,7 @@ func setupIPPoolRoutes(router *echo.Group, jwtConfig echojwt.Config, ipPpolContr
 	ipPoolGroup.DELETE("/:id", ipPpolController.DeleteIPPool)
 }
 
-func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, wgPeerController *WgPeerController) {
+func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClient, jwtConfig echojwt.Config, wgPeerController *WgPeerController) {
 	peerGroup := router.Group("/peer")
 	peerGroup.Use(echojwt.WithConfig(jwtConfig))
 
@@ -139,7 +142,7 @@ func setupPeerRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfi
 	peerSecured.POST("/traffic/export", wgPeerController.ExportPeersTrafficData)
 }
 
-func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, deviceInfoController *DeviceDataController) {
+func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClient, jwtConfig echojwt.Config, deviceInfoController *DeviceDataController) {
 	deviceGroup := router.Group("/device")
 	deviceGroup.Use(echojwt.WithConfig(jwtConfig))
 
@@ -151,7 +154,7 @@ func setupDeviceInfoRoutes(router *echo.Group, mwpClients *common.MwpClients, jw
 	deviceSecured.PATCH("/traffic/reset", deviceInfoController.ResetTotalTrafficUsage)
 }
 
-func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClients, jwtConfig echojwt.Config, syncController *SyncController) {
+func setupSyncRoutes(router *echo.Group, mwpClients *common.MwpClient, jwtConfig echojwt.Config, syncController *SyncController) {
 	syncGroup := router.Group("/sync")
 	syncGroup.Use(echojwt.WithConfig(jwtConfig))
 
@@ -175,7 +178,36 @@ func setupUserRoutes(router *echo.Group, userController *UserController) {
 	userGroup.GET("/:uuid/telegram", userController.GetUserTelegram)
 }
 
-func setupTelegramRoutes(router *echo.Group, telegramController *TelegramController) {
-	telegramGroup := router.Group("/telegram")
-	telegramGroup.GET("/status", telegramController.GetStatus)
+func setupShopProxyRoutes(router *echo.Group, jwtConfig echojwt.Config, proxy *ShopProxy) {
+	router.GET("/telegram/status", proxy.Forward)
+	router.POST("/bale/webhook", proxy.Forward)
+
+	protected := router.Group("")
+	protected.Use(echojwt.WithConfig(jwtConfig))
+	protected.GET("/orders", proxy.Forward)
+	protected.POST("/orders/:id/accept", proxy.Forward)
+	protected.GET("/plans", proxy.Forward)
+	protected.POST("/plans", proxy.Forward)
+	protected.PUT("/plans/:id", proxy.Forward)
+	protected.DELETE("/plans/:id", proxy.Forward)
+	protected.GET("/shop/status", proxy.Forward)
+	protected.GET("/shop/sales", proxy.Forward)
+	protected.PUT("/shop/sales", proxy.Forward)
+}
+
+func setupServiceRoutes(router *echo.Group, controller *ServiceController, shopAPI *shopclient.Client) {
+	token := ""
+	if shopAPI != nil {
+		token = shopAPI.Token()
+	}
+	serviceGroup := router.Group("/service")
+	serviceGroup.Use(ServiceTokenMiddleware(token))
+	serviceGroup.GET("/interface", controller.Interface)
+	serviceGroup.POST("/peers", controller.CreatePeer)
+	serviceGroup.POST("/peers/:id/charge", controller.ChargePeer)
+	serviceGroup.GET("/peers/name-taken", controller.NameTaken)
+	serviceGroup.GET("/peers/id/:id", controller.PeerByID)
+	serviceGroup.GET("/peers/:uuid", controller.PeerByUUID)
+	serviceGroup.GET("/peers/:uuid/config", controller.Config)
+	serviceGroup.GET("/peers/:uuid/qr", controller.QR)
 }

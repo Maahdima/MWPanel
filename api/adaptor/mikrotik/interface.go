@@ -21,7 +21,7 @@ type Interface struct {
 func (a *Adaptor) FetchInterface(c context.Context, interfaceID string) (*Interface, error) {
 	var iface Interface
 
-	httpClient := a.mwpClients.GetClient(nil)
+	httpClient := a.mwpClient.GetClient(nil)
 
 	err := httpClient.Get(
 		c,

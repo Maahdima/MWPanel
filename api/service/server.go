@@ -15,15 +15,15 @@ import (
 
 type Server struct {
 	db              *gorm.DB
-	mwpClients      *common.MwpClients
+	mwpClient       *common.MwpClient
 	mikrotikAdaptor *mikrotik.Adaptor
 	logger          *zap.Logger
 }
 
-func NewServerService(db *gorm.DB, mwpClients *common.MwpClients, mikrotikAdaptor *mikrotik.Adaptor) *Server {
+func NewServerService(db *gorm.DB, mwpClients *common.MwpClient, mikrotikAdaptor *mikrotik.Adaptor) *Server {
 	return &Server{
 		db:              db,
-		mwpClients:      mwpClients,
+		mwpClient:       mwpClients,
 		mikrotikAdaptor: mikrotikAdaptor,
 		logger:          zap.L().Named("ServerService"),
 	}
@@ -61,7 +61,7 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 		return nil, err
 	}
 
-	s.mwpClients.SetClient(req)
+	s.mwpClient.SetClient(req)
 
 	_, err = s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
 	if err != nil {

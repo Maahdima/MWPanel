@@ -18,6 +18,7 @@ import (
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/shopclient"
 	"github.com/maahdima/mwp/api/utils"
 	"github.com/maahdima/mwp/api/utils/timehelper"
 	"github.com/maahdima/mwp/api/utils/wireguard"
@@ -30,6 +31,7 @@ type WgPeer struct {
 	queue           *Queue
 	configGenerator *ConfigGenerator
 	qrCodeGenerator *QRCodeGenerator
+	shopLink        *shopclient.Client
 	logger          *zap.Logger
 }
 
@@ -157,6 +159,7 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 		}
 		usedIPs = append(usedIPs, currentIP)
 	}
+	usedIPs = append(usedIPs, w.interfaceReservedIPs(iface.Name)...)
 
 	nextIP, err := utils.NextAvailableIPv4(startIP, endIP, usedIPs)
 	if err != nil {
@@ -170,6 +173,28 @@ func (w *WgPeer) GetNewPeerAllowedAddress(interfaceId uint) (*schema.NewPeerAllo
 	return &schema.NewPeerAllowedAddressResponse{
 		AllowedAddress: fmt.Sprintf("%s/32", nextIP.String()),
 	}, nil
+}
+
+func (w *WgPeer) interfaceReservedIPs(ifaceName string) []net.IP {
+	ifaceName = strings.TrimSpace(ifaceName)
+	if w.mikrotikAdaptor == nil || ifaceName == "" {
+		return nil
+	}
+	addrs, err := w.mikrotikAdaptor.FetchIPv4Addresses(context.Background())
+	if err != nil {
+		w.logger.Warn("failed to read interface addresses; the wireguard address may be offered to a peer",
+			zap.String("interface", ifaceName),
+			zap.Error(err))
+		return nil
+	}
+	var reserved []net.IP
+	for _, addr := range addrs {
+		if !strings.EqualFold(addr.Interface, ifaceName) && !strings.EqualFold(addr.ActualInterface, ifaceName) {
+			continue
+		}
+		reserved = append(reserved, utils.ReservedIPv4s(addr.Address)...)
+	}
+	return reserved
 }
 
 func (w *WgPeer) GetPeerShareStatus(id uint) (*schema.PeerShareStatusResponse, error) {
@@ -301,6 +326,22 @@ func (w *WgPeer) GetPeerTelegramStatus(uuid string) (*schema.PeerTelegramStatusR
 	}
 
 	status := schema.PeerTelegramStatusResponse{}
+	if w.shopLink != nil && w.shopLink.Enabled() {
+		links, err := w.shopLink.Links(context.Background(), []string{peer.UUID})
+		if err != nil {
+			w.logger.Error("failed to lookup telegram chat links", zap.Error(err))
+			return nil, err
+		}
+		link, ok := links[peer.UUID]
+		if !ok || !link.Linked {
+			return &status, nil
+		}
+		status.Linked = true
+		status.NotifyEnabled = link.NotifyEnabled
+		status.Username = link.Username
+		return &status, nil
+	}
+
 	var chats []model.TelegramChat
 	if err := w.db.Where("peer_uuid = ?", peer.UUID).Find(&chats).Error; err != nil {
 		w.logger.Error("failed to lookup telegram chat links", zap.Error(err))
@@ -522,7 +563,7 @@ func (w *WgPeer) rollbackPartialPeerCreate(mtPeer *mikrotik.WireGuardPeer, sched
 
 	_ = w.qrCodeGenerator.RemovePeerQRCodeByUUID(dbPeer.UUID)
 	_ = w.configGenerator.RemovePeerConfigByUUID(dbPeer.UUID)
-	_ = w.deletePeerTelegramChats(w.db, dbPeer.UUID)
+	_ = w.deletePeerTelegramChats(dbPeer.UUID)
 	_ = w.deletePeerSessions(w.db, dbPeer.ID)
 	if err := w.db.Unscoped().Delete(&dbPeer).Error; err != nil {
 		w.logger.Warn("failed to rollback peer db row after create failure", zap.Error(err))
@@ -557,7 +598,7 @@ func (w *WgPeer) deletePeerRecord(peer *model.Peer) error {
 		return err
 	}
 
-	if err := w.deletePeerTelegramChats(w.db, peer.UUID); err != nil {
+	if err := w.deletePeerTelegramChats(peer.UUID); err != nil {
 		w.logger.Error("failed to delete peer telegram chats", zap.Error(err))
 		return fmt.Errorf("failed to delete peer telegram chats: %w", err)
 	}
@@ -575,11 +616,16 @@ func (w *WgPeer) deletePeerRecord(peer *model.Peer) error {
 	return nil
 }
 
-func (w *WgPeer) deletePeerTelegramChats(db *gorm.DB, peerUUID string) error {
+func (w *WgPeer) deletePeerTelegramChats(peerUUID string) error {
 	if strings.TrimSpace(peerUUID) == "" {
 		return nil
 	}
-	return db.Unscoped().Where("peer_uuid = ?", peerUUID).Delete(&model.TelegramChat{}).Error
+	if w.shopLink != nil && w.shopLink.Enabled() {
+		if err := w.shopLink.Unlink(context.Background(), peerUUID); err != nil {
+			return err
+		}
+	}
+	return w.db.Unscoped().Where("peer_uuid = ?", peerUUID).Delete(&model.TelegramChat{}).Error
 }
 
 func (w *WgPeer) GetPeersData() (*schema.PeerStatsResponse, error) {
@@ -938,6 +984,23 @@ func (w *WgPeer) attachTelegramLinkStatus(peers []schema.PeerResponse) {
 		}
 	}
 	if len(uuids) == 0 {
+		return
+	}
+
+	if w.shopLink != nil && w.shopLink.Enabled() {
+		links, err := w.shopLink.Links(context.Background(), uuids)
+		if err != nil {
+			w.logger.Error("failed to lookup telegram chat links", zap.Error(err))
+			return
+		}
+		for i := range peers {
+			link, ok := links[peers[i].UUID]
+			if !ok || !link.Linked {
+				continue
+			}
+			peers[i].TelegramLinked = true
+			peers[i].TelegramUsername = link.Username
+		}
 		return
 	}
 

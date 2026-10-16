@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CloudOff } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { formatPanelDate } from '@/lib/format-date.ts'
 import { useDailyTrafficUsageQuery } from '@/hooks/dashboard/useDailyTrafficUsageQuery.ts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -188,11 +189,7 @@ export function TrafficChart() {
                 tickMargin={8}
                 minTickGap={32}
                 tickFormatter={(value) => {
-                  const date = new Date(value)
-                  return date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
+                  return formatPanelDate(String(value))
                 }}
               />
 
@@ -201,10 +198,7 @@ export function TrafficChart() {
                 content={
                   <ChartTooltipContent
                     labelFormatter={(value) =>
-                      new Date(value).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      })
+                      formatPanelDate(String(value))
                     }
                     indicator='dot'
                   />

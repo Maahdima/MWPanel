@@ -7,14 +7,14 @@ import (
 )
 
 type Adaptor struct {
-	mwpClients *common.MwpClients
-	logger     *zap.Logger
+	mwpClient *common.MwpClient
+	logger    *zap.Logger
 }
 
 // NewAdaptor creates a new instance of the Mikrotik adaptor
-func NewAdaptor(mwpClients *common.MwpClients) *Adaptor {
+func NewAdaptor(mwpClients *common.MwpClient) *Adaptor {
 	return &Adaptor{
-		mwpClients: mwpClients,
-		logger:     zap.L().Named("MikrotikAdaptor"),
+		mwpClient: mwpClients,
+		logger:    zap.L().Named("MikrotikAdaptor"),
 	}
 }

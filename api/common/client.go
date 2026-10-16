@@ -17,15 +17,15 @@ import (
 	"github.com/maahdima/mwp/api/utils/httphelper"
 )
 
-type MwpClients struct {
+type MwpClient struct {
 	db      *gorm.DB
 	mu      sync.RWMutex
 	clients map[string]*httphelper.Client
 	logger  *zap.Logger
 }
 
-func NewMwpClients(db *gorm.DB) *MwpClients {
-	return &MwpClients{
+func NewMwpClient(db *gorm.DB) *MwpClient {
+	return &MwpClient{
 		db:      db,
 		mu:      sync.RWMutex{},
 		clients: make(map[string]*httphelper.Client),
@@ -34,7 +34,7 @@ func NewMwpClients(db *gorm.DB) *MwpClients {
 }
 
 // IsConnected Check if the specified client is connected (not nil)
-func (c *MwpClients) IsConnected(serverName *string) bool {
+func (c *MwpClient) IsConnected(serverName *string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -98,7 +98,7 @@ func (c *MwpClients) IsConnected(serverName *string) bool {
 }
 
 // GetClient Get client for a specific server
-func (c *MwpClients) GetClient(serverName *string) *httphelper.Client {
+func (c *MwpClient) GetClient(serverName *string) *httphelper.Client {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -122,7 +122,7 @@ func (c *MwpClients) GetClient(serverName *string) *httphelper.Client {
 }
 
 // SetClient Set or update the client for a specific server
-func (c *MwpClients) SetClient(serverData *schema.CreateServerRequest) {
+func (c *MwpClient) SetClient(serverData *schema.CreateServerRequest) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -151,7 +151,7 @@ func (c *MwpClients) SetClient(serverData *schema.CreateServerRequest) {
 }
 
 // InitClient Set or update the client for a specific server
-func (c *MwpClients) InitClient() {
+func (c *MwpClient) InitClient() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -178,7 +178,7 @@ func (c *MwpClients) InitClient() {
 }
 
 // DeleteClient Remove the client for a specific server
-func (c *MwpClients) DeleteClient(serverName string) {
+func (c *MwpClient) DeleteClient(serverName string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

@@ -17,7 +17,7 @@ export function Search({
     <Button
       variant='outline'
       className={cn(
-        'bg-muted/25 text-muted-foreground hover:bg-muted/50 relative h-8 w-full max-w-[9rem] min-w-0 flex-1 justify-start rounded-md text-sm font-normal shadow-none sm:max-w-none sm:pr-12 md:w-40 md:flex-none lg:w-56 xl:w-64',
+        'bg-muted/25 text-muted-foreground hover:bg-muted/50 relative h-8 w-full max-w-36 min-w-0 flex-1 justify-start rounded-md text-sm font-normal shadow-none sm:max-w-none sm:pr-12 md:w-40 md:flex-none lg:w-56 xl:w-64',
         className
       )}
       onClick={() => setOpen(true)}

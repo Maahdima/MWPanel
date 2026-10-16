@@ -3,7 +3,9 @@ import {
   IconHelp,
   IconLayoutDashboard,
   IconLink,
+  IconPackage,
   IconPalette,
+  IconReceipt,
   IconSettings,
   IconShieldLock,
   IconTool,
@@ -12,12 +14,24 @@ import {
 } from '@tabler/icons-react'
 import { type SidebarData } from '../types'
 
+const shopNavUrls = new Set<string>(['/plans', '/orders'])
+
+export function sidebarDataForShop(enabled: boolean): SidebarData {
+  if (enabled) {
+    return sidebarData
+  }
+
+  return {
+    navGroups: sidebarData.navGroups.map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !('url' in item && item.url && shopNavUrls.has(item.url))
+      ),
+    })),
+  }
+}
+
 export const sidebarData: SidebarData = {
-  // user: {
-  //   name: 'maahdima',
-  //   email: 'maahdima@gmail.com',
-  //   avatar: '/avatars/shadcn.jpg',
-  // },
   navGroups: [
     {
       title: 'General',
@@ -46,6 +60,16 @@ export const sidebarData: SidebarData = {
           title: 'Peers',
           url: '/peers',
           icon: IconUsers,
+        },
+        {
+          title: 'Plans',
+          url: '/plans',
+          icon: IconPackage,
+        },
+        {
+          title: 'Orders',
+          url: '/orders',
+          icon: IconReceipt,
         },
       ],
     },
