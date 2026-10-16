@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/service"
@@ -235,6 +236,24 @@ type ShopProxy struct {
 
 func NewShopProxy(client *shopclient.Client) *ShopProxy {
 	return &ShopProxy{client: client, logger: zap.L().Named("ShopProxy")}
+}
+
+func (p *ShopProxy) ShopStatus(ctx echo.Context) error {
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.ShopStatus]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          schema.ShopStatus{Enabled: config.GetShopConfig().Enabled},
+	})
+}
+
+func (p *ShopProxy) TelegramStatus(ctx echo.Context) error {
+	if !config.GetShopConfig().Enabled {
+		return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.TelegramStatusResponse]{
+			BasicResponse: schema.OkBasicResponse,
+			Data:          schema.TelegramStatusResponse{},
+		})
+	}
+
+	return p.Forward(ctx)
 }
 
 func (p *ShopProxy) Forward(ctx echo.Context) error {

@@ -179,7 +179,7 @@ func setupUserRoutes(router *echo.Group, userController *UserController) {
 }
 
 func setupShopProxyRoutes(router *echo.Group, jwtConfig echojwt.Config, proxy *ShopProxy) {
-	router.GET("/telegram/status", proxy.Forward)
+	router.GET("/telegram/status", proxy.TelegramStatus)
 	router.POST("/bale/webhook", proxy.Forward)
 
 	protected := router.Group("")
@@ -190,7 +190,7 @@ func setupShopProxyRoutes(router *echo.Group, jwtConfig echojwt.Config, proxy *S
 	protected.POST("/plans", proxy.Forward)
 	protected.PUT("/plans/:id", proxy.Forward)
 	protected.DELETE("/plans/:id", proxy.Forward)
-	protected.GET("/shop/status", proxy.Forward)
+	protected.GET("/shop/status", proxy.ShopStatus)
 	protected.GET("/shop/sales", proxy.Forward)
 	protected.PUT("/shop/sales", proxy.Forward)
 }
