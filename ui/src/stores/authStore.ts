@@ -17,6 +17,8 @@ interface AuthState {
   }
 }
 
+const sessionCookie = { expires: 1 }
+
 export const useAuthStore = create<AuthState>()((set) => {
   const cookieState = Cookies.get('access_token')
   const initToken = cookieState ? cookieState : ''
@@ -25,13 +27,13 @@ export const useAuthStore = create<AuthState>()((set) => {
       admin: null,
       setAdmin: (admin) =>
         set((state) => {
-          Cookies.set('username', admin?.username)
+          Cookies.set('username', admin?.username, sessionCookie)
           return { ...state, auth: { ...state.auth, admin } }
         }),
       accessToken: initToken,
       setAccessToken: (accessToken) =>
         set((state) => {
-          Cookies.set('access_token', accessToken)
+          Cookies.set('access_token', accessToken, sessionCookie)
           return { ...state, auth: { ...state.auth, accessToken } }
         }),
       resetAccessToken: () =>

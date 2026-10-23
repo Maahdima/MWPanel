@@ -76,9 +76,9 @@ func FormatRials(n int64) string {
 	return ToPersianDigits(grouped) + " ریال"
 }
 
-// PersianPlanTitle is the shop label for a one-month plan, e.g. "۱ ماهه ۲ گیگ".
-func PersianPlanTitle(trafficGB int) string {
-	return ToPersianDigits("1") + " ماهه " + ToPersianDigits(strconv.Itoa(trafficGB)) + " گیگ"
+// PersianPlanTitle is the shop label for a plan, e.g. "۲ گیگ، ۳۰ روز".
+func PersianPlanTitle(trafficGB, durationDays int) string {
+	return ToPersianDigits(strconv.Itoa(trafficGB)) + " گیگ، " + ToPersianDigits(strconv.Itoa(durationDays)) + " روز"
 }
 
 // FormatPersianDate renders a stored YYYY-MM-DD date on the Persian calendar, e.g. "۲۲ آبان ۱۴۰۵".

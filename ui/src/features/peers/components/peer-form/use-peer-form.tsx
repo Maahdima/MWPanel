@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { addMonths, format } from 'date-fns'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { addMonths, format } from 'date-fns'
 import {
   CreatePeerRequest,
   CreatePeerSchema,
@@ -35,6 +35,8 @@ export function usePeerForm({
       ? currentRow
       : {
           expire_time: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+          download_bandwidth: '16M',
+          upload_bandwidth: '16M',
         }) as never,
   })
 

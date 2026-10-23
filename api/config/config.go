@@ -119,8 +119,8 @@ func GetAppConfig() AppConfig {
 
 	return AppConfig{
 		Mode:               getEnv("MODE", "production"),
-		Host:               getEnv("SERVER_HOST", "0.0.0.0"),
-		Port:               getEnv("SERVER_PORT", "3000"),
+		Host:               getEnv("HOST", "0.0.0.0"),
+		Port:               getEnv("PORT", "3000"),
 		ConsoleLogFormat:   getEnv("CONSOLE_LOG_FORMAT", "plain"),
 		UIAssetsFs:         echo.MustSubFS(ui.GetUIAssets(), "dist"),
 		PeerFilesDir:       getEnv("PEER_FILES_DIR", filepath.Join(dataDir, "peer-files")),
@@ -159,7 +159,7 @@ func GetAdminConfig() AdminConfig {
 
 func GetAuthConfig() AuthConfig {
 	return AuthConfig{
-		AccessTokenTTL:  getEnv("AUTH_ACCESS_TOKEN_TTL", "900"),
+		AccessTokenTTL:  getEnv("AUTH_ACCESS_TOKEN_TTL", "86400"),
 		RefreshTokenTTL: getEnv("AUTH_REFRESH_TOKEN_TTL", "86400"),
 	}
 }

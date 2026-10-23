@@ -188,7 +188,7 @@ func backfillPlanNames(db *gorm.DB) {
 		if strings.TrimSpace(plan.FaName) == "" {
 			faName := strings.TrimSpace(plan.Title)
 			if faName == "" {
-				faName = utils.PersianPlanTitle(plan.TrafficGB)
+				faName = utils.PersianPlanTitle(plan.TrafficGB, plan.DurationDays)
 			}
 			updates["fa_name"] = faName
 		}

@@ -309,7 +309,7 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 | `ADMIN_USERNAME` | Seeded admin username (first run only) | `mwpadmin` |
 | `ADMIN_PASSWORD` | Seeded admin password (first run only) | `mwpadmin` |
 | `ADMIN_PANEL_PATH` | Obscure admin UI path (e.g. `/my-panel`). Empty keeps admin at `/`. Public share links stay at `/share`. Restart required after change. | _(empty)_ |
-| `AUTH_ACCESS_TOKEN_TTL` | Access token lifetime, seconds | `900` |
+| `AUTH_ACCESS_TOKEN_TTL` | Access token lifetime, seconds | `86400` |
 | `AUTH_REFRESH_TOKEN_TTL` | Refresh token lifetime, seconds | `86400` |
 
 ### Jobs

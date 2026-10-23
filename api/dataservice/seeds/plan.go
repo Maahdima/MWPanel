@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// defaultPlanGB is the monthly traffic sizes offered in the Telegram shop.
+// defaultPlanGB is the traffic sizes offered in the Telegram shop.
 var defaultPlanGB = []int{2, 5, 10, 20, 30, 50, 100}
 
 func PlanSeed(db *gorm.DB) error {
@@ -25,7 +25,7 @@ func PlanSeed(db *gorm.DB) error {
 			continue
 		}
 
-		faName := utils.PersianPlanTitle(gb)
+		faName := utils.PersianPlanTitle(gb, 30)
 		plan := model.Plan{
 			Name:         fmt.Sprintf("%d GB / 30 days", gb),
 			FaName:       faName,

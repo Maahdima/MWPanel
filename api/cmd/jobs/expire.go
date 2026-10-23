@@ -80,7 +80,7 @@ func (c *Calculator) notifyUpcomingExpiries(peers []model.Peer, now time.Time) {
 }
 
 func (c *Calculator) notifyExpiryThreshold(peer *model.Peer, updates map[string]interface{}, daysLeft, threshold int, updateKey string, notified *bool) {
-	if daysLeft != threshold || *notified {
+	if peer.Disabled || daysLeft != threshold || *notified {
 		return
 	}
 

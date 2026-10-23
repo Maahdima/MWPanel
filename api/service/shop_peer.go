@@ -14,6 +14,7 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
+	"github.com/maahdima/mwp/api/utils"
 )
 
 func (w *WgPeer) ShopInterface(interfaceID uint) (model.Interface, error) {
@@ -70,16 +71,20 @@ func (w *WgPeer) CreateShopPeer(name, endpoint, comment string, interfaceID uint
 	expire := time.Now().AddDate(0, 0, durationDays).Format("2006-01-02")
 	traffic := strconv.Itoa(trafficGB)
 	comment = strings.TrimSpace(comment)
+	downloadBandwidth := "16M"
+	uploadBandwidth := "16M"
 	req := &schema.CreatePeerRequest{
-		Comment:        &comment,
-		Name:           strings.TrimSpace(name),
-		InterfaceId:    iface.ID,
-		PrivateKey:     creds.PrivateKey,
-		PublicKey:      creds.PublicKey,
-		AllowedAddress: address.AllowedAddress,
-		Endpoint:       strings.TrimSpace(endpoint),
-		ExpireTime:     &expire,
-		TrafficLimit:   &traffic,
+		Comment:           &comment,
+		Name:              strings.TrimSpace(name),
+		InterfaceId:       iface.ID,
+		PrivateKey:        creds.PrivateKey,
+		PublicKey:         creds.PublicKey,
+		AllowedAddress:    address.AllowedAddress,
+		Endpoint:          strings.TrimSpace(endpoint),
+		ExpireTime:        &expire,
+		TrafficLimit:      &traffic,
+		DownloadBandwidth: &downloadBandwidth,
+		UploadBandwidth:   &uploadBandwidth,
 	}
 
 	created, err := w.CreatePeer(req)
@@ -108,9 +113,11 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 		return model.Peer{}, errors.New("invalid vpn charge")
 	}
 
+	now := time.Now()
+	expired := utils.IsPeerExpired(peer.ExpireTime, now)
 	used := peer.DownloadUsage + peer.UploadUsage
-	newLimit := chargedTrafficLimit(peer.TrafficLimit, used, addBytes)
-	expire := extendedExpireDate(peer.ExpireTime, addDays, time.Now())
+	newLimit := renewedTrafficLimit(peer.TrafficLimit, used, addBytes, expired)
+	expire := renewalExpireDate(addDays, now)
 	expirePtr := expire
 
 	schedulerID, err := w.handleScheduler(&peer, &schema.UpdatePeerRequest{ExpireTime: &expirePtr})
@@ -130,6 +137,18 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 		"expire_first_notify":   false,
 		"expire_second_notify":  false,
 		"expire_third_notify":   false,
+	}
+	if expired {
+		updates["download_usage"] = int64(0)
+		updates["upload_usage"] = int64(0)
+		if w.mikrotikAdaptor != nil {
+			if wgPeer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID); err != nil {
+				w.logger.Warn("failed to read peer counters before traffic reset", zap.Error(err), zap.String("peerID", peer.PeerID))
+			} else {
+				updates["last_tx"] = utils.ParseStringToInt(wgPeer.TransferTx)
+				updates["last_rx"] = utils.ParseStringToInt(wgPeer.TransferRx)
+			}
+		}
 	}
 	if err := w.db.Model(&peer).Updates(updates).Error; err != nil {
 		w.logger.Error("failed to store vpn charge", zap.Error(err), zap.Uint("id", peer.ID))
@@ -166,6 +185,16 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 	return peer, nil
 }
 
+func renewedTrafficLimit(current *int64, used, addBytes int64, expired bool) int64 {
+	if expired {
+		if addBytes < 0 {
+			return 0
+		}
+		return addBytes
+	}
+	return chargedTrafficLimit(current, used, addBytes)
+}
+
 func chargedTrafficLimit(current *int64, used, addBytes int64) int64 {
 	if addBytes < 0 {
 		addBytes = 0
@@ -179,17 +208,13 @@ func chargedTrafficLimit(current *int64, used, addBytes int64) int64 {
 	return used + addBytes
 }
 
-func extendedExpireDate(current *string, addDays int, now time.Time) string {
+// renewalExpireDate counts the purchased duration from the purchase day.
+// It does not extend a previous expire date.
+func renewalExpireDate(addDays int, purchasedAt time.Time) string {
 	if addDays < 0 {
 		addDays = 0
 	}
-	year, month, day := now.Date()
-	base := time.Date(year, month, day, 0, 0, 0, 0, now.Location())
-	if current != nil {
-		raw := strings.TrimSpace(*current)
-		if parsed, err := time.ParseInLocation("2006-01-02", raw, now.Location()); err == nil && parsed.After(base) {
-			base = parsed
-		}
-	}
+	year, month, day := purchasedAt.Date()
+	base := time.Date(year, month, day, 0, 0, 0, 0, purchasedAt.Location())
 	return base.AddDate(0, 0, addDays).Format("2006-01-02")
 }

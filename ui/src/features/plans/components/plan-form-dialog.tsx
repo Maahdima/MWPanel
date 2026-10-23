@@ -1,9 +1,17 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  UpsertVpnPlan,
+  UpsertVpnPlanSchema,
+  VpnPlan,
+} from '@/schema/vpn-plan.ts'
 import { toast } from 'sonner'
-import { UpsertVpnPlan, UpsertVpnPlanSchema, VpnPlan } from '@/schema/vpn-plan.ts'
 import { handleServerError } from '@/utils/handle-server-error.ts'
+import {
+  useCreateVpnPlanMutation,
+  useUpdateVpnPlanMutation,
+} from '@/hooks/vpn-plans/useVpnPlanMutations.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
@@ -24,10 +32,6 @@ import {
 } from '@/components/ui/form.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Switch } from '@/components/ui/switch.tsx'
-import {
-  useCreateVpnPlanMutation,
-  useUpdateVpnPlanMutation,
-} from '@/hooks/vpn-plans/useVpnPlanMutations.ts'
 
 type Props = {
   open: boolean
@@ -108,7 +112,7 @@ export function PlanFormDialog({ open, plan, onOpenChange }: Props) {
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder='2 GB monthly' {...field} />
+                        <Input placeholder='2 GB / 30 days' {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -126,7 +130,7 @@ export function PlanFormDialog({ open, plan, onOpenChange }: Props) {
                         <Input
                           className='font-iranyekan'
                           dir='auto'
-                          placeholder='۱ ماهه ۲ گیگ'
+                          placeholder='۲ گیگ، ۳۰ روز'
                           {...field}
                         />
                       </FormControl>

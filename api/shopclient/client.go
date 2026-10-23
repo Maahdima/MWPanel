@@ -97,6 +97,7 @@ func (n *Notifier) NotifyPeerUsage(ctx context.Context, peer *model.Peer, percen
 	return n.client.do(ctx, http.MethodPost, "/api/service/notify/usage", map[string]any{
 		"uuid":        peer.UUID,
 		"name":        peer.Name,
+		"disabled":    peer.Disabled,
 		"percent":     percent,
 		"total_usage": totalUsage,
 		"limit":       limit,
@@ -110,6 +111,7 @@ func (n *Notifier) NotifyPeerExpiry(ctx context.Context, peer *model.Peer, daysL
 	return n.client.do(ctx, http.MethodPost, "/api/service/notify/expiry", map[string]any{
 		"uuid":        peer.UUID,
 		"name":        peer.Name,
+		"disabled":    peer.Disabled,
 		"days_left":   daysLeft,
 		"expire_time": peer.ExpireTime,
 	}, nil)

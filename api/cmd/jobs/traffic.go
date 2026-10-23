@@ -303,7 +303,7 @@ func (c *Calculator) applyPeerTrafficLimit(peer *model.Peer, updates map[string]
 }
 
 func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map[string]interface{}) {
-	if c.notifier == nil || !c.notifier.Enabled() || peer.TrafficLimit == nil {
+	if peer.Disabled || c.notifier == nil || !c.notifier.Enabled() || peer.TrafficLimit == nil {
 		return
 	}
 
@@ -321,7 +321,7 @@ func (c *Calculator) applyPeerTrafficNotifications(peer *model.Peer, updates map
 }
 
 func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interface{}, percent, totalUsage, limit, threshold int64, updateKey string, notified *bool) {
-	if percent < threshold || *notified {
+	if peer.Disabled || percent < threshold || *notified {
 		return
 	}
 
