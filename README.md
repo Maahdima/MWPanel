@@ -195,8 +195,6 @@ services:
     environment:
       ADMIN_USERNAME: mwpadmin
       ADMIN_PASSWORD: change-me
-      # TELEGRAM_BOT_ENABLED: "true"
-      # TELEGRAM_BOT_TOKEN: "123456:ABC-DEF"
     volumes:
       - mwp-data:/var/www/mwp
 
@@ -319,14 +317,6 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 | `TRAFFIC_JOB_INTERVAL` | How often to poll peer counters, expire overdue peers, and evaluate traffic alerts (seconds) | `300` |
 | `SESSION_JOB_INTERVAL` | How often to poll handshakes for session history (seconds) | `30` |
 
-### Telegram
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `TELEGRAM_BOT_ENABLED` | `true` / `false` | `false` |
-| `TELEGRAM_BOT_TOKEN` | Token from [@BotFather](https://t.me/BotFather) | empty |
-| `TELEGRAM_BOT_API_BASE_URL` | Bot API base URL (override for local Bot API servers) | `https://api.telegram.org` |
-
 ---
 
 ## Usage
@@ -341,33 +331,6 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 8. **Reset or revoke** — reset usage, disable the peer, or delete it (removes the MikroTik peer, queue, and scheduler).
 
 MikroTik credentials are stored on the **server** record. They are never the same as the panel login.
-
----
-
-## Telegram bot
-
-Enable the bot and set a token, then restart MWP.
-
-Users:
-
-1. Copy the peer’s config UUID from the share dialog
-2. Open the bot and send `/start`, then the UUID
-3. Optionally save a Telegram username so alerts still find them
-
-| Command | What it does |
-| --- | --- |
-| `/start` | Link this chat to a config UUID |
-| `/menu` | Action menu for the linked peer |
-| `/details` | Usage, status, and expiry |
-| `/config` | Download the WireGuard file |
-| `/qrcode` | Show the QR code |
-| `/notify` | Toggle 80 / 90 / 100% traffic alerts |
-| `/unlink` | Disconnect this chat |
-| `/help` | Short usage guide |
-
-Alerts fire when usage crosses 80%, 90%, and 100% of the peer’s traffic limit. At 100% the peer is treated as exhausted by the traffic job.
-
-The bot uses long polling. Do not set a webhook on the same bot token.
 
 ---
 
@@ -471,9 +434,6 @@ No reachable MikroTik is configured, the REST service is off (`www` / `www-ssl`)
 
 **Peers exist on the router but not in the panel**  
 Use **Sync** on the Interfaces and Peers pages to import selected items.
-
-**Telegram never starts**  
-`TELEGRAM_BOT_ENABLED` must be a truthy value (`true`, `1`, `yes`) and `TELEGRAM_BOT_TOKEN` must be set. Check logs for bot identity on startup.
 
 **SQLite file disappeared after a Docker recreate**  
 The container must mount `/var/www/mwp`. Without a volume, the database lives only in the writable layer.
