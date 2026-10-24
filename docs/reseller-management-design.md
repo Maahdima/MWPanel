@@ -1,6 +1,6 @@
 # Reseller billing and multi-router design
 
-Status: implementation in progress. This is not a completed feature announcement.
+Status: implementation in progress. This is not a completed feature announcement. See `reseller-management-development.md` for implemented boundaries, test evidence and outstanding stages.
 
 ## Existing architecture
 
