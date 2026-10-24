@@ -260,3 +260,40 @@ func TestFinancialAuthorizationAndImmutableHistory(t *testing.T) {
 		t.Fatalf("deleted audit: %v", err)
 	}
 }
+
+func TestBillingCannotChargeOrCommitAnotherTenantsPeer(t *testing.T) {
+	b, db, admin, tenant, id, _ := billingFixture(t, model.BillingPrepaid)
+	if err := b.Adjust(admin, id, "credit", 1000000, "initial credit"); err != nil {
+		t.Fatal(err)
+	}
+	other := uint(999)
+	peer := model.Peer{UUID: "owned-peer", PeerID: "*1", Name: "owned", AllowedAddress: "10.0.0.2", ResellerID: &other}
+	if err := db.Create(&peer).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.ReserveCharge(tenant, id, "forged-peer", &peer.ID, BillingExtendExpiry, BillingGiB, 30); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("foreign peer billed: %v", err)
+	}
+	if err := db.Model(&model.Peer{}).Where("id = ?", peer.ID).Update("reseller_id", id).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.ReserveCharge(tenant, id, "extension", &peer.ID, BillingExtendExpiry, BillingGiB, 30); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&model.Peer{}).Where("id = ?", peer.ID).Update("reseller_id", other).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := b.CommitCharge(tenant, id, "extension", nil); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("ownership changed but charge finalized: %v", err)
+	}
+	if err := b.ReleaseCharge(admin, id, "extension", "verified operation absent after ownership change"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := b.Account(tenant, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if account.BalanceRial != 1000000 || account.ReservedRial != 0 {
+		t.Fatalf("unjustified charge after transfer: %+v", account)
+	}
+}

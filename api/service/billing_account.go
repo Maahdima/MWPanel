@@ -121,6 +121,9 @@ func (b *Billing) ReserveCharge(actor Principal, resellerID uint, key string, pe
 	if !validBillingKey(key) {
 		return result, ErrInvalidBillingQuantity
 	}
+	if (operation == BillingCreate && peerID != nil) || (operation != BillingCreate && peerID == nil) {
+		return result, ErrInvalidBillingQuantity
+	}
 	request, _ := json.Marshal(struct {
 		PeerID      *uint
 		Operation   BillingOperation
@@ -208,6 +211,12 @@ func (b *Billing) CommitCharge(actor Principal, resellerID uint, key string, app
 		}
 		if account.Mode == model.BillingPrepaid && balance < 0 {
 			return ErrInsufficientCredit
+		}
+		if charge.PeerID != nil {
+			var peer model.Peer
+			if err := tx.Where("reseller_id = ?", resellerID).First(&peer, *charge.PeerID).Error; err != nil {
+				return err
+			}
 		}
 		if apply != nil {
 			if err := apply(tx); err != nil {
