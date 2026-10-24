@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
@@ -175,6 +176,16 @@ func (s *Server) DeleteServer(id uint) error {
 	if err := s.db.First(&server, id).Error; err != nil {
 		s.logger.Error("failed to find server by ID", zap.Uint("id", id), zap.Error(err))
 		return err
+	}
+
+	for _, resource := range []any{&model.Peer{}, &model.Interface{}} {
+		var count int64
+		if err := s.db.Model(resource).Where("server_id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return fmt.Errorf("server still owns interfaces or peers; migrate or remove them before deleting it")
+		}
 	}
 
 	if err := s.db.Unscoped().Delete(&server).Error; err != nil {

@@ -5,6 +5,7 @@ package mockrouteros
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/maahdima/mwp/api/utils/wireguard"
 	"net/http"
 	"strconv"
 	"strings"
@@ -107,6 +108,25 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.sequence[collection]++
 			id = "*" + strconv.Itoa(r.sequence[collection])
 			table[id] = map[string]any{".id": id, "disabled": "false"}
+			if collection == "/interface/wireguard" {
+				key, private, err := wireguard.GeneratePrivateKey()
+				if err != nil {
+					http.Error(w, "key generation failed", 500)
+					return
+				}
+				public, err := wireguard.GeneratePublicKey(key)
+				if err != nil {
+					http.Error(w, "key generation failed", 500)
+					return
+				}
+				table[id]["private-key"] = private
+				table[id]["public-key"] = public
+				table[id]["running"] = "true"
+				table[id]["mtu"] = "1420"
+				table[id]["rx-byte"] = "0"
+				table[id]["tx-byte"] = "0"
+				r.objects["/interface"][id] = table[id]
+			}
 			if collection == "/interface/wireguard/peers" {
 				table[id]["rx"] = "0"
 				table[id]["tx"] = "0"
@@ -128,6 +148,9 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		delete(table, id)
+		if collection == "/interface/wireguard" {
+			delete(r.objects["/interface"], id)
+		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
 		w.Header().Set("Allow", "GET, PUT, PATCH, DELETE")

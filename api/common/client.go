@@ -127,3 +127,55 @@ func (c *MwpClient) InitClient() {
 		}
 	}
 }
+
+// ResourceServerID resolves router ownership from persisted metadata. Caller-
+// supplied server selectors never override a peer or interface's actual router.
+func (c *MwpClient) ResourceServerID(resource string, id uint) (uint, error) {
+	switch resource {
+	case "peer":
+		var peer model.Peer
+		if err := c.db.Select("server_id").First(&peer, id).Error; err != nil {
+			return 0, err
+		}
+		if peer.ServerID == 0 {
+			return 0, fmt.Errorf("peer router has not been assigned")
+		}
+		return peer.ServerID, nil
+	case "interface":
+		var iface model.Interface
+		if err := c.db.Select("server_id").First(&iface, id).Error; err != nil {
+			return 0, err
+		}
+		if iface.ServerID == 0 {
+			return 0, fmt.Errorf("interface router has not been assigned")
+		}
+		return iface.ServerID, nil
+	default:
+		return 0, fmt.Errorf("unsupported router resource")
+	}
+}
+
+func (c *MwpClient) IsServerConnected(id uint) bool {
+	client, err := c.ClientForServer(id)
+	if err != nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return client.Get(ctx, DeviceIdentityPath, nil) == nil
+}
+
+// AnyConnected is for aggregate operations; each mutating service still binds
+// and verifies every affected resource's actual server independently.
+func (c *MwpClient) AnyConnected() bool {
+	var servers []model.Server
+	if err := c.db.Where("is_active = ?", true).Order("id ASC").Find(&servers).Error; err != nil {
+		return false
+	}
+	for _, server := range servers {
+		if c.IsServerConnected(server.ID) {
+			return true
+		}
+	}
+	return false
+}

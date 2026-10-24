@@ -14,6 +14,7 @@ import (
 )
 
 type WgInterface struct {
+	serverID        uint
 	db              *gorm.DB
 	mikrotikAdaptor *mikrotik.Adaptor
 	peerService     *WgPeer
@@ -38,7 +39,11 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 
 	var wgInterfaces []schema.InterfaceResponse
 	for _, iface := range interfaces {
-		mtInterface, err := i.mikrotikAdaptor.FetchWgInterface(context.Background(), iface.InterfaceID)
+		adaptor, err := i.mikrotikAdaptor.ForServer(iface.ServerID)
+		var mtInterface *mikrotik.WireGuardInterface
+		if err == nil {
+			mtInterface, err = adaptor.FetchWgInterface(context.Background(), iface.InterfaceID)
+		}
 		if err != nil {
 			i.logger.Warn("failed to fetch wireguard interface from Mikrotik; using local data",
 				zap.String("interfaceID", iface.InterfaceID),
@@ -47,13 +52,22 @@ func (i *WgInterface) GetInterfaces() (*[]schema.InterfaceResponse, error) {
 			wgInterfaces = append(wgInterfaces, i.transformInterfaceToResponse(iface, "", "false"))
 			continue
 		}
-		wgInterfaces = append(wgInterfaces, i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running))
+		wgInterfaces = append(wgInterfaces, i.transformInterfaceToResponse(iface, mtInterface.MTU, stringValue(mtInterface.Running)))
 	}
 
 	return &wgInterfaces, nil
 }
 
 func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*schema.InterfaceResponse, error) {
+	serverID, err := resolveServerID(i.db, req.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	bound, err := i.ForServer(serverID)
+	if err != nil {
+		return nil, err
+	}
+	i = bound
 	wgInterface := &mikrotik.WireGuardInterface{
 		Name:       req.Name,
 		Comment:    req.Comment,
@@ -67,6 +81,7 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 	}
 
 	dbInterface := model.Interface{
+		ServerID:    serverID,
 		InterfaceID: mtInterface.ID,
 		Comment:     wgInterface.Comment,
 		Name:        wgInterface.Name,
@@ -83,7 +98,7 @@ func (i *WgInterface) CreateInterface(req *schema.CreateInterfaceRequest) (*sche
 		return nil, err
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(dbInterface, mtInterface.MTU, *mtInterface.Running)
+	transformedInterface := i.transformInterfaceToResponse(dbInterface, mtInterface.MTU, stringValue(mtInterface.Running))
 	return &transformedInterface, nil
 }
 
@@ -93,6 +108,11 @@ func (i *WgInterface) ToggleInterfaceStatus(id uint) error {
 		i.logger.Error("failed to find wireguard interface in database", zap.Error(err))
 		return fmt.Errorf("failed to find wireguard interface in database: %w", err)
 	}
+	bound, err := i.ForServer(iface.ServerID)
+	if err != nil {
+		return err
+	}
+	i = bound
 
 	newDisabled := !iface.Disabled
 	disabled := strconv.FormatBool(newDisabled)
@@ -120,6 +140,11 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		i.logger.Error("failed to get interface from database", zap.Error(err))
 		return nil, err
 	}
+	bound, err := i.ForServer(iface.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	i = bound
 
 	oldName := iface.Name
 	wgInterface := mikrotik.WireGuardInterface{}
@@ -155,7 +180,7 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		}
 		if oldName != iface.Name {
 			if err := tx.Model(&model.Peer{}).
-				Where("interface = ?", oldName).
+				Where("server_id = ? AND interface = ?", iface.ServerID, oldName).
 				Update("interface", iface.Name).Error; err != nil {
 				return err
 			}
@@ -166,7 +191,7 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		return nil, fmt.Errorf("failed to update wireguard interface in database")
 	}
 
-	transformedInterface := i.transformInterfaceToResponse(iface, mtInterface.MTU, *mtInterface.Running)
+	transformedInterface := i.transformInterfaceToResponse(iface, mtInterface.MTU, stringValue(mtInterface.Running))
 	return &transformedInterface, nil
 }
 
@@ -204,6 +229,11 @@ func (i *WgInterface) deleteInterfaceRecord(iface *model.Interface) error {
 		return fmt.Errorf("interface is required")
 	}
 
+	bound, err := i.ForServer(iface.ServerID)
+	if err != nil {
+		return err
+	}
+	i = bound
 	if i.peerService != nil {
 		if err := i.peerService.DeletePeersByInterfaceName(iface.Name); err != nil {
 			return fmt.Errorf("failed to delete peers for interface: %w", err)
@@ -236,6 +266,7 @@ func (i *WgInterface) deleteInterfaceRecord(iface *model.Interface) error {
 func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface, mtu, status string) schema.InterfaceResponse {
 	return schema.InterfaceResponse{
 		Id:          wgInterface.ID,
+		ServerID:    wgInterface.ServerID,
 		InterfaceID: wgInterface.InterfaceID,
 		Disabled:    wgInterface.Disabled,
 		Comment:     wgInterface.Comment,
@@ -244,4 +275,11 @@ func (i *WgInterface) transformInterfaceToResponse(wgInterface model.Interface, 
 		MTU:         mtu,
 		IsRunning:   status == "true",
 	}
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

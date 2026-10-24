@@ -108,6 +108,7 @@ func (s *IPPool) CreateIPPool(req *schema.CreateIPPoolRequest) (*schema.IPPoolRe
 	}
 
 	pool := model.IPPool{
+		ServerID:    iface.ServerID,
 		Name:        req.Name,
 		StartIP:     req.StartIP,
 		EndIP:       req.EndIP,
@@ -183,7 +184,7 @@ func (s *IPPool) getIPCounts(pool model.IPPool, startIP, endIP net.IP) (totalIPs
 	}
 
 	var peers []model.Peer
-	if err := s.db.Model(&model.Peer{}).
+	if err := s.db.Model(&model.Peer{}).Where("server_id = ?", pool.ServerID).
 		Find(&peers).Error; err != nil {
 		s.logger.Error("failed to fetch peers", zap.Error(err))
 		return 0, 0, 0, err
@@ -224,7 +225,11 @@ func (s *IPPool) reservedInPool(pool model.IPPool, start, end uint32) map[uint32
 	if err := s.db.First(&iface, pool.InterfaceID).Error; err != nil {
 		return reserved
 	}
-	addrs, err := s.mikrotik.FetchIPv4Addresses(context.Background())
+	adaptor, err := s.mikrotik.ForServer(iface.ServerID)
+	if err != nil {
+		return reserved
+	}
+	addrs, err := adaptor.FetchIPv4Addresses(context.Background())
 	if err != nil {
 		s.logger.Warn("failed to read interface addresses for IP pool counts",
 			zap.String("interface", iface.Name),

@@ -8,6 +8,12 @@ import (
 )
 
 func (s *SyncService) GetSyncInterfaces() ([]schema.SyncInterfacePreviewResponse, error) {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return nil, err
+	}
+	s = bound
+
 	ifaces, err := s.fetchMikrotikInterfaces()
 	if err != nil {
 		return nil, err
@@ -17,6 +23,12 @@ func (s *SyncService) GetSyncInterfaces() ([]schema.SyncInterfacePreviewResponse
 }
 
 func (s *SyncService) GetSyncPeers(interfaceName string) ([]schema.SyncPeerPreviewResponse, error) {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return nil, err
+	}
+	s = bound
+
 	peers, err := s.fetchMikrotikPeers()
 	if err != nil {
 		return nil, err
@@ -36,6 +48,12 @@ func (s *SyncService) GetSyncPeers(interfaceName string) ([]schema.SyncPeerPrevi
 }
 
 func (s *SyncService) SyncSelectedInterfaces(interfaceIDs []string) error {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return err
+	}
+	s = bound
+
 	if len(interfaceIDs) == 0 {
 		return errors.New("no interfaces selected")
 	}
@@ -60,6 +78,12 @@ func (s *SyncService) SyncSelectedInterfaces(interfaceIDs []string) error {
 }
 
 func (s *SyncService) SyncSelectedPeers(peerIDs []string) error {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return err
+	}
+	s = bound
+
 	if len(peerIDs) == 0 {
 		return errors.New("no peers selected")
 	}

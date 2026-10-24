@@ -17,6 +17,7 @@ import (
 )
 
 type SyncService struct {
+	serverID         uint
 	db               *gorm.DB
 	mikrotikAdaptor  *mikrotik.Adaptor
 	configService    *ConfigGenerator
@@ -46,6 +47,11 @@ func NewSyncService(
 }
 
 func (s *SyncService) SyncPeers() error {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return err
+	}
+	s = bound
 	mikrotikPeers, err := s.fetchMikrotikPeers()
 	if err != nil {
 		return err
@@ -72,6 +78,11 @@ func (s *SyncService) SyncPeers() error {
 }
 
 func (s *SyncService) SyncInterfaces() error {
+	bound, err := s.selectedServer()
+	if err != nil {
+		return err
+	}
+	s = bound
 	mikrotikIfaces, err := s.fetchMikrotikInterfaces()
 	if err != nil {
 		return err
@@ -107,7 +118,7 @@ func (s *SyncService) fetchMikrotikPeers() ([]mikrotik.WireGuardPeer, error) {
 
 func (s *SyncService) fetchDBPeers() ([]model.Peer, error) {
 	var peers []model.Peer
-	err := s.db.Find(&peers).Error
+	err := s.db.Where("server_id = ?", s.serverID).Find(&peers).Error
 	if err != nil {
 		s.logger.Error("failed to get peers from database", zap.Error(err))
 	}
@@ -151,6 +162,7 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		if !exists {
 			dbPeer = model.Peer{
 				UUID:                uuid.New().String(),
+				ServerID:            s.serverID,
 				PeerID:              peer.ID,
 				PersistentKeepalive: common.DefaultKeepalive,
 			}
@@ -163,7 +175,9 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		dbPeer.PublicKey = peer.PublicKey
 		dbPeer.Interface = dbIface.Name
 		dbPeer.AllowedAddress = peer.AllowedAddress
-		dbPeer.Endpoint = server.IPAddress
+		if dbPeer.Endpoint == "" {
+			dbPeer.Endpoint = server.IPAddress
+		}
 		dbPeer.EndpointPort = dbIface.ListenPort
 
 		config := s.buildConfig(peer, dbPeer, dbIface)
@@ -199,7 +213,7 @@ func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuard
 				return err
 			}
 		} else {
-			if err := s.peerService.deletePeerSessions(s.db, peer.ID); err != nil {
+			if err := s.db.Unscoped().Where("peer_id = ?", peer.ID).Delete(&model.PeerSession{}).Error; err != nil {
 				s.logger.Error("failed to delete peer sessions", zap.String("peerId", id), zap.Error(err))
 				return err
 			}
@@ -215,7 +229,7 @@ func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuard
 
 func (s *SyncService) fetchServer() (model.Server, error) {
 	var server model.Server
-	err := s.db.First(&server).Error
+	err := s.db.First(&server, s.serverID).Error
 	if err != nil {
 		s.logger.Error("failed to get server", zap.Error(err))
 	}
@@ -224,7 +238,7 @@ func (s *SyncService) fetchServer() (model.Server, error) {
 
 func (s *SyncService) fetchInterface(name, peerID string) (model.Interface, error) {
 	var iface model.Interface
-	err := s.db.Where("name = ?", name).First(&iface).Error
+	err := s.db.Where("server_id = ? AND name = ?", s.serverID, name).First(&iface).Error
 	if err != nil {
 		if errors.Is(gorm.ErrRecordNotFound, err) {
 			s.logger.Error("interface not found", zap.String("peerId", peerID), zap.String("interfaceId", name))
@@ -258,7 +272,7 @@ func (s *SyncService) fetchMikrotikInterfaces() ([]mikrotik.WireGuardInterface, 
 
 func (s *SyncService) fetchDBInterfaces() ([]model.Interface, error) {
 	var ifaces []model.Interface
-	err := s.db.Find(&ifaces).Error
+	err := s.db.Where("server_id = ?", s.serverID).Find(&ifaces).Error
 	if err != nil {
 		s.logger.Error("failed to get interfaces from database", zap.Error(err))
 	}
@@ -287,6 +301,7 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 		if !exists {
 			dbIface = model.Interface{
 				InterfaceID: mikrotikIface.ID,
+				ServerID:    s.serverID,
 			}
 		}
 
@@ -304,7 +319,7 @@ func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.W
 			}
 			if oldName != "" && oldName != dbIface.Name {
 				if err := tx.Model(&model.Peer{}).
-					Where("interface = ?", oldName).
+					Where("server_id = ? AND interface = ?", s.serverID, oldName).
 					Update("interface", dbIface.Name).Error; err != nil {
 					return err
 				}
@@ -342,4 +357,34 @@ func (s *SyncService) removeStaleInterfaces(mikrotikMap map[string]mikrotik.Wire
 func parseBool(s string) bool {
 	b, _ := strconv.ParseBool(s)
 	return b
+}
+
+// ForServer scopes both external operations and the inventory used for deletion.
+func (s *SyncService) ForServer(id uint) (*SyncService, error) {
+	adaptor, err := s.mikrotikAdaptor.ForServer(id)
+	if err != nil {
+		return nil, err
+	}
+	peers, err := s.peerService.ForServer(id)
+	if err != nil {
+		return nil, err
+	}
+	interfaces, err := s.interfaceService.ForServer(id)
+	if err != nil {
+		return nil, err
+	}
+	bound := *s
+	bound.serverID = id
+	bound.mikrotikAdaptor = adaptor
+	bound.peerService = peers
+	bound.interfaceService = interfaces
+	return &bound, nil
+}
+
+func (s *SyncService) selectedServer() (*SyncService, error) {
+	id, err := resolveServerID(s.db, s.serverID)
+	if err != nil {
+		return nil, err
+	}
+	return s.ForServer(id)
 }

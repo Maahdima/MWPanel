@@ -81,6 +81,8 @@ type PeerShareStatusResponse struct {
 }
 
 type PeerResponse struct {
+	ServerID          uint         `json:"server_id"`
+	ResellerID        *uint        `json:"reseller_id"`
 	Id                uint         `json:"id"`
 	UUID              string       `json:"uuid"`
 	Disabled          bool         `json:"disabled"`

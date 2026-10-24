@@ -20,6 +20,13 @@ import (
 func (w *WgPeer) ShopInterface(interfaceID uint) (model.Interface, error) {
 	var iface model.Interface
 	query := w.db.Preload("IPPool")
+	if interfaceID == 0 {
+		serverID, err := resolveServerID(w.db, w.serverID)
+		if err != nil {
+			return iface, err
+		}
+		query = query.Where("server_id = ?", serverID)
+	}
 	if interfaceID > 0 {
 		err := query.First(&iface, "id = ?", interfaceID).Error
 		if err != nil {
@@ -109,6 +116,12 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 	if err := w.db.First(&peer, "id = ?", peerID).Error; err != nil {
 		return model.Peer{}, err
 	}
+	bound, err := w.ForServer(peer.ServerID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	w = bound
+
 	if addBytes <= 0 || addDays <= 0 {
 		return model.Peer{}, errors.New("invalid vpn charge")
 	}

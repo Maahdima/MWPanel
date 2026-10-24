@@ -95,7 +95,12 @@ func (c *Calculator) notifyExpiryThreshold(peer *model.Peer, updates map[string]
 }
 
 func (c *Calculator) disableExpiredPeer(peer model.Peer) error {
-	_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
+	selected, err := c.forServer(peer.ServerID)
+	if err != nil {
+		return err
+	}
+	c = selected
+	_, err = c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
 		Disabled: strconv.FormatBool(true),
 	})
 	if err != nil {

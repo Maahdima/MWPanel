@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,6 +29,7 @@ type IPApiResponse struct {
 }
 
 type DeviceData struct {
+	serverID         uint
 	db               *gorm.DB
 	mikrotikAdaptor  *mikrotik.Adaptor
 	serverService    *Server
@@ -101,7 +103,27 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 	return &dailyTrafficUsages, nil
 }
 
-func (d *DeviceData) GetDeviceData() (*schema.DeviceStatsResponse, error) {
+func (d *DeviceData) GetDeviceData(serverIDs ...uint) (*schema.DeviceStatsResponse, error) {
+	requested := uint(0)
+	if len(serverIDs) > 0 {
+		requested = serverIDs[0]
+	}
+	var selected model.Server
+	query := d.db.Where("is_active = ?", true)
+	if requested != 0 {
+		query = query.Where("id = ?", requested)
+	}
+	if err := query.Order("id ASC").First(&selected).Error; err != nil {
+		return nil, err
+	}
+	adaptor, err := d.mikrotikAdaptor.ForServer(selected.ID)
+	if err != nil {
+		return nil, err
+	}
+	bound := *d
+	bound.serverID = selected.ID
+	bound.mikrotikAdaptor = adaptor
+	d = &bound
 	serverStats, err := d.serverService.GetServersData()
 	if err != nil {
 		d.logger.Error("failed to fetch server stats", zap.Error(err))
@@ -214,11 +236,14 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 		}
 	}
 
-	// TODO : multi-server support
 	var server model.Server
-	if err := d.db.First(&server).Error; err != nil {
+	if err := d.db.First(&server, d.serverID).Error; err != nil {
 		d.logger.Error("failed to fetch server record from database", zap.Error(err))
 		return deviceIpData, err
+	}
+
+	if ip := net.ParseIP(server.IPAddress); ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified()) {
+		return deviceIpData, nil
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()

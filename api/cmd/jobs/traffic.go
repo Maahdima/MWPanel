@@ -2,6 +2,7 @@ package traffic
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -75,7 +76,11 @@ func (c *Calculator) CalculateDailyTraffic() {
 	}
 
 	for _, iface := range interfaces {
-		wgInterface, err := c.mikrotikAdaptor.FetchInterface(context.Background(), iface.InterfaceID)
+		adaptor, err := c.mikrotikAdaptor.ForServer(iface.ServerID)
+		if err != nil {
+			continue
+		}
+		wgInterface, err := adaptor.FetchInterface(context.Background(), iface.InterfaceID)
 		if err != nil {
 			c.logger.Error("Failed to fetch WireGuard interface", zap.String("interfaceID", iface.InterfaceID), zap.Error(err))
 			continue
@@ -148,6 +153,12 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 		return err
 	}
 
+	selected, err := c.forServer(peer.ServerID)
+	if err != nil {
+		return err
+	}
+	c = selected
+
 	wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
 	if err != nil {
 		c.logger.Error("Failed to fetch peer from Mikrotik", zap.String("peerID", peer.PeerID), zap.Error(err))
@@ -186,49 +197,27 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 func (c *Calculator) ResetPeerUsages() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	var peers []model.Peer
-	if err := c.db.Find(&peers).Error; err != nil {
-		c.logger.Error("Failed to find peers in DB", zap.Error(err))
-		return err
-	}
-
-	wgPeers, err := c.mikrotikAdaptor.FetchWgPeers(context.Background())
+	peers, err := c.fetchPeers()
 	if err != nil {
-		c.logger.Error("Failed to fetch peers from Mikrotik", zap.Error(err))
 		return err
 	}
-
-	wgPeerMap := make(map[string]mikrotik.WireGuardPeer)
-	for _, wgPeer := range wgPeers {
-		wgPeerMap[wgPeer.ID] = wgPeer
-	}
-
+	observed := c.observedPeers(peers)
+	// Preflight every router/peer before resetting any database row.
 	for _, peer := range peers {
-		wgPeer, found := wgPeerMap[peer.PeerID]
-		if !found {
-			continue
-		}
-
-		currentTx := utils.ParseStringToInt(wgPeer.TransferTx)
-		currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
-
-		peer.DownloadUsage = 0
-		peer.UploadUsage = 0
-		peer.LastTx = currentTx
-		peer.LastRx = currentRx
-		peer.TrafficFirstNotify = false
-		peer.TrafficSecondNotify = false
-		peer.TrafficThirdNotify = false
-
-		if err := c.db.Save(&peer).Error; err != nil {
-			c.logger.Error("Failed to reset peer usage", zap.String("peerID", peer.PeerID), zap.Error(err))
-			return err
+		if _, ok := observed[peer.ServerID][peer.PeerID]; !ok {
+			return fmt.Errorf("peer %d is unavailable on server %d", peer.ID, peer.ServerID)
 		}
 	}
-
-	c.logger.Info("Peer usages reset successfully")
-	return nil
+	return c.db.Transaction(func(tx *gorm.DB) error {
+		for _, peer := range peers {
+			snapshot := observed[peer.ServerID][peer.PeerID]
+			updates := map[string]interface{}{"download_usage": int64(0), "upload_usage": int64(0), "last_tx": utils.ParseStringToInt(snapshot.TransferTx), "last_rx": utils.ParseStringToInt(snapshot.TransferRx), "traffic_first_notify": false, "traffic_second_notify": false, "traffic_third_notify": false}
+			if err := tx.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (c *Calculator) fetchPeers() ([]model.Peer, error) {
@@ -241,6 +230,12 @@ func (c *Calculator) fetchPeers() ([]model.Peer, error) {
 }
 
 func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
+	selected, err := c.forServer(peer.ServerID)
+	if err != nil {
+		return
+	}
+	c = selected
+
 	wgPeer, err := c.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
 	if err != nil {
 		c.logger.Error("Failed to fetch wireguard peer", zap.String("peerID", peer.PeerID), zap.Error(err))

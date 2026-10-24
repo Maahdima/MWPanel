@@ -1,7 +1,6 @@
 package traffic
 
 import (
-	"context"
 	"sort"
 	"strings"
 	"time"
@@ -48,6 +47,8 @@ type sessionChange struct {
 }
 
 func (c *Calculator) TrackPeerSessions() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	peers, err := c.fetchPeers()
 	if err != nil {
 		return
@@ -57,16 +58,7 @@ func (c *Calculator) TrackPeerSessions() {
 		return
 	}
 
-	wgPeers, err := c.mikrotikAdaptor.FetchWgPeers(context.Background())
-	if err != nil {
-		c.logger.Error("Failed to fetch WireGuard peers for session tracking", zap.Error(err))
-		return
-	}
-
-	wgPeerMap := make(map[string]mikrotik.WireGuardPeer, len(wgPeers))
-	for _, wgPeer := range wgPeers {
-		wgPeerMap[wgPeer.ID] = wgPeer
-	}
+	observed := c.observedPeers(peers)
 
 	var openSessions []model.PeerSession
 	if err := c.db.Where("disconnected_at IS NULL").Find(&openSessions).Error; err != nil {
@@ -84,8 +76,12 @@ func (c *Calculator) TrackPeerSessions() {
 	closed := 0
 
 	for _, peer := range peers {
+		snapshots, reachable := observed[peer.ServerID]
+		if !reachable {
+			continue
+		}
 		var mtPeer *mikrotik.WireGuardPeer
-		if found, ok := wgPeerMap[peer.PeerID]; ok {
+		if found, ok := snapshots[peer.PeerID]; ok {
 			peerCopy := found
 			mtPeer = &peerCopy
 		}

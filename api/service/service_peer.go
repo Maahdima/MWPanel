@@ -37,7 +37,11 @@ func (w *WgPeer) PeerOnline(peer model.Peer) bool {
 	if w.mikrotikAdaptor == nil || strings.TrimSpace(peer.PeerID) == "" {
 		return false
 	}
-	mtPeer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
+	bound, err := w.ForServer(peer.ServerID)
+	if err != nil {
+		return false
+	}
+	mtPeer, err := bound.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
 	if err != nil {
 		return false
 	}
