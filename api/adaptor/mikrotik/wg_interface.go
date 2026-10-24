@@ -24,9 +24,12 @@ type WireGuardInterface struct {
 func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, error) {
 	var wgInterfaces []WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Get(
+	err = httpClient.Get(
 		c,
 		common.WGInterfacePath,
 		&wgInterfaces,
@@ -41,9 +44,12 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*WireGuardInterface, error) {
 	var wgInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Get(
+	err = httpClient.Get(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		&wgInterface,
@@ -58,9 +64,12 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var createdInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Put(
+	err = httpClient.Put(
 		c,
 		common.WGInterfacePath,
 		wgInterface,
@@ -76,9 +85,12 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var updatedInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Patch(
+	err = httpClient.Patch(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		wgInterface,
@@ -92,9 +104,12 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 }
 
 func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return err
+	}
 
-	err := httpClient.Delete(
+	err = httpClient.Delete(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		nil,

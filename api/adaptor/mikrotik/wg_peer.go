@@ -31,9 +31,12 @@ type WireGuardPeer struct {
 func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 	var wgPeers []WireGuardPeer
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Get(
+	err = httpClient.Get(
 		c,
 		common.WGPeerPath,
 		&wgPeers,
@@ -49,9 +52,12 @@ func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer, error) {
 	var wgPeer WireGuardPeer
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Get(
+	err = httpClient.Get(
 		c,
 		common.WGPeerPath+"/"+peerID,
 		&wgPeer,
@@ -67,9 +73,12 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var createdPeer WireGuardPeer
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Put(
+	err = httpClient.Put(
 		c,
 		common.WGPeerPath,
 		wgPeer,
@@ -85,9 +94,12 @@ func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGu
 func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuardPeer) (*WireGuardPeer, error) {
 	var updatedPeer WireGuardPeer
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Patch(
+	err = httpClient.Patch(
 		c,
 		common.WGPeerPath+"/"+peerID,
 		wgPeer,
@@ -101,9 +113,12 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 }
 
 func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return err
+	}
 
-	err := httpClient.Delete(
+	err = httpClient.Delete(
 		c,
 		common.WGPeerPath+"/"+peerID,
 		nil,

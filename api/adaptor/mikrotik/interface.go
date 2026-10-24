@@ -21,9 +21,12 @@ type Interface struct {
 func (a *Adaptor) FetchInterface(c context.Context, interfaceID string) (*Interface, error) {
 	var iface Interface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Get(
+	err = httpClient.Get(
 		c,
 		common.InterfacePath+"/"+interfaceID,
 		&iface,

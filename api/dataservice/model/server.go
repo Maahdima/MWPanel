@@ -8,5 +8,6 @@ type Server struct {
 	APIPort   int     `gorm:"not null;default:80;"`
 	Username  string  `gorm:"type:varchar(64);not null;"`
 	Password  string  `gorm:"type:varchar(64);not null;"`
+	IsSSL     bool    `gorm:"not null;default:false;"`
 	IsActive  bool    `gorm:"not null;default:true;"`
 }

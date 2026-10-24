@@ -21,9 +21,12 @@ type Scheduler struct {
 func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Scheduler, error) {
 	var createdScheduler Scheduler
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Put(
+	err = httpClient.Put(
 		c,
 		common.SchedulerPath,
 		scheduler,
@@ -39,9 +42,12 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, scheduler Scheduler) (*Scheduler, error) {
 	var updatedScheduler Scheduler
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Patch(
+	err = httpClient.Patch(
 		c,
 		common.SchedulerPath+"/"+schedulerID,
 		scheduler,
@@ -55,9 +61,12 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 }
 
 func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return err
+	}
 
-	err := httpClient.Delete(
+	err = httpClient.Delete(
 		c,
 		common.SchedulerPath+"/"+schedulerID,
 		nil,

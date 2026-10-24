@@ -18,9 +18,12 @@ type Queue struct {
 func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, error) {
 	var createdQueue Queue
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Put(
+	err = httpClient.Put(
 		c,
 		common.QueuePath,
 		queue,
@@ -36,9 +39,12 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Queue) (*Queue, error) {
 	var updatedQueue Queue
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return nil, err
+	}
 
-	err := httpClient.Patch(
+	err = httpClient.Patch(
 		c,
 		common.QueuePath+"/"+queueID,
 		queue,
@@ -52,9 +58,12 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 }
 
 func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
+	if err != nil {
+		return err
+	}
 
-	err := httpClient.Delete(
+	err = httpClient.Delete(
 		c,
 		common.QueuePath+"/"+queueID,
 		nil,

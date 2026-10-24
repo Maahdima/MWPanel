@@ -61,9 +61,12 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 		return nil, err
 	}
 
-	s.mwpClient.SetClient(req)
-
-	_, err = s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
+	candidate := model.Server{IPAddress: req.IPAddress, APIPort: apiPort, Username: req.Username, Password: req.Password, IsSSL: req.IsSSL != nil && *req.IsSSL}
+	client, err := common.NewServerHTTPClient(candidate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.mikrotikAdaptor.ForConnection(client).FetchDeviceIdentity(context.Background())
 	if err != nil {
 		s.logger.Error("failed to connect to device when creating a new server", zap.Error(err))
 		return nil, err
@@ -76,6 +79,7 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 		APIPort:   apiPort,
 		Username:  req.Username,
 		Password:  req.Password,
+		IsSSL:     req.IsSSL != nil && *req.IsSSL,
 	}
 
 	if err := s.db.Create(&server).Error; err != nil {
@@ -105,10 +109,12 @@ func (s *Server) GetServers() (*[]schema.ServerResponse, error) {
 	for _, server := range servers {
 		var serverStatus schema.ServerStatus
 
-		_, err := s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
+		adaptor, err := s.mikrotikAdaptor.ForServer(server.ID)
+		if err == nil {
+			_, err = adaptor.FetchDeviceIdentity(context.Background())
+		}
 		if err != nil {
 			serverStatus = schema.NotAvailableServer
-			continue
 		} else {
 			serverStatus = schema.AvailableServer
 		}
