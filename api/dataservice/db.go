@@ -66,6 +66,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.TotalTrafficUsage{},
 		&model.Server{},
 		&model.Admin{},
+		&model.Reseller{},
 		&model.TelegramChat{},
 		&model.PeerSession{},
 	)

@@ -2,6 +2,8 @@ package model
 
 type Peer struct {
 	Model
+	// A nil owner is explicitly superadmin-owned, including legacy/imported peers.
+	ResellerID          *uint   `gorm:"index"`
 	UUID                string  `gorm:"type:varchar(36);uniqueIndex;not null"`
 	PeerID              string  `gorm:"type:varchar(255);uniqueIndex;not null"`
 	Disabled            bool    `gorm:"type:boolean;not null;default:false"`
