@@ -2,17 +2,18 @@ package model
 
 type Peer struct {
 	Model
+	ServerID uint `gorm:"not null;default:0;index;uniqueIndex:uidx_peer_router_id;uniqueIndex:uidx_peer_router_address"`
 	// A nil owner is explicitly superadmin-owned, including legacy/imported peers.
 	ResellerID          *uint   `gorm:"index"`
 	UUID                string  `gorm:"type:varchar(36);uniqueIndex;not null"`
-	PeerID              string  `gorm:"type:varchar(255);uniqueIndex;not null"`
+	PeerID              string  `gorm:"type:varchar(255);uniqueIndex:uidx_peer_router_id;not null"`
 	Disabled            bool    `gorm:"type:boolean;not null;default:false"`
 	Comment             *string `gorm:"type:text"`
 	Name                string  `gorm:"type:varchar(255);not null"`
 	PrivateKey          string  `gorm:"type:varchar(255);not null"`
 	PublicKey           string  `gorm:"type:varchar(255);not null"`
 	Interface           string  `gorm:"type:varchar(255);not null"`
-	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex;not null"`
+	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex:uidx_peer_router_address;not null"`
 	Endpoint            string  `gorm:"type:varchar(255);not null"`
 	EndpointPort        string  `gorm:"type:varchar(10);not null"`
 	PersistentKeepalive string  `gorm:"type:varchar(10)"`

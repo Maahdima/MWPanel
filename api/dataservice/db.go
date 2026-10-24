@@ -79,5 +79,5 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 
-	return nil
+	return MigrateRouterOwnership(db, os.Getenv("LEGACY_ROUTER_SERVER_ID"))
 }
