@@ -228,7 +228,14 @@ func (a *AuthController) UpdateProfile(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	err := a.authService.UpdateProfile(req.OldUsername, req.OldPassword, req.NewUsername, req.NewPassword)
+	username, err := a.usernameFromJWT(ctx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+	if username != req.OldUsername {
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	}
+	err = a.authService.UpdateProfile(req.OldUsername, req.OldPassword, req.NewUsername, req.NewPassword)
 	if err != nil {
 		a.logger.Error("failed to update profile", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
@@ -255,4 +262,12 @@ func (a *AuthController) usernameFromJWT(ctx echo.Context) (string, error) {
 		return "", errors.New("missing subject")
 	}
 	return username, nil
+}
+
+func (a *AuthController) Me(ctx echo.Context) error {
+	principal, ok := ctx.Get("principal").(service.Principal)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[service.Principal]{BasicResponse: schema.OkBasicResponse, Data: principal})
 }

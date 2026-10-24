@@ -1,6 +1,8 @@
 package http
 
 import (
+	"errors"
+	"github.com/maahdima/mwp/api/dataservice/model"
 	"net/http"
 
 	traffic "github.com/maahdima/mwp/api/cmd/jobs"
@@ -32,8 +34,29 @@ func SetupMwpAPI(
 	router := app.Group("/api")
 
 	jwtConfig := echojwt.Config{
-		SigningKey: authenticationService.AccessSecret,
+		SigningKey:    authenticationService.AccessSecret,
+		SigningMethod: "HS256",
+		ParseTokenFunc: func(c echo.Context, raw string) (interface{}, error) {
+			token, principal, err := authenticationService.ParseAccessToken(raw)
+			if err != nil {
+				return nil, err
+			}
+			// Existing administrative endpoints are not tenant-scoped yet. Keep them
+			// fail-closed for resellers until each dedicated route is implemented.
+			if principal.Role != model.RoleSuperadmin {
+				switch c.Path() {
+				case "/api/auth/me", "/api/auth/profile", "/api/auth/totp", "/api/auth/totp/setup", "/api/auth/totp/confirm", "/api/auth/totp/disable":
+				default:
+					return nil, service.ErrRoleForbidden
+				}
+			}
+			c.Set("principal", principal)
+			return token, nil
+		},
 		ErrorHandler: func(c echo.Context, err error) error {
+			if errors.Is(err, service.ErrRoleForbidden) {
+				return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+			}
 			return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 		},
 	}
@@ -74,6 +97,7 @@ func setupAuthenticationRoutes(router *echo.Group, jwtConfig echojwt.Config, aut
 
 	authProtected := authGroup.Group("")
 	authProtected.Use(echojwt.WithConfig(jwtConfig))
+	authProtected.GET("/me", authController.Me)
 	authProtected.PUT("/profile", authController.UpdateProfile)
 	authProtected.GET("/totp", authController.GetTotpStatus)
 	authProtected.POST("/totp/setup", authController.StartTotpSetup)

@@ -234,6 +234,10 @@ func (a *Authentication) findAdminByUsername(username string) (*model.Admin, err
 }
 
 func (a *Authentication) issueLoginTokens(admin *model.Admin) (*schema.LoginResponse, error) {
+	principal, err := a.ResolvePrincipal(admin.Username)
+	if err != nil {
+		return nil, err
+	}
 	accessToken, err := a.generateAccessToken(admin.Username)
 	if err != nil {
 		a.logger.Error("failed to generate access token", zap.Error(err))
@@ -250,6 +254,8 @@ func (a *Authentication) issueLoginTokens(admin *model.Admin) (*schema.LoginResp
 		Requires2FA:  false,
 		UserID:       admin.ID,
 		Username:     admin.Username,
+		Role:         principal.Role,
+		ResellerID:   principal.ResellerID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int64(accessTokenTTL.Seconds()),
