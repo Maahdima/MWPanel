@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { format, parseISO } from 'date-fns'
 import { ColumnDef } from '@tanstack/react-table'
 import { IconRestore } from '@tabler/icons-react'
-import { format, parseISO } from 'date-fns'
 import { Peer, PeerStatus } from '@/schema/peers.ts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
+import { ServerName } from '@/components/server-select'
 import {
   OfflineBadge,
   OnlineBadge,
@@ -26,6 +27,11 @@ import { DataTableColumnHeader } from '@/features/shared-components/table/data-t
 import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'
 
 export const peersColumns: ColumnDef<Peer>[] = [
+  {
+    accessorKey: 'server_id',
+    header: () => 'Server',
+    cell: ({ row }) => <ServerName id={row.original.server_id} />,
+  },
   {
     id: 'is_active',
     cell: ({ row }) => {

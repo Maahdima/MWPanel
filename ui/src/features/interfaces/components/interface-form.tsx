@@ -12,7 +12,14 @@ import {
 import { toast } from 'sonner'
 import { useCreateInterfaceMutation } from '@/hooks/interfaces/useCreateInterfaceMutation.ts'
 import { useUpdateInterfaceMutation } from '@/hooks/interfaces/useUpdateInterfaceMutation.ts'
-import { Form } from '@/components/ui/form'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { ServerSelect } from '@/components/server-select'
 import { SimpleField } from '@/features/shared-components/simple-field.tsx'
 
 interface Props {
@@ -76,6 +83,22 @@ export function InterfaceForm({ currentRow, onClose, setPending }: Props) {
         onSubmit={form.handleSubmit(onSubmit)}
         className='space-y-4'
       >
+        {!isEdit && (
+          <FormField
+            control={form.control}
+            name='server_id'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Server</FormLabel>
+                <ServerSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         {[
           {
             name: 'comment',
@@ -89,7 +112,7 @@ export function InterfaceForm({ currentRow, onClose, setPending }: Props) {
           },
           {
             name: 'listen_port',
-            label: 'API Port',
+            label: 'Listen Port',
             placeholder: 'e.g., 13231',
           },
         ].map(({ name, label, placeholder }) => (

@@ -137,10 +137,11 @@ export const syncPeers = async (): Promise<void> => {
 }
 
 export const fetchSyncPeers = async (
-  interfaceName?: string
+  interfaceName?: string,
+  serverID?: number
 ): Promise<SyncPeerPreview[]> => {
   const { data } = await axiosInstance.get('/sync/peers', {
-    params: interfaceName ? { interface: interfaceName } : undefined,
+    params: { interface: interfaceName, server_id: serverID },
   })
   const parsed = SyncPeersResponseSchema.parse(data)
   return parsed.data || []
@@ -150,6 +151,8 @@ export const syncSelectedPeers = async (
   payload: SyncPeersRequest
 ): Promise<void> => {
   const validated = SyncPeersRequestSchema.parse(payload)
-  await axiosInstance.post('/sync/peers/selected', validated)
+  const { server_id, ...body } = validated
+  await axiosInstance.post('/sync/peers/selected', body, {
+    params: { server_id },
+  })
 }
-

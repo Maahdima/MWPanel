@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { UseFormReturn, useWatch } from 'react-hook-form'
 import { addMonths, format } from 'date-fns'
+import { UseFormReturn, useWatch } from 'react-hook-form'
 import { CreatePeerRequest } from '@/schema/peers'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
 import { usePeerAllowedAddressMutation } from '@/hooks/peers/usePeerAllowedAddressMutation.ts'
@@ -32,6 +32,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
   const { mutate: GetPeerAllowedAddress } = usePeerAllowedAddressMutation()
 
   const hasSetDefaults = useRef(false)
+  const previousInterface = useRef<number | undefined>(undefined)
 
   // Watch for interface_id changes
   const interfaceId = useWatch({
@@ -56,7 +57,10 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
       !isServersLoading
     ) {
       const defaultInterface = interfacesList[0]
-      const defaultServer = serversList[0]
+      const defaultServer = serversList.find(
+        (server) => server.id === defaultInterface.server_id
+      )
+      if (!defaultServer) return
 
       form.reset((prev) => ({
         ...prev,
@@ -79,17 +83,30 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
   ])
 
   useEffect(() => {
-    if (interfaceId && !isEdit) {
+    if (interfaceId && !isEdit && previousInterface.current !== interfaceId) {
+      const iface = interfacesList.find((item) => item.id === interfaceId)
+      const server = serversList.find((item) => item.id === iface?.server_id)
+      if (!server) return
+      previousInterface.current = interfaceId
+      form.setValue('endpoint', server.ip_address)
       GetPeerAllowedAddress(
         { interface_id: interfaceId },
         {
           onSuccess: (data) => {
-            form.setValue('allowed_address', data.allowed_address)
+            if (form.getValues('interface_id') === interfaceId)
+              form.setValue('allowed_address', data.allowed_address)
           },
         }
       )
     }
-  }, [interfaceId, GetPeerAllowedAddress, form, isEdit])
+  }, [
+    interfaceId,
+    GetPeerAllowedAddress,
+    form,
+    isEdit,
+    interfacesList,
+    serversList,
+  ])
 
   return {
     interfacesList,

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createApiResponseSchema } from '@/schema/api-response.ts'
 
 export const InterfaceSchema = z.object({
+  server_id: z.number(),
   id: z.number(),
   interface_id: z.string(),
   disabled: z.boolean(),
@@ -15,6 +16,7 @@ export const InterfaceSchema = z.object({
 export const InterfacesSchema = z.array(InterfaceSchema).nullable()
 
 export const CreateInterfaceSchema = z.object({
+  server_id: z.number().int().positive('Select a server'),
   comment: z.string().optional().nullable(),
   name: z.string().min(1, 'Name is required'),
   listen_port: z.string().min(1, 'Listen Port is required'),

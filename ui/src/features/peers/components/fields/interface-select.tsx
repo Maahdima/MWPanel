@@ -1,6 +1,11 @@
 'use client'
 
-import { Control } from 'react-hook-form'
+import {
+  Control,
+  FieldValues,
+  FieldPath,
+  UseFormSetValue,
+} from 'react-hook-form'
 import { Interface } from '@/schema/interfaces.ts'
 import {
   FormControl,
@@ -18,25 +23,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ServerName } from '@/components/server-select'
 
-interface Props {
-  name: 'interface_id'
+interface Props<T extends FieldValues> {
+  name: FieldPath<T>
   label: string
-  control: Control<any>
-  setValue: (name: 'interface_id', value: number) => void
+  control: Control<T>
+  setValue: UseFormSetValue<T>
   options: Array<Interface>
   isLoading?: boolean
   error?: unknown
 }
 
-export function InterfaceSelect({
+export function InterfaceSelect<T extends FieldValues>({
   name,
   label,
   control,
   options,
   isLoading,
   error,
-}: Props) {
+}: Props<T>) {
   return (
     <FormField
       control={control}
@@ -77,7 +83,7 @@ export function InterfaceSelect({
                   ) : (
                     options.map((item) => (
                       <SelectItem key={item.id} value={item.id.toString()}>
-                        {item.name}
+                        {item.name} — <ServerName id={item.server_id} />
                       </SelectItem>
                     ))
                   )}

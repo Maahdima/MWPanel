@@ -9,6 +9,8 @@ export const PeerStatusEnum = z.enum([
 ])
 
 export const PeerSchema = z.object({
+  server_id: z.number(),
+  reseller_id: z.number().nullable(),
   id: z.number(),
   uuid: z.string(),
   disabled: z.boolean(),
