@@ -65,7 +65,7 @@ func authorizationAPI(t *testing.T) (*echo.Echo, *gorm.DB, *service.Authenticati
 	syncer := service.NewSyncService(db, adaptor, files, qr, peers, interfaces)
 	app := echo.New()
 	app.Validator = &validate.CustomValidator{Validator: validator.New()}
-	SetupMwpAPI(app, registry, auth, servers, interfaces, pools, peers, files, qr, excel, device, calculator, syncer, nil)
+	SetupMwpAPI(app, registry, auth, servers, interfaces, pools, peers, files, qr, excel, device, calculator, syncer, nil, service.NewResellers(db, peers))
 	return app, db, auth, tenant
 }
 

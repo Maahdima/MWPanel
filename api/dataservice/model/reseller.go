@@ -1,9 +1,36 @@
 package model
 
-// Reseller is a tenant, not a separate installation. Login credentials remain in
-// Admin so JWT and TOTP keep the existing authentication path.
+import "gorm.io/gorm"
+
+// Reseller is a tenant, not a separate installation. Credentials remain in Admin.
 type Reseller struct {
 	Model
-	Name     string `gorm:"type:varchar(255);not null"`
-	IsActive bool   `gorm:"not null;default:true"`
+	Name                 string `gorm:"type:varchar(255);not null"`
+	IsActive             bool   `gorm:"not null;default:true"`
+	DefaultInterfaceID   *uint
+	MaxActivePeers       *int64
+	MaxPeerTrafficBytes  *int64
+	MaxTotalTrafficBytes *int64
+	MaxDurationDays      *int64
 }
+
+type ResellerResource struct {
+	Model
+	ResellerID  uint      `gorm:"not null;uniqueIndex:uidx_reseller_interface"`
+	Reseller    Reseller  `gorm:"constraint:OnDelete:RESTRICT"`
+	InterfaceID uint      `gorm:"not null;uniqueIndex:uidx_reseller_interface"`
+	Interface   Interface `gorm:"constraint:OnDelete:RESTRICT"`
+}
+
+type PeerOwnershipEvent struct {
+	ID                 string `gorm:"type:varchar(36);primaryKey"`
+	CreatedAt          int64  `gorm:"autoCreateTime"`
+	PeerID             uint   `gorm:"not null;index"`
+	PreviousResellerID *uint
+	ResellerID         *uint
+	ActorID            uint   `gorm:"not null"`
+	Reason             string `gorm:"type:text;not null"`
+}
+
+func (*PeerOwnershipEvent) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+func (*PeerOwnershipEvent) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }

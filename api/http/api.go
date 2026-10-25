@@ -30,6 +30,7 @@ func SetupMwpAPI(
 	trafficCalculator *traffic.Calculator,
 	syncService *service.SyncService,
 	shopAPI *shopclient.Client,
+	resellers *service.Resellers,
 ) {
 	router := app.Group("/api")
 
@@ -79,6 +80,15 @@ func SetupMwpAPI(
 	serviceController := NewServiceController(peerService, configGeneratorService, qrCodeGeneratorService)
 
 	setupAuthenticationRoutes(router, jwtConfig, authController)
+	resellerController := NewResellerController(resellers)
+	resellerGroup := router.Group("/reseller", echojwt.WithConfig(jwtConfig))
+	resellerGroup.GET("", resellerController.List)
+	resellerGroup.POST("", resellerController.Create)
+	resellerGroup.GET("/:id", resellerController.Get)
+	resellerGroup.PUT("/:id", resellerController.Update)
+	resellerGroup.GET("/:id/peers", resellerController.Peers)
+	router.PUT("/peer/:id/owner", resellerController.Transfer, echojwt.WithConfig(jwtConfig))
+
 	setupServerRoutes(router, jwtConfig, serverController)
 	setupInterfaceRoutes(router, mwpClients, jwtConfig, wgInterfaceController)
 	setupIPPoolRoutes(router, jwtConfig, ipPoolController)

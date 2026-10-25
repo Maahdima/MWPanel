@@ -25,6 +25,7 @@ import (
 )
 
 type WgPeer struct {
+	tenantID        *uint
 	serverID        uint
 	db              *gorm.DB
 	mikrotikAdaptor *mikrotik.Adaptor

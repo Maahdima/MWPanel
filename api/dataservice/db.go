@@ -67,6 +67,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.Server{},
 		&model.Admin{},
 		&model.Reseller{},
+		&model.ResellerResource{},
+		&model.PeerOwnershipEvent{},
 		&model.BillingAccount{},
 		&model.BillingCharge{},
 		&model.LedgerEntry{},

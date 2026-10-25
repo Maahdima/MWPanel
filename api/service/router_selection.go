@@ -47,10 +47,14 @@ func (w *WgPeer) ForServer(id uint) (*WgPeer, error) {
 }
 
 func (w *WgPeer) peerQuery() *gorm.DB {
+	query := w.db
 	if w.serverID != 0 {
-		return w.db.Where("server_id = ?", w.serverID)
+		query = query.Where("server_id = ?", w.serverID)
 	}
-	return w.db
+	if w.tenantID != nil {
+		query = query.Where("reseller_id = ?", *w.tenantID)
+	}
+	return query
 }
 
 func (i *WgInterface) ForServer(id uint) (*WgInterface, error) {

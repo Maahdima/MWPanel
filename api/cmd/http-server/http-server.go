@@ -64,6 +64,7 @@ func StartHttpServer(
 		trafficCalculator,
 		syncService,
 		shopAPI,
+		service.NewResellers(db, peerService),
 	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {
