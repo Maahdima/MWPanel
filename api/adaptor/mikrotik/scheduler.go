@@ -77,3 +77,15 @@ func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
 
 	return nil
 }
+
+func (a *Adaptor) FetchScheduler(ctx context.Context, id string) (*Scheduler, error) {
+	client, err := a.client()
+	if err != nil {
+		return nil, err
+	}
+	var scheduler Scheduler
+	if err := client.Get(ctx, common.SchedulerPath+"/"+id, &scheduler); err != nil {
+		return nil, err
+	}
+	return &scheduler, nil
+}

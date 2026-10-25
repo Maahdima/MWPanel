@@ -283,10 +283,13 @@ func (c *Calculator) calculatePeerDeltas(peer model.Peer, currentTx, currentRx, 
 }
 
 func (c *Calculator) applyPeerTrafficLimit(peer *model.Peer, updates map[string]interface{}) {
-	if peer.TrafficLimit != nil && (peer.DownloadUsage+peer.UploadUsage) > *peer.TrafficLimit {
+	if peer.TrafficLimit != nil && (peer.DownloadUsage+peer.UploadUsage) >= *peer.TrafficLimit {
 		c.logger.Warn("Peer traffic limit exceeded", zap.String("peerID", peer.PeerID))
 		peer.Disabled = true
 		updates["disabled"] = true
+		updates["quota_blocked"] = true
+		updates["restriction_revision"] = gorm.Expr("restriction_revision + 1")
+		updates["sync_next_attempt_at"] = 0
 
 		_, err := c.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
 			Disabled: strconv.FormatBool(true),

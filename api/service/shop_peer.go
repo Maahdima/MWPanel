@@ -116,6 +116,10 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 	if err := w.db.First(&peer, "id = ?", peerID).Error; err != nil {
 		return model.Peer{}, err
 	}
+	if peer.ResellerID != nil {
+		return model.Peer{}, ErrBilledOperationRequired
+	}
+
 	bound, err := w.ForServer(peer.ServerID)
 	if err != nil {
 		return model.Peer{}, err

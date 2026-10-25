@@ -10,6 +10,7 @@ import (
 	"github.com/maahdima/mwp/api/utils"
 
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func (c *Calculator) ExpireOverduePeers() {
@@ -117,7 +118,7 @@ func (c *Calculator) disableExpiredPeer(peer model.Peer) error {
 		}
 	}
 
-	if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Update("disabled", true).Error; err != nil {
+	if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(map[string]any{"disabled": true, "expiry_blocked": true, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
 		c.logger.Error("Failed to mark expired peer as disabled", zap.String("peerID", peer.PeerID), zap.Error(err))
 		return err
 	}

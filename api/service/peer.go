@@ -50,57 +50,61 @@ func NewWGPeer(db *gorm.DB, mikrotikAdaptor *mikrotik.Adaptor, scheduler *Schedu
 }
 
 func (w *WgPeer) TogglePeerStatus(id uint) error {
-	var peer model.Peer
-	if err := w.db.First(&peer, "id = ?", id).Error; err != nil {
-		w.logger.Error("failed to find peer in database", zap.Error(err))
-		return fmt.Errorf("peer not found: %w", err)
+	var initial model.Peer
+	if err := w.db.First(&initial, id).Error; err != nil {
+		return err
 	}
-	bound, err := w.ForServer(peer.ServerID)
+	if initial.ResellerID != nil {
+		if _, err := NewBilling(w.db).ReconcileAccount(*initial.ResellerID); err != nil {
+			return err
+		}
+	}
+	update := func(tx *gorm.DB) error {
+		lock := tx.Model(&model.Peer{}).Where("id = ?", id).UpdateColumn("restriction_revision", gorm.Expr("restriction_revision"))
+		if lock.Error != nil {
+			return lock.Error
+		}
+		if lock.RowsAffected != 1 {
+			return gorm.ErrRecordNotFound
+		}
+		var peer model.Peer
+		if err := tx.First(&peer, id).Error; err != nil {
+			return err
+		}
+		if !uintPointersEqual(peer.ResellerID, initial.ResellerID) {
+			return ErrPendingPeerOperation
+		}
+		disabled := !peer.Disabled
+		if !disabled {
+			blocked, err := peerOtherRestriction(tx, peer, time.Now())
+			if err != nil {
+				return err
+			}
+			if blocked {
+				return ErrPeerRestricted
+			}
+			if peer.ResellerID != nil {
+				candidate := peer
+				candidate.Disabled = false
+				if err := ValidatePeerResource(tx, *peer.ResellerID, candidate, peer.ID); err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Model(&peer).Updates(map[string]any{"manual_disabled": disabled, "disabled": disabled, "restrictions_initialized": true, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error
+	}
+	var err error
+	if initial.ResellerID != nil {
+		err = NewBilling(w.db).accountTransaction(*initial.ResellerID, func(tx *gorm.DB, _ *model.BillingAccount) error { return update(tx) })
+	} else {
+		err = w.db.Transaction(update)
+	}
 	if err != nil {
 		return err
 	}
-	w = bound
-
-	if peer.Disabled && utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
-		return fmt.Errorf("cannot enable an expired peer; extend the expire date first")
+	if err := NewPeerReconciler(w.db, w.mikrotikAdaptor, NewBilling(w.db)).ReconcilePeer(id); err != nil {
+		return fmt.Errorf("%w: %v", ErrRouterSyncPending, err)
 	}
-
-	newDisabled := !peer.Disabled
-	disabled := strconv.FormatBool(newDisabled)
-
-	wgPeer := mikrotik.WireGuardPeer{
-		Disabled: disabled,
-	}
-	wgScheduler := mikrotik.Scheduler{
-		Disabled: disabled,
-	}
-	wgQueue := mikrotik.Queue{
-		Disabled: disabled,
-	}
-
-	if _, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, wgPeer); err != nil {
-		w.logger.Error("failed to update wireguard peer in Mikrotik", zap.Error(err))
-		return fmt.Errorf("failed to update wireguard peer: %w", err)
-	}
-
-	if peer.SchedulerID != nil {
-		if _, err := w.mikrotikAdaptor.UpdateScheduler(context.Background(), *peer.SchedulerID, wgScheduler); err != nil {
-			w.logger.Error("failed to update scheduler for wireguard peer", zap.Error(err))
-			return fmt.Errorf("failed to update scheduler: %w", err)
-		}
-	}
-	if peer.QueueID != nil {
-		if _, err := w.mikrotikAdaptor.UpdateSimpleQueue(context.Background(), *peer.QueueID, wgQueue); err != nil {
-			w.logger.Error("failed to update queue for wireguard peer", zap.Error(err))
-			return fmt.Errorf("failed to update queue: %w", err)
-		}
-	}
-
-	if err := w.db.Model(&peer).Update("disabled", newDisabled).Error; err != nil {
-		w.logger.Error("failed to update peer status in database", zap.Error(err))
-		return fmt.Errorf("failed to update peer status in database: %w", err)
-	}
-
 	return nil
 }
 
@@ -461,6 +465,44 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	}
 	w = bound
 
+	manual := peer.ManualDisabled
+	if !peer.RestrictionsInitialized {
+		manual = peer.Disabled
+	}
+	if req.Disabled != nil && *req.Disabled != peer.Disabled {
+		manual = *req.Disabled
+	}
+	if peer.ResellerID != nil && !req.BillingAuthorized {
+		if req.TrafficLimit == nil || req.ExpireTime == nil {
+			return nil, ErrInvalidBillingQuantity
+		}
+		quota, err := ParseBillingGiB(*req.TrafficLimit)
+		if err != nil || quota <= 0 {
+			return nil, ErrInvalidBillingQuantity
+		}
+		if peer.TrafficLimit == nil || quota > *peer.TrafficLimit || (peer.ExpireTime != nil && *req.ExpireTime > *peer.ExpireTime) {
+			return nil, ErrBilledOperationRequired
+		}
+	}
+	proposed := peer
+	if req.ExpireTime != nil {
+		proposed.ExpireTime = req.ExpireTime
+	}
+	if req.TrafficLimit != nil {
+		quota, err := ParseBillingGiB(*req.TrafficLimit)
+		if err == nil && quota > 0 {
+			proposed.TrafficLimit = &quota
+		}
+	}
+	blocked, err := peerOtherRestriction(w.db, proposed, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	effective := manual || blocked
+	copied := *req
+	copied.Disabled = &effective
+	req = &copied
+
 	if err := w.ensureAllowedAddressIsUnique(req.AllowedAddress, peer.ID); err != nil {
 		return nil, err
 	}
@@ -480,6 +522,10 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	}
 
 	updateData := w.preparePeerUpdate(&peer, req, schedulerID, queueID)
+	updateData["manual_disabled"] = manual
+	updateData["restrictions_initialized"] = true
+	updateData["restriction_revision"] = gorm.Expr("restriction_revision + 1")
+	updateData["sync_next_attempt_at"] = 0
 	if err := w.db.Model(&peer).Updates(updateData).Error; err != nil {
 		return nil, err
 	}
@@ -492,6 +538,13 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 		return nil, err
 	}
 
+	iface, err := w.getInterfaceByName(peer.ServerID, peer.Interface)
+	if err != nil {
+		return nil, err
+	}
+	if err := w.generatePeerAssets(peer.PrivateKey, peer, iface.PublicKey); err != nil {
+		return nil, err
+	}
 	transformed := w.peerResponse(peer)
 	return &transformed, nil
 }
@@ -763,25 +816,27 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 	}
 
 	dbPeer := model.Peer{
-		ServerID:            iface.ServerID,
-		UUID:                uuid.New().String(),
-		PeerID:              mtPeer.ID,
-		Disabled:            disabled,
-		Comment:             mtPeer.Comment,
-		Name:                mtPeer.Name,
-		PrivateKey:          *mtPeer.PrivateKey,
-		PublicKey:           mtPeer.PublicKey,
-		Interface:           mtPeer.Interface,
-		AllowedAddress:      mtPeer.AllowedAddress,
-		Endpoint:            req.Endpoint,
-		EndpointPort:        iface.ListenPort,
-		PersistentKeepalive: keepalive,
-		SchedulerID:         schedulerId,
-		QueueID:             queueId,
-		ExpireTime:          req.ExpireTime,
-		TrafficLimit:        trafficLimit,
-		DownloadBandwidth:   req.DownloadBandwidth,
-		UploadBandwidth:     req.UploadBandwidth,
+		RestrictionsInitialized: true,
+		ManualDisabled:          disabled,
+		ServerID:                iface.ServerID,
+		UUID:                    uuid.New().String(),
+		PeerID:                  mtPeer.ID,
+		Disabled:                disabled,
+		Comment:                 mtPeer.Comment,
+		Name:                    mtPeer.Name,
+		PrivateKey:              *mtPeer.PrivateKey,
+		PublicKey:               mtPeer.PublicKey,
+		Interface:               mtPeer.Interface,
+		AllowedAddress:          mtPeer.AllowedAddress,
+		Endpoint:                req.Endpoint,
+		EndpointPort:            iface.ListenPort,
+		PersistentKeepalive:     keepalive,
+		SchedulerID:             schedulerId,
+		QueueID:                 queueId,
+		ExpireTime:              req.ExpireTime,
+		TrafficLimit:            trafficLimit,
+		DownloadBandwidth:       req.DownloadBandwidth,
+		UploadBandwidth:         req.UploadBandwidth,
 	}
 
 	if err := w.db.Create(&dbPeer).Error; err != nil {
@@ -940,7 +995,31 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		trafficLimit = utils.Ptr(utils.BytesToGB(*peer.TrafficLimit))
 	}
 
+	reasons := []string{}
+	if peer.ManualDisabled {
+		reasons = append(reasons, "manual")
+	}
+	if utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+		reasons = append(reasons, "expired")
+	}
+	if peer.TrafficLimit != nil && peer.DownloadUsage+peer.UploadUsage >= *peer.TrafficLimit {
+		reasons = append(reasons, "quota")
+	}
+	if peer.BillingBlocked {
+		reasons = append(reasons, "billing")
+	}
+	if peer.AdminBlocked {
+		reasons = append(reasons, "administrative")
+	}
+	syncStatus := "synced"
+	if peer.SyncedDisabled == nil || peer.AppliedRevision != peer.RestrictionRevision {
+		syncStatus = "pending"
+	}
+	if peer.SyncError != "" {
+		syncStatus = "error"
+	}
 	return schema.PeerResponse{
+		ManualDisabled: peer.ManualDisabled, RestrictionReasons: reasons, SyncStatus: syncStatus,
 		Id:                peer.ID,
 		ServerID:          peer.ServerID,
 		ResellerID:        peer.ResellerID,
@@ -1039,7 +1118,7 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 
 	if peer.TrafficLimit != nil {
 		totalUsedTraffic := peer.DownloadUsage + peer.UploadUsage
-		if totalUsedTraffic > *peer.TrafficLimit {
+		if totalUsedTraffic >= *peer.TrafficLimit {
 			peerStatus = append(peerStatus, schema.SuspendedPeer)
 		}
 	}
@@ -1103,4 +1182,10 @@ func int64PtrEqual(a, b *int64) bool {
 		return false
 	}
 	return *a == *b
+}
+
+func (w *WgPeer) getInterfaceByName(serverID uint, name string) (model.Interface, error) {
+	var iface model.Interface
+	err := w.db.Where("server_id = ? AND name = ?", serverID, name).First(&iface).Error
+	return iface, err
 }

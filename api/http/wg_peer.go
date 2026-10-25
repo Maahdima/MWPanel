@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/maahdima/mwp/api/cmd/jobs"
@@ -146,6 +147,12 @@ func (c *WgPeerController) UpdatePeerStatus(ctx echo.Context) error {
 
 	err = c.peerService.TogglePeerStatus(uint(peerId))
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusAccepted, schema.OkBasicResponse)
+		}
+		if errors.Is(err, service.ErrPeerRestricted) || errors.Is(err, service.ErrResellerLimit) {
+			return resellerError(ctx, err)
+		}
 		c.logger.Error("failed to update wireguard peer status", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -183,6 +190,9 @@ func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 
 	peer, err := c.peerService.UpdatePeer(uint(peerId), &req)
 	if err != nil {
+		if errors.Is(err, service.ErrBilledOperationRequired) || errors.Is(err, service.ErrInvalidBillingQuantity) {
+			return resellerError(ctx, err)
+		}
 		c.logger.Error("failed to update wireguard peer", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -441,6 +451,13 @@ func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
+	peer, lookupErr := c.peerService.FindPeerByID(uint(peerId))
+	if lookupErr != nil {
+		return resellerError(ctx, lookupErr)
+	}
+	if peer.ResellerID != nil {
+		return resellerError(ctx, service.ErrBilledOperationRequired)
+	}
 	err = c.trafficCalculator.ResetPeerUsage(uint(peerId))
 	if err != nil {
 		c.logger.Error("failed to reset wireguard peer usage", zap.Error(err))
@@ -455,7 +472,14 @@ func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
 }
 
 func (c *WgPeerController) ResetPeerUsages(ctx echo.Context) error {
-	err := c.trafficCalculator.ResetPeerUsages()
+	owned, err := c.peerService.HasResellerPeers()
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	if owned {
+		return resellerError(ctx, service.ErrBilledOperationRequired)
+	}
+	err = c.trafficCalculator.ResetPeerUsages()
 	if err != nil {
 		c.logger.Error("failed to reset wireguard peer usages", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
@@ -479,5 +503,6 @@ func (c *WgPeerController) ExportPeersTrafficData(ctx echo.Context) error {
 		})
 	}
 
+	defer os.Remove(filePath)
 	return ctx.File(filePath)
 }

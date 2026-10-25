@@ -74,3 +74,15 @@ func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 
 	return nil
 }
+
+func (a *Adaptor) FetchSimpleQueue(ctx context.Context, id string) (*Queue, error) {
+	client, err := a.client()
+	if err != nil {
+		return nil, err
+	}
+	var queue Queue
+	if err := client.Get(ctx, common.QueuePath+"/"+id, &queue); err != nil {
+		return nil, err
+	}
+	return &queue, nil
+}

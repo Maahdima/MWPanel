@@ -48,3 +48,9 @@ func (w *WgPeer) PeerOnline(peer model.Peer) bool {
 	_, online, err := w.handshakeData(mtPeer)
 	return err == nil && online
 }
+
+func (w *WgPeer) HasResellerPeers() (bool, error) {
+	var count int64
+	err := w.db.Model(&model.Peer{}).Where("reseller_id IS NOT NULL").Count(&count).Error
+	return count > 0, err
+}

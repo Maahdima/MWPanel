@@ -161,14 +161,16 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		dbPeer, exists := dbMap[id]
 		if !exists {
 			dbPeer = model.Peer{
-				UUID:                uuid.New().String(),
-				ServerID:            s.serverID,
-				PeerID:              peer.ID,
-				PersistentKeepalive: common.DefaultKeepalive,
+				UUID:                    uuid.New().String(),
+				RestrictionsInitialized: true,
+				ManualDisabled:          parseBool(peer.Disabled),
+				ServerID:                s.serverID,
+				PeerID:                  peer.ID,
+				PersistentKeepalive:     common.DefaultKeepalive,
 			}
 		}
 
-		dbPeer.Disabled = parseBool(peer.Disabled)
+		dbPeer.Disabled = dbPeer.ManualDisabled || dbPeer.QuotaBlocked || dbPeer.ExpiryBlocked || dbPeer.BillingBlocked || dbPeer.AdminBlocked
 		dbPeer.Comment = peer.Comment
 		dbPeer.Name = peer.Name
 		dbPeer.PrivateKey = *peer.PrivateKey

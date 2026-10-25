@@ -14,6 +14,7 @@ import (
 	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice"
 	"github.com/maahdima/mwp/api/dataservice/seeds"
+	"github.com/maahdima/mwp/api/service"
 	"github.com/maahdima/mwp/api/shopclient"
 	"github.com/maahdima/mwp/api/utils/log"
 
@@ -104,6 +105,11 @@ func main() {
 		logger.Panic("Failed to create daily traffic calculation job", zap.Error(err))
 	}
 
+	peerReconciler := service.NewPeerReconciler(db, mikrotikAdaptor, service.NewBilling(db))
+	_, err = scheduler.NewJob(gocron.DurationJob(10*time.Second), gocron.NewTask(peerReconciler.Run), gocron.WithStartAt(gocron.WithStartImmediately()))
+	if err != nil {
+		logger.Panic("Failed to create peer reconciliation job", zap.Error(err))
+	}
 	scheduler.Start()
 
 	// Start the HTTP server
