@@ -14,13 +14,17 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PurchaseButton } from './purchase-button'
 
 export function OwnerCell({ peer }: { peer: Peer }) {
   const { data } = useResellersQuery(),
     [open, setOpen] = useState(false)
   const action = useResellerAction(
-    (payload: { reseller_id: number | null; reason: string }) =>
-      axiosInstance.put(`/peer/${peer.id}/owner`, payload),
+    (payload: {
+      reseller_id: number | null
+      reason: string
+      configured_duration_days: string | null
+    }) => axiosInstance.put(`/peer/${peer.id}/owner`, payload),
     'Ownership updated'
   )
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -29,11 +33,15 @@ export function OwnerCell({ peer }: { peer: Peer }) {
     await action.mutateAsync({
       reseller_id: form.get('owner') ? Number(form.get('owner')) : null,
       reason: String(form.get('reason')),
+      configured_duration_days: String(form.get('duration') ?? '') || null,
     })
     setOpen(false)
   }
   return (
     <>
+      {peer.reseller_id && (
+        <PurchaseButton peer={peer} resellerID={peer.reseller_id} />
+      )}
       <Button size='sm' variant='ghost' onClick={() => setOpen(true)}>
         {peer.reseller_id
           ? (data?.find((x) => x.id === peer.reseller_id)?.name ??
@@ -61,6 +69,25 @@ export function OwnerCell({ peer }: { peer: Peer }) {
                 </option>
               ))}
             </select>
+            <Label htmlFor={`duration-${peer.id}`}>
+              Original plan duration (days)
+            </Label>
+            <Input
+              id={`duration-${peer.id}`}
+              name='duration'
+              type='number'
+              min='1'
+              max='36500'
+              defaultValue={
+                peer.configured_duration_days === '0'
+                  ? ''
+                  : peer.configured_duration_days
+              }
+            />
+            <p className='text-muted-foreground text-xs'>
+              Record the original duration to permit full resets of legacy
+              peers.
+            </p>
             <Label htmlFor={`reason-${peer.id}`}>Reason</Label>
             <Input
               id={`reason-${peer.id}`}

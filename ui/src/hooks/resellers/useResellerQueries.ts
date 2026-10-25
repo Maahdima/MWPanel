@@ -73,6 +73,7 @@ export function useResellerAction<T>(
         'billing',
         'receipts',
         'payment_instructions',
+        'peer_purchases',
         'my_peers',
         'peers_list',
       ])

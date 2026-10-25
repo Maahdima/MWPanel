@@ -24,6 +24,7 @@ import { PeersDialogs } from '@/features/peers/components/peers-dialogs'
 import PeersProvider from '@/features/peers/context/peers-context'
 import { DataTable } from '@/features/shared-components/table/data-table'
 import { BillingPanel } from './billing-panel'
+import { CreatePeerButton } from './create-peer-button'
 import { PageFrame } from './page-frame'
 import { ResellerEditor } from './reseller-editor'
 
@@ -73,6 +74,7 @@ export default function ResellerDetail({ id }: { id: number }) {
         description={`Account: ${reseller.username}`}
         actions={
           <div className='flex flex-wrap gap-2'>
+            <CreatePeerButton resellerID={id} />
             <Button variant='outline' asChild>
               <Link to='/resellers'>All resellers</Link>
             </Button>

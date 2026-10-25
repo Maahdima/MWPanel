@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { PeersResponseSchema } from '@/schema/peers'
 import { toast } from 'sonner'
 import axiosInstance from '@/api/axios-instance'
-import { downloadPrivate } from '@/hooks/resellers/useResellerQueries'
+import {
+  useBillingBook,
+  downloadPrivate,
+} from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,10 +18,16 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
+import { CreatePeerButton } from './create-peer-button'
+import { MaintenanceButton } from './maintenance-button'
 import { PageFrame } from './page-frame'
+import { PurchaseButton } from './purchase-button'
 
 export function MyPeers() {
   const [search, setSearch] = useState('')
+  const { data: book } = useBillingBook()
+  const readOnly =
+    book?.state.billing_suspended || book?.state.administrative_suspended
   const peers = useQuery({
     queryKey: ['my_peers'],
     queryFn: async () =>
@@ -34,14 +43,17 @@ export function MyPeers() {
       title='Configurations'
       description='Your configurations and usage'
       actions={
-        <Button
-          variant='outline'
-          onClick={() =>
-            download('/reseller/me/peers/export', 'traffic-report.xlsx')
-          }
-        >
-          Export usage
-        </Button>
+        <div className='flex flex-wrap gap-2'>
+          {!readOnly && <CreatePeerButton />}
+          <Button
+            variant='outline'
+            onClick={() =>
+              download('/reseller/me/peers/export', 'traffic-report.xlsx')
+            }
+          >
+            Export usage
+          </Button>
+        </div>
       }
     >
       <Input
@@ -98,6 +110,12 @@ export function MyPeers() {
                       <TableCell>{p.expire_time ?? 'Unlimited'}</TableCell>
                       <TableCell>
                         <div className='flex flex-wrap gap-2'>
+                          {!readOnly && (
+                            <>
+                              <PurchaseButton peer={p} />
+                              <MaintenanceButton peer={p} />
+                            </>
+                          )}
                           <Button
                             variant='outline'
                             size='sm'

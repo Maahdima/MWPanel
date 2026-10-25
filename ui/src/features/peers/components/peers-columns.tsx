@@ -22,6 +22,7 @@ import {
   OnlineBadge,
 } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
+import { MaintenanceButton } from '@/features/resellers/maintenance-button'
 import { OwnerCell } from '@/features/resellers/owner-cell'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
@@ -369,6 +370,14 @@ export const peersColumns: ColumnDef<Peer>[] = [
   },
   {
     id: 'actions',
-    cell: PeersTableRowActions,
+    cell: ({ row, ...props }) =>
+      row.original.reseller_id ? (
+        <MaintenanceButton
+          peer={row.original}
+          resellerID={row.original.reseller_id}
+        />
+      ) : (
+        <PeersTableRowActions row={row} {...props} />
+      ),
   },
 ]
