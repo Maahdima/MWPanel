@@ -10,6 +10,7 @@ import {
 } from '@/schema/billing'
 import { toast } from 'sonner'
 import axiosInstance from '@/api/axios-instance'
+import { useAuthStore } from '@/stores/authStore'
 
 async function read<T extends z.ZodTypeAny>(
   path: string,
@@ -18,13 +19,16 @@ async function read<T extends z.ZodTypeAny>(
   const { data } = await axiosInstance.get(path)
   return createApiResponseSchema(schema).parse(data).data
 }
-export const usePrincipal = () =>
-  useQuery({
+export const usePrincipal = () => {
+  const token = useAuthStore((state) => state.auth.accessToken)
+  return useQuery({
     queryKey: ['principal'],
     queryFn: () => read('/auth/me', PrincipalSchema),
-    staleTime: 0,
+    enabled: !!token,
+    staleTime: 10000,
     retry: false,
   })
+}
 export const useResellersQuery = () =>
   useQuery({
     queryKey: ['resellers'],

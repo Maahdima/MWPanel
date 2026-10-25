@@ -34,6 +34,7 @@ async function bootstrap() {
       const status = error.response?.status ?? 0
 
       if (status === 401) {
+        if (!useAuthStore.getState().auth.accessToken) return
         toast.error('Session expired!', { duration: 5000 })
         useAuthStore.getState().auth.reset()
         queryClient.clear()

@@ -1,5 +1,6 @@
 import Cookies from 'js-cookie'
 import { Navigate, Outlet, useLocation } from '@tanstack/react-router'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
 import {
@@ -17,10 +18,12 @@ interface Props {
 
 export function AuthenticatedLayout({ children }: Props) {
   const defaultOpen = Cookies.get('sidebar_state') !== 'false'
+  const token = useAuthStore((state) => state.auth.accessToken)
   const principal = usePrincipal()
   const location = useLocation()
   const reseller = principal.data?.role === 'reseller'
   const book = useBillingBook(undefined, reseller)
+  if (!token) return <Navigate to='/sign-in' replace />
   if (principal.isPending || (reseller && book.isPending))
     return <div className='p-8'>Loading account…</div>
   if (principal.isError || (reseller && book.isError))

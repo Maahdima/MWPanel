@@ -111,3 +111,22 @@ export const sidebarData: SidebarData = {
     },
   ],
 }
+
+export function sidebarDataForRole(
+  reseller: boolean,
+  shopEnabled: boolean
+): SidebarData {
+  if (reseller)
+    return {
+      navGroups: [
+        {
+          title: 'General',
+          items: [
+            { title: 'Billing', url: '/billing', icon: IconReceipt },
+            { title: 'Configurations', url: '/peers', icon: IconUsers },
+          ],
+        },
+      ],
+    }
+  return sidebarDataForShop(shopEnabled)
+}

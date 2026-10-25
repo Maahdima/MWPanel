@@ -9,6 +9,8 @@ import {
 } from '@tabler/icons-react'
 import { useSearch } from '@/context/search-context'
 import { useTheme } from '@/context/theme-context'
+import { usePrincipal } from '@/hooks/resellers/useResellerQueries'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
 import {
   CommandDialog,
   CommandEmpty,
@@ -18,16 +20,21 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
-import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
-import { sidebarDataForShop } from './layout/data/sidebar-data'
+import { sidebarDataForRole } from './layout/data/sidebar-data'
 import { ScrollArea } from './ui/scroll-area'
 
 export function CommandMenu() {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
-  const { enabled: shopEnabled } = useShopEnabled()
-  const sidebarData = sidebarDataForShop(shopEnabled)
+  const { data: principal } = usePrincipal()
+  const { enabled: shopEnabled } = useShopEnabled(
+    principal?.role === 'superadmin'
+  )
+  const sidebarData = sidebarDataForRole(
+    principal?.role === 'reseller',
+    shopEnabled
+  )
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {

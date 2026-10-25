@@ -13,26 +13,16 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { NavGroup } from '@/components/layout/nav-group'
-import { sidebarDataForShop } from './data/sidebar-data'
+import { sidebarDataForRole } from './data/sidebar-data'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open } = useSidebar()
   const { data: principal } = usePrincipal()
   const { enabled } = useShopEnabled(principal?.role === 'superadmin')
-  const sidebarData =
-    principal?.role === 'reseller'
-      ? {
-          navGroups: [
-            {
-              title: 'General',
-              items: [
-                { title: 'Billing', url: '/billing' },
-                { title: 'Configurations', url: '/peers' },
-              ],
-            },
-          ],
-        }
-      : sidebarDataForShop(enabled)
+  const sidebarData = sidebarDataForRole(
+    principal?.role === 'reseller',
+    enabled
+  )
 
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>

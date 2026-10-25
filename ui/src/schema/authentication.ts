@@ -14,6 +14,8 @@ export const loginRequestSchema = z.object({
 })
 
 export const loginResponseSchema = z.object({
+  role: z.enum(['superadmin', 'reseller']).optional(),
+  reseller_id: z.number().optional(),
   requires_2fa: z.boolean().optional().default(false),
   temp_token: z.string().optional(),
   user_id: z.number().optional(),
