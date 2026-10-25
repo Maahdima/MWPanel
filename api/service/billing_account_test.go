@@ -7,10 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/glebarez/sqlite"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/internal/testdb"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func billingFixture(t *testing.T, mode string) (*Billing, *gorm.DB, Principal, Principal, uint, string) {
@@ -35,13 +34,7 @@ func billingFixture(t *testing.T, mode string) (*Billing, *gorm.DB, Principal, P
 
 func billingTestDB(t *testing.T, path string) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+path+"?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	t.Cleanup(func() { sqlDB.Close() })
-	return db
+	return testdb.Open(t, path)
 }
 
 func TestConcurrentPrepaidReservationsCannotOverspend(t *testing.T) {

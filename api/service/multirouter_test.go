@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	jobs "github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/common"
@@ -19,9 +18,9 @@ import (
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/internal/mockrouteros"
+	"github.com/maahdima/mwp/api/internal/testdb"
 	"github.com/maahdima/mwp/api/service"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type multiFixture struct {
@@ -37,12 +36,7 @@ type multiFixture struct {
 
 func newMultiFixture(t *testing.T) multiFixture {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "multi.db")), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	t.Cleanup(func() { sqlDB.Close() })
+	db := testdb.Open(t, filepath.Join(t.TempDir(), "multi.db"))
 	if err := dataservice.AutoMigrate(db); err != nil {
 		t.Fatal(err)
 	}

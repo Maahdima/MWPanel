@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
@@ -18,6 +17,7 @@ import (
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/internal/testdb"
 	"github.com/maahdima/mwp/api/service"
 	"github.com/maahdima/mwp/api/utils/validate"
 	"golang.org/x/crypto/bcrypt"
@@ -26,12 +26,7 @@ import (
 
 func authorizationAPI(t *testing.T) (*echo.Echo, *gorm.DB, *service.Authentication, model.Reseller) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "auth.db")), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	t.Cleanup(func() { sqlDB.Close() })
+	db := testdb.Open(t, filepath.Join(t.TempDir(), "auth.db"))
 	if err := dataservice.AutoMigrate(db); err != nil {
 		t.Fatal(err)
 	}
