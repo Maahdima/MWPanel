@@ -4,6 +4,8 @@ import "gorm.io/gorm"
 
 // Reseller is a tenant, not a separate installation. Credentials remain in Admin.
 type Reseller struct {
+	AdminSuspended     bool   `gorm:"not null;default:false"`
+	AdminSuspendReason string `gorm:"type:text"`
 	Model
 	Name                 string `gorm:"type:varchar(255);not null"`
 	IsActive             bool   `gorm:"not null;default:true"`

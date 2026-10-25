@@ -17,7 +17,7 @@ func billingFixture(t *testing.T, mode string) (*Billing, *gorm.DB, Principal, P
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "billing.db")
 	db := billingTestDB(t, path)
-	if err := db.AutoMigrate(&model.Reseller{}, &model.Peer{}, &model.BillingAccount{}, &model.BillingCharge{}, &model.LedgerEntry{}, &model.BillingAuditEvent{}); err != nil {
+	if err := db.AutoMigrate(&model.Reseller{}, &model.Peer{}, &model.BillingAccount{}, &model.BillingCharge{}, &model.LedgerEntry{}, &model.BillingAuditEvent{}, &model.BillingInvoice{}, &model.InvoiceAllocation{}, &model.BillingSettings{}, &model.PaymentReceipt{}, &model.ApprovedPayment{}); err != nil {
 		t.Fatal(err)
 	}
 	reseller := model.Reseller{Name: "reseller"}

@@ -70,6 +70,11 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.ResellerResource{},
 		&model.PeerOwnershipEvent{},
 		&model.BillingAccount{},
+		&model.BillingSettings{},
+		&model.PaymentReceipt{},
+		&model.ApprovedPayment{},
+		&model.BillingInvoice{},
+		&model.InvoiceAllocation{},
 		&model.BillingCharge{},
 		&model.LedgerEntry{},
 		&model.BillingAuditEvent{},
@@ -81,5 +86,8 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 
-	return MigrateRouterOwnership(db, os.Getenv("LEGACY_ROUTER_SERVER_ID"))
+	if err := MigrateRouterOwnership(db, os.Getenv("LEGACY_ROUTER_SERVER_ID")); err != nil {
+		return err
+	}
+	return MigratePeerRestrictions(db)
 }

@@ -20,9 +20,12 @@ var (
 	ErrChargeState         = errors.New("charge cannot transition from its current state")
 )
 
-type Billing struct{ db *gorm.DB }
+type Billing struct {
+	db  *gorm.DB
+	now func() time.Time
+}
 
-func NewBilling(db *gorm.DB) *Billing { return &Billing{db: db} }
+func NewBilling(db *gorm.DB) *Billing { return &Billing{db: db, now: time.Now} }
 
 func billingAdmin(actor Principal) bool {
 	return actor.AccountID != 0 && actor.Role == model.RoleSuperadmin && actor.ResellerID == nil
@@ -43,7 +46,8 @@ func (b *Billing) CreateAccount(actor Principal, resellerID uint, mode string) e
 		if err := tx.First(&reseller, resellerID).Error; err != nil {
 			return err
 		}
-		account := model.BillingAccount{ResellerID: resellerID, Mode: mode}
+		anchor := b.now().UTC().Unix()
+		account := model.BillingAccount{ResellerID: resellerID, Mode: mode, ActivationAnchor: anchor, PeriodStart: anchor, NextInvoiceAt: anchor + 30*86400, IntervalDays: 30, GraceDays: 5}
 		if err := tx.Create(&account).Error; err != nil {
 			return err
 		}
@@ -90,7 +94,11 @@ func checkedRialAdd(a, b int64) (int64, error) {
 	if (b > 0 && a > math.MaxInt64-b) || (b < 0 && a < math.MinInt64-b) {
 		return 0, ErrBillingOverflow
 	}
-	return a + b, nil
+	result := a + b
+	if result == math.MinInt64 {
+		return 0, ErrBillingOverflow
+	}
+	return result, nil
 }
 
 func billingAudit(tx *gorm.DB, resellerID, actorID uint, chargeID *uint, event, detail string) error {
@@ -124,6 +132,9 @@ func (b *Billing) ReserveCharge(actor Principal, resellerID uint, key string, pe
 	if (operation == BillingCreate && peerID != nil) || (operation != BillingCreate && peerID == nil) {
 		return result, ErrInvalidBillingQuantity
 	}
+	if _, err := b.ReconcileAccount(resellerID); err != nil {
+		return result, err
+	}
 	request, _ := json.Marshal(struct {
 		PeerID      *uint
 		Operation   BillingOperation
@@ -144,15 +155,25 @@ func (b *Billing) ReserveCharge(actor Principal, resellerID uint, key string, pe
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
+		state, err := b.accountState(tx, account, b.now().UTC().Unix())
+		if err != nil {
+			return err
+		}
+		if state.Reconciling {
+			return ErrBillingCatchupPending
+		}
+		if state.BillableBlocked {
+			return ErrBillingOverdue
+		}
 		if peerID != nil {
 			var peer model.Peer
 			if err := tx.Where("reseller_id = ?", resellerID).First(&peer, *peerID).Error; err != nil {
 				return err
 			}
 		}
-		rate := DefaultPricePerGiB30DaysRial
-		if account.RateRial != nil {
-			rate = *account.RateRial
+		rate, err := billingRate(tx, account)
+		if err != nil {
+			return err
 		}
 		snapshot, err := PriceBillingOperation(operation, bytes, days, rate)
 		if err != nil {
@@ -194,6 +215,9 @@ func (b *Billing) CommitCharge(actor Principal, resellerID uint, key string, app
 	if !billingAccess(actor, resellerID) {
 		return ErrRoleForbidden
 	}
+	if _, err := b.ReconcileAccount(resellerID); err != nil {
+		return err
+	}
 	return b.accountTransaction(resellerID, func(tx *gorm.DB, account *model.BillingAccount) error {
 		var charge model.BillingCharge
 		if err := tx.Where("reseller_id = ? AND idempotency_key = ?", resellerID, key).First(&charge).Error; err != nil {
@@ -209,9 +233,6 @@ func (b *Billing) CommitCharge(actor Principal, resellerID uint, key string, app
 		if err != nil {
 			return err
 		}
-		if account.Mode == model.BillingPrepaid && balance < 0 {
-			return ErrInsufficientCredit
-		}
 		if charge.PeerID != nil {
 			var peer model.Peer
 			if err := tx.Where("reseller_id = ?", resellerID).First(&peer, *charge.PeerID).Error; err != nil {
@@ -223,7 +244,7 @@ func (b *Billing) CommitCharge(actor Principal, resellerID uint, key string, app
 				return err
 			}
 		}
-		if err := tx.Create(&model.LedgerEntry{ID: uuid.NewString(), ResellerID: resellerID, Reference: "charge:" + key, ActorID: actor.AccountID, Kind: "charge", DeltaRial: -charge.AmountRial, BalanceAfterRial: balance, Reason: charge.PricingSnapshot, ChargeID: &charge.ID}).Error; err != nil {
+		if err := tx.Create(&model.LedgerEntry{ID: uuid.NewString(), ResellerID: resellerID, Reference: "charge:" + key, ActorID: actor.AccountID, Kind: "charge", PeriodStart: account.PeriodStart, CreatedAt: b.now().UTC().Unix(), DeltaRial: -charge.AmountRial, BalanceAfterRial: balance, Reason: charge.PricingSnapshot, ChargeID: &charge.ID}).Error; err != nil {
 			return err
 		}
 		if err := tx.Model(account).Updates(map[string]any{"balance_rial": balance, "reserved_rial": account.ReservedRial - charge.AmountRial}).Error; err != nil {
@@ -275,6 +296,10 @@ func (b *Billing) Adjust(actor Principal, resellerID uint, key string, delta int
 	if !validBillingKey(key) || delta == 0 || strings.TrimSpace(reason) == "" || len(reason) > 1000 {
 		return ErrInvalidBillingQuantity
 	}
+	if _, err := b.ReconcileAccount(resellerID); err != nil {
+		return err
+	}
+
 	return b.accountTransaction(resellerID, func(tx *gorm.DB, account *model.BillingAccount) error {
 		var existing model.LedgerEntry
 		err := tx.Where("reseller_id = ? AND reference = ?", resellerID, "adjustment:"+key).First(&existing).Error
@@ -294,9 +319,14 @@ func (b *Billing) Adjust(actor Principal, resellerID uint, key string, delta int
 		if delta < 0 && account.Mode == model.BillingPrepaid && balance < account.ReservedRial {
 			return ErrInsufficientCredit
 		}
-		entry := model.LedgerEntry{ID: uuid.NewString(), ResellerID: resellerID, Reference: "adjustment:" + key, ActorID: actor.AccountID, Kind: "adjustment", DeltaRial: delta, BalanceAfterRial: balance, Reason: reason}
+		entry := model.LedgerEntry{ID: uuid.NewString(), ResellerID: resellerID, Reference: "adjustment:" + key, ActorID: actor.AccountID, Kind: "adjustment", PeriodStart: account.PeriodStart, CreatedAt: b.now().UTC().Unix(), DeltaRial: delta, BalanceAfterRial: balance, Reason: reason}
 		if err := tx.Create(&entry).Error; err != nil {
 			return err
+		}
+		if delta > 0 {
+			if err := allocateInvoiceCredit(tx, account.ResellerID, entry.ID, delta, b.now().UTC().Unix()); err != nil {
+				return err
+			}
 		}
 		return tx.Model(account).Update("balance_rial", balance).Error
 	})
@@ -309,6 +339,10 @@ func (b *Billing) SetMode(actor Principal, resellerID uint, mode, reason string)
 	if (mode != model.BillingPrepaid && mode != model.BillingPostpaid) || strings.TrimSpace(reason) == "" || len(reason) > 1000 {
 		return ErrInvalidBillingQuantity
 	}
+	if _, err := b.ReconcileAccount(resellerID); err != nil {
+		return err
+	}
+
 	return b.accountTransaction(resellerID, func(tx *gorm.DB, account *model.BillingAccount) error {
 		if account.Mode == mode {
 			return nil

@@ -2,7 +2,21 @@ package model
 
 type Peer struct {
 	Model
-	ServerID uint `gorm:"not null;default:0;index;uniqueIndex:uidx_peer_router_id;uniqueIndex:uidx_peer_router_address"`
+	RestrictionsInitialized bool  `gorm:"not null;default:false"`
+	ManualDisabled          bool  `gorm:"not null;default:false"`
+	BillingBlocked          bool  `gorm:"not null;default:false"`
+	AdminBlocked            bool  `gorm:"not null;default:false"`
+	ExpiryBlocked           bool  `gorm:"not null;default:false"`
+	QuotaBlocked            bool  `gorm:"not null;default:false"`
+	RestrictionRevision     int64 `gorm:"not null;default:0"`
+	AppliedRevision         int64 `gorm:"not null;default:0"`
+	SyncedDisabled          *bool
+	SyncAttempts            int64  `gorm:"not null;default:0"`
+	SyncNextAttemptAt       int64  `gorm:"not null;default:0;index"`
+	SyncLeaseUntil          int64  `gorm:"not null;default:0"`
+	SyncError               string `gorm:"type:text"`
+	LastSyncedAt            int64  `gorm:"not null;default:0"`
+	ServerID                uint   `gorm:"not null;default:0;index;uniqueIndex:uidx_peer_router_id;uniqueIndex:uidx_peer_router_address"`
 	// A nil owner is explicitly superadmin-owned, including legacy/imported peers.
 	ResellerID          *uint   `gorm:"index"`
 	UUID                string  `gorm:"type:varchar(36);uniqueIndex;not null"`
