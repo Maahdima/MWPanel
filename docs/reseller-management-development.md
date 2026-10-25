@@ -1,107 +1,37 @@
-# Reseller contribution: current development state
+# Reseller contribution development status
 
-This branch is an incremental implementation, not a finished reseller release.
-Existing administrative workflows remain available. Reseller accounts can identify
-and manage their own authentication settings, but existing administrative routes
-are deliberately forbidden to resellers until scoped replacements are complete.
-Do not deploy this branch as the completed feature described in the proposal.
+Implementation remains in progress on `feat/reseller-billing-management`, based on `c935efa`. No remote issue, push or PR has been published. The issue proposal is prepared locally. Existing Git identity is retained.
 
 ## Implemented and verified
 
-- Legacy-safe nullable peer ownership and database-backed account roles.
-- Current role/active-account verification after JWT signature validation, including
-  immediate revocation of old administrative tokens. Profile changes are bound to
-  the authenticated username. `/api/auth/me` returns the current principal.
-- Exact byte/rial pricing, half-up rounding at a single posting boundary,
-  overflow rejection, and historical rate/quantity snapshots.
-- Transactional prepaid holds, signed balances for credit/liabilities, immutable
-  ledger/audit records, payload-bound idempotency, explicit adjustments, recoverable
-  release/commit transitions, and atomic mode changes preserving balances.
-- Router-bound REST adaptors that can operate concurrently without shared mutable
-  selection; deterministic legacy default selection; persisted TLS configuration;
-  correct server-specific connectivity checks and errors for missing routers.
-- A loopback-only development Mock RouterOS command, reusable REST test fixture,
-  authentication checks and deterministic failure injection for tests.
+- Explicit server identity and legacy-safe ownership migration; SQLite/PostgreSQL-compatible GORM models; current database role resolution and admin guards.
+- Genuine per-router adaptors, peer/interface/IP-pool operations, synchronization, exports, counters, expiry and session jobs. Two Mock RouterOS servers test colliding local IDs and isolated failures.
+- Admin reseller CRUD, resource assignments, limits and audited ownership transfers. Legacy/imported unassigned peers remain admin-owned. Transfers can explicitly record the original plan duration for full resets of legacy peers.
+- Exact integer-rial pricing, byte quantities, deterministic half-up rounding, rate snapshots, prepaid holds and immutable ledger. Anchored fixed-day periods, invoices, recurring fees, partial settlement, grace and audited overrides.
+- Private validated PNG/JPEG receipts, pending/approved/rejected states, globally unique bank references and atomic idempotent approval. No wallet credit before approval.
+- Independent manual, quota, expiry, billing, administrative and provisioning restrictions. Durable router reconciliation with leases/backoff and safe restoration.
+- Durable peer creation, quota purchases, expiry extensions, usage resets and full resets. Holds and intents commit together; router state is verified before financial posting. Recoverable ambiguous responses and database failures; preserved original pricing on retry. Unsupported unlimited reseller plans are rejected.
+- Durable free rename, address change, key regeneration, explicit manual status, public-share toggle, quota reduction and deletion. No charge or wallet change. Suspended reseller writes are blocked; authorized admin actions remain possible. Legacy alternate billed/reset paths cannot bypass accounting.
+- Existing-style admin reseller list/detail, exact toman inputs/display, receipt review, financial settings/actions, ownership filtering/transfers, scoped reseller billing/configuration pages, purchase and management forms. English UI and existing themes retained.
+- Embedded production assets include underscore-prefixed dynamic-route chunks; a regression test checks generated JS/CSS/HTML against embedded files.
 
-The ledger primitives are **not yet connected to peer HTTP mutations**. They must
-not be represented as end-to-end billing. Likewise, bound adaptors do **not yet**
-make existing peer services, sync and jobs fully multi-router: explicit persisted
-server relationships, composite local identifiers and per-server service/job
-routing remain necessary.
+## Verification executed
 
-## Remaining feature work
+On 2026-10-25, `go test -race ./...` passed after integrating durable purchases and free operations. Focused service tests additionally cover initial 15/30/45/60-day pricing, exact reset charges, expiry extension pricing independent of added days, key-change recovery, lost-success router responses at peer/queue/scheduler creation, posting failure after router success, concurrent replay and wallet protection. HTTP tests cover forged price/owner, IDOR, missing idempotency keys and receipt authorization.
 
-1. Scoped reseller peer operations, CRUD, resource assignment, limits and audited
-   ownership transfer; role-aware UI and tenant-scoped exports/statistics.
-2. Explicit peer/interface server identity and safe legacy assignment, composite
-   uniqueness, and router-specific peer/sync/queue/scheduler/background operations.
-3. Global/individual pricing administration and integration of durable financial
-   intents with every paid peer path, including full reset and expiry extension.
-4. Anchored postpaid periods, invoices, early/partial settlement, recurring fees,
-   grace enforcement and exactly-once period processing.
-5. Card instructions, protected receipt upload/download, approval/rejection and
-   atomic, idempotent payment allocation. Submissions must never credit balances.
-6. Separate restriction reasons, payment-first suspended UI and bounded durable
-   router suspension/recovery reconciliation preserving manual/expiry/quota state.
-7. Resumable migration preflight, destination verification, metadata switch,
-   configuration/QR regeneration and safe source cleanup with stable public UUIDs.
-8. Complete UI, regression/security coverage, PostgreSQL execution, screenshots
-   where relevant, and a final upstream issue/PR after authorization.
+`go vet ./...`, UI `npm run build`, UI `npm run lint` and `git diff --check` have passed for completed stages. Subsequent changes require focused re-verification. UI build runs TypeScript checking and Vite; Go embeds that output. No dependency change was necessary.
 
-## Build and test
+A real local embedded binary has run with a disposable SQLite database and loopback-only Mock RouterOS. The admin reseller/billing detail page was inspected in the browser and captured. Browser review found an unconditional admin shop-status request in the command menu during reseller login. Role-aware navigation, login/2FA destinations, root-route guards and logout cache handling now prevent it. An actual reseller login subsequently made only five successful auth/billing requests, with no 403 or admin API call. The test browser and local servers were stopped afterward to avoid unnecessary load.
 
-Build the UI first because Go embeds `ui/dist`:
+## Remaining work
 
-```sh
-cd ui
-npm ci --no-audit --no-fund
-npm run build
-cd ..
-mkdir -p .local/test-data
-DATA_DIR="$PWD/.local/test-data" go test -race ./...
-DATA_DIR="$PWD/.local/test-data" go vet ./...
-git diff --check
-CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o .local/mwp ./api/cmd/main.go
-```
+- Resumable default-router migration with destination preflight, preserved accounting/usage/UUIDs, verified metadata switching, updated configurations/QR codes and safe source cleanup. Unsafe default-interface changes currently return a conflict rather than silently moving metadata.
+- Finish browser regression checks of reseller login, suspension/payment-first behavior, purchase/management forms, responsive layout and themes after the latest changes.
+- PostgreSQL execution tests; Docker daemon availability has not yet been established. SQLite success is not a claim of PostgreSQL verification.
+- Complete history pagination, failure/recovery documentation, final security review, final production build and PR description. Do not describe the entire requested feature as finished until these are verified.
 
-Use a disposable local database and loopback listen address. Follow README env
-loading (`ENV_FILE`), and set `DB_DIALECT=sqlite`, `HOST=127.0.0.1`, a separate
-`DATA_DIR`, and first-run admin credentials. The implementation currently reads
-`HOST`/`PORT`; README's configuration table also mentions `SERVER_HOST`/`SERVER_PORT`,
-so inspect `api/config/config.go` when preparing settings.
+## Recovery and operational boundaries
 
-For a mock router, choose a local-only test password and launch explicitly:
+`PeerPurchase` is the shared durable operation outbox; free mutations have a null charge ID. A held amount is not a ledger debit. Failed/ambiguous external changes stay pending with bounded per-tick work and persisted backoff. Workers inventory stable public keys and UUID resource names before retrying creation. A finalized charge and the matching peer metadata are committed in one account transaction. SQLite serializes writers; PostgreSQL account updates lock rows. Source/router objects with unexpected identities are never changed or deleted.
 
-```sh
-MOCK_ROUTEROS_PASSWORD='local-test-only' go run ./api/cmd/mock-routeros -listen 127.0.0.1:18080
-```
-
-Add server `127.0.0.1`, REST port `18080`, username `mockadmin` and that test password
-in the local panel, with SSL disabled. This command is a development tool: it does
-not emulate the entire RouterOS operating system, keys, networking or real traffic.
-Tests use two independent instances and deliberately colliding local object IDs.
-No production path automatically falls back to a mock.
-
-## Verification results (2026-10-24)
-
-- `npm ci`: succeeded without dependency-file changes.
-- `npm run build`: succeeded (includes `tsc -b` and Vite production build).
-- `go test -race ./...`: succeeded for the implemented foundation.
-- `go vet ./...`: succeeded.
-- Embedded production UI/Go build: succeeded.
-- Local HTTP smoke check: login, current identity, mock server registration,
-  server availability and peer listing all returned HTTP 200.
-- Five local project skills passed the skill validator. Local execution guidance
-  is excluded using `.git/info/exclude` rather than added to upstream source.
-- `npm run lint`: baseline failure before UI modifications: 10 errors and one
-  warning across existing interface/peer/server table cells and shared form
-  components. No UI source changes have been made in this implementation stage.
-- First Go baseline run started before UI assets existed and failed with
-  `pattern dist/*: no matching files found`; subsequent runs after the documented
-  UI build succeeded.
-- PostgreSQL was not executed; Docker's daemon was unavailable. The tests above
-  exercised SQLite. PostgreSQL acceptance remains outstanding.
-
-No issue, branch or PR has been published remotely. The issue proposal is local at
-`docs/reseller-management-issue.md`. A final PR is not ready while the items above
-remain incomplete.
+Pending operations prevent ownership changes and conflicting legacy mutations. New configurations are provisioned disabled and activated only by restriction reconciliation. Billing or admin suspension can still disable an existing peer while a purchase is pending. A legacy peer without a known original duration cannot be fully reset until an admin records that duration explicitly; it is never guessed.
