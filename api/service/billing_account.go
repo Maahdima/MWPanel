@@ -122,6 +122,10 @@ func validBillingKey(key string) bool {
 // router mutation. A hold is never a finalized ledger charge. Retries return the
 // original snapshot even after pricing changes; changed payloads are conflicts.
 func (b *Billing) ReserveCharge(actor Principal, resellerID uint, key string, peerID *uint, operation BillingOperation, bytes, days int64) (model.BillingCharge, error) {
+	return b.reserveCharge(actor, resellerID, key, peerID, operation, bytes, days, nil)
+}
+
+func (b *Billing) reserveCharge(actor Principal, resellerID uint, key string, peerID *uint, operation BillingOperation, bytes, days int64, intent func(*gorm.DB, model.BillingCharge) error) (model.BillingCharge, error) {
 	var result model.BillingCharge
 	if !billingAccess(actor, resellerID) {
 		return result, ErrRoleForbidden
@@ -202,6 +206,11 @@ func (b *Billing) ReserveCharge(actor Principal, resellerID uint, key string, pe
 		}
 		if err := tx.Model(account).Update("reserved_rial", held).Error; err != nil {
 			return err
+		}
+		if intent != nil {
+			if err := intent(tx, result); err != nil {
+				return err
+			}
 		}
 		return billingAudit(tx, resellerID, actor.AccountID, &result.ID, "charge_reserved", string(encoded))
 	})

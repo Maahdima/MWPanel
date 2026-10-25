@@ -143,6 +143,16 @@ func (s *SyncService) mapDBPeers(peers []model.Peer) map[string]model.Peer {
 
 func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range peers {
+		pendingKey := false
+		for _, stored := range dbMap {
+			if stored.ResellerID != nil && stored.PublicKey == peer.PublicKey {
+				pendingKey = true
+				break
+			}
+		}
+		if pendingKey {
+			continue
+		}
 		if peer.PrivateKey == nil {
 			s.logger.Error("missing private key", zap.String("peer", id))
 			continue
@@ -159,6 +169,9 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		}
 
 		dbPeer, exists := dbMap[id]
+		if exists && (dbPeer.ResellerID != nil || dbPeer.PurchaseID != nil) {
+			continue
+		}
 		if !exists {
 			dbPeer = model.Peer{
 				UUID:                    uuid.New().String(),
@@ -204,6 +217,9 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 
 func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range dbMap {
+		if peer.ResellerID != nil || peer.PurchaseID != nil {
+			continue
+		}
 		if _, found := mikrotikMap[id]; found {
 			continue
 		}

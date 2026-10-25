@@ -140,6 +140,13 @@ func (i *WgInterface) UpdateInterface(id uint, req *schema.UpdateInterfaceReques
 		i.logger.Error("failed to get interface from database", zap.Error(err))
 		return nil, err
 	}
+	var pending int64
+	if err := i.db.Model(&model.Peer{}).Where("server_id = ? AND interface = ? AND purchase_id IS NOT NULL", iface.ServerID, iface.Name).Count(&pending).Error; err != nil {
+		return nil, err
+	}
+	if pending > 0 {
+		return nil, ErrPendingPeerOperation
+	}
 	bound, err := i.ForServer(iface.ServerID)
 	if err != nil {
 		return nil, err

@@ -86,3 +86,13 @@ func (a *Adaptor) FetchSimpleQueue(ctx context.Context, id string) (*Queue, erro
 	}
 	return &queue, nil
 }
+
+func (a *Adaptor) FetchSimpleQueues(ctx context.Context) ([]Queue, error) {
+	client, err := a.client()
+	if err != nil {
+		return nil, err
+	}
+	var rows []Queue
+	err = client.Get(ctx, common.QueuePath, &rows)
+	return rows, err
+}

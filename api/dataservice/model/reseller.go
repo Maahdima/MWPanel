@@ -25,13 +25,14 @@ type ResellerResource struct {
 }
 
 type PeerOwnershipEvent struct {
-	ID                 string `gorm:"type:varchar(36);primaryKey"`
-	CreatedAt          int64  `gorm:"autoCreateTime"`
-	PeerID             uint   `gorm:"not null;index"`
-	PreviousResellerID *uint
-	ResellerID         *uint
-	ActorID            uint   `gorm:"not null"`
-	Reason             string `gorm:"type:text;not null"`
+	ConfiguredDurationDays *int64
+	ID                     string `gorm:"type:varchar(36);primaryKey"`
+	CreatedAt              int64  `gorm:"autoCreateTime"`
+	PeerID                 uint   `gorm:"not null;index"`
+	PreviousResellerID     *uint
+	ResellerID             *uint
+	ActorID                uint   `gorm:"not null"`
+	Reason                 string `gorm:"type:text;not null"`
 }
 
 func (*PeerOwnershipEvent) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }

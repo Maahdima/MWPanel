@@ -111,13 +111,22 @@ func (c *ResellerController) Transfer(ctx echo.Context) error {
 		return err
 	}
 	var input struct {
-		ResellerID *uint  `json:"reseller_id"`
-		Reason     string `json:"reason"`
+		ResellerID   *uint   `json:"reseller_id"`
+		Reason       string  `json:"reason"`
+		DurationDays *string `json:"configured_duration_days"`
 	}
 	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
-	if err := c.service.TransferPeer(resellerActor(ctx), id, input.ResellerID, input.Reason); err != nil {
+	var duration *int64
+	if input.DurationDays != nil && *input.DurationDays != "" {
+		value, err := strconv.ParseInt(*input.DurationDays, 10, 64)
+		if err != nil {
+			return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+		}
+		duration = &value
+	}
+	if err := c.service.TransferPeerPlan(resellerActor(ctx), id, input.ResellerID, input.Reason, duration); err != nil {
 		return resellerError(ctx, err)
 	}
 	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
@@ -189,4 +198,111 @@ func (c *ResellerController) Suspension(ctx echo.Context) error {
 		return resellerError(ctx, err)
 	}
 	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}
+
+func (c *ResellerController) Purchase(ctx echo.Context) error {
+	actor := resellerActor(ctx)
+	resellerID, peerID, err := purchaseIDs(ctx, actor)
+	if err != nil {
+		return err
+	}
+	if ctx.Request().Method == http.MethodGet {
+		rows, err := c.service.PeerPurchaseHistory(actor, resellerID, peerID)
+		if err != nil {
+			return resellerError(ctx, err)
+		}
+		return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]service.PeerPurchaseView]{BasicResponse: schema.OkBasicResponse, Data: rows})
+	}
+	var req service.PeerPurchaseRequest
+	if err = ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	view, err := c.service.PurchasePeer(actor, resellerID, peerID, ctx.Request().Header.Get("Idempotency-Key"), req)
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	status := http.StatusAccepted
+	if view.State == "applied" {
+		status = http.StatusOK
+	}
+	response := schema.OkBasicResponse
+	response.StatusCode = status
+	return ctx.JSON(status, schema.BasicResponseData[service.PeerPurchaseView]{BasicResponse: response, Data: view})
+}
+func purchaseIDs(ctx echo.Context, actor service.Principal) (uint, uint, error) {
+	if ctx.Param("peer_id") != "" {
+		reseller, err := resellerID(ctx, "id")
+		if err != nil {
+			return 0, 0, err
+		}
+		peer, err := resellerID(ctx, "peer_id")
+		return reseller, peer, err
+	}
+	if actor.ResellerID == nil {
+		return 0, 0, echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	}
+	peer, err := resellerID(ctx, "id")
+	return *actor.ResellerID, peer, err
+}
+
+func (c *ResellerController) CreatePeer(ctx echo.Context) error {
+	actor := resellerActor(ctx)
+	var id uint
+	if ctx.Param("id") != "" {
+		value, err := resellerID(ctx, "id")
+		if err != nil {
+			return err
+		}
+		id = value
+	} else {
+		if actor.ResellerID == nil {
+			return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+		}
+		id = *actor.ResellerID
+	}
+	var req service.ResellerPeerCreate
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	view, err := c.service.CreatePeer(actor, id, ctx.Request().Header.Get("Idempotency-Key"), req)
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	status := http.StatusAccepted
+	if view.State == "applied" {
+		status = http.StatusOK
+	}
+	response := schema.OkBasicResponse
+	response.StatusCode = status
+	return ctx.JSON(status, schema.BasicResponseData[service.PeerPurchaseView]{BasicResponse: response, Data: view})
+}
+func (c *ResellerController) MyResources(ctx echo.Context) error {
+	rows, err := c.service.MyResources(resellerActor(ctx))
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]service.ResellerResourceView]{BasicResponse: schema.OkBasicResponse, Data: rows})
+}
+
+func (c *ResellerController) Mutate(ctx echo.Context) error {
+	actor := resellerActor(ctx)
+	resellerID, peerID, err := purchaseIDs(ctx, actor)
+	if err != nil {
+		return err
+	}
+	var req service.PeerMutationRequest
+	if err = ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	view, err := c.service.MutatePeer(actor, resellerID, peerID, ctx.Request().Header.Get("Idempotency-Key"), req)
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	status := http.StatusAccepted
+	if view.State == "applied" {
+		status = http.StatusOK
+	}
+	response := schema.OkBasicResponse
+	response.StatusCode = status
+	return ctx.JSON(status, schema.BasicResponseData[service.PeerPurchaseView]{BasicResponse: response, Data: view})
 }

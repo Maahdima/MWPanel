@@ -48,7 +48,7 @@ func SetupMwpAPI(
 			// fail-closed for resellers until each dedicated route is implemented.
 			if principal.Role != model.RoleSuperadmin {
 				switch c.Path() {
-				case "/api/reseller/me/peers", "/api/reseller/me/peers/:id/config", "/api/reseller/me/peers/:id/qrcode", "/api/reseller/me/peers/:id/sessions", "/api/reseller/me/peers/export":
+				case "/api/reseller/me/peers/:id/mutations", "/api/reseller/me/resources", "/api/reseller/me/peers/:id/purchases", "/api/reseller/me/peers", "/api/reseller/me/peers/:id/config", "/api/reseller/me/peers/:id/qrcode", "/api/reseller/me/peers/:id/sessions", "/api/reseller/me/peers/export":
 				case "/api/billing/me", "/api/billing/me/receipts", "/api/billing/me/receipts/:id/image":
 				case "/api/billing/instructions":
 					if c.Request().Method != http.MethodGet {
@@ -106,6 +106,15 @@ func SetupMwpAPI(
 	billingGroup.POST("/receipts/:id/reject", billingController.Reject)
 	resellerController := NewResellerController(resellers)
 	resellerGroup := router.Group("/reseller", echojwt.WithConfig(jwtConfig))
+	resellerGroup.POST("/me/peers/:id/purchases", resellerController.Purchase)
+	resellerGroup.GET("/me/peers/:id/purchases", resellerController.Purchase)
+	resellerGroup.POST("/:id/peers/:peer_id/purchases", resellerController.Purchase)
+	resellerGroup.GET("/:id/peers/:peer_id/purchases", resellerController.Purchase)
+	resellerGroup.POST("/me/peers/:id/mutations", resellerController.Mutate)
+	resellerGroup.POST("/:id/peers/:peer_id/mutations", resellerController.Mutate)
+	resellerGroup.GET("/me/resources", resellerController.MyResources)
+	resellerGroup.POST("/me/peers", resellerController.CreatePeer)
+	resellerGroup.POST("/:id/peers", resellerController.CreatePeer)
 	resellerGroup.GET("/me/peers", resellerController.MyPeers)
 	resellerGroup.GET("/me/peers/:id/config", resellerController.MyConfig)
 	resellerGroup.GET("/me/peers/:id/qrcode", resellerController.MyQRCode)

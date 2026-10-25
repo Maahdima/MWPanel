@@ -19,10 +19,11 @@ type Router struct {
 	objects            map[string]map[string]map[string]any
 	sequence           map[string]int
 	failures           map[string]int
+	afterFailures      map[string]int
 }
 
 func New(name, username, password string) *Router {
-	r := &Router{Name: name, Username: username, Password: password, objects: make(map[string]map[string]map[string]any), sequence: make(map[string]int), failures: make(map[string]int)}
+	r := &Router{Name: name, Username: username, Password: password, objects: make(map[string]map[string]map[string]any), sequence: make(map[string]int), failures: make(map[string]int), afterFailures: make(map[string]int)}
 	for _, path := range []string{"/interface/wireguard/peers", "/interface/wireguard", "/queue/simple", "/system/scheduler", "/ip/address", "/interface"} {
 		r.objects[path] = make(map[string]map[string]any)
 	}
@@ -34,6 +35,13 @@ func (r *Router) FailNext(method, path string, count int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.failures[method+" "+path] = count
+}
+
+// FailAfterNext simulates a lost/failed response after a mutation took effect.
+func (r *Router) FailAfterNext(method, path string, count int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.afterFailures[method+" "+path] = count
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -140,6 +148,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if key != ".id" {
 				table[id][key] = value
 			}
+		}
+		if r.afterFailures[key] > 0 {
+			r.afterFailures[key]--
+			http.Error(w, "injected ambiguous response", 503)
+			return
 		}
 		json.NewEncoder(w).Encode(table[id])
 	case http.MethodDelete:

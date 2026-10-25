@@ -2,14 +2,17 @@ package model
 
 type Peer struct {
 	Model
-	RestrictionsInitialized bool  `gorm:"not null;default:false"`
-	ManualDisabled          bool  `gorm:"not null;default:false"`
-	BillingBlocked          bool  `gorm:"not null;default:false"`
-	AdminBlocked            bool  `gorm:"not null;default:false"`
-	ExpiryBlocked           bool  `gorm:"not null;default:false"`
-	QuotaBlocked            bool  `gorm:"not null;default:false"`
-	RestrictionRevision     int64 `gorm:"not null;default:0"`
-	AppliedRevision         int64 `gorm:"not null;default:0"`
+	PurchaseID              *string `gorm:"type:varchar(36);index"`
+	ConfiguredDurationDays  int64   `gorm:"not null;default:0"`
+	ProvisioningBlocked     bool    `gorm:"not null;default:false"`
+	RestrictionsInitialized bool    `gorm:"not null;default:false"`
+	ManualDisabled          bool    `gorm:"not null;default:false"`
+	BillingBlocked          bool    `gorm:"not null;default:false"`
+	AdminBlocked            bool    `gorm:"not null;default:false"`
+	ExpiryBlocked           bool    `gorm:"not null;default:false"`
+	QuotaBlocked            bool    `gorm:"not null;default:false"`
+	RestrictionRevision     int64   `gorm:"not null;default:0"`
+	AppliedRevision         int64   `gorm:"not null;default:0"`
 	SyncedDisabled          *bool
 	SyncAttempts            int64  `gorm:"not null;default:0"`
 	SyncNextAttemptAt       int64  `gorm:"not null;default:0;index"`

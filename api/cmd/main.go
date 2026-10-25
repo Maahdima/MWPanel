@@ -110,6 +110,12 @@ func main() {
 	if err != nil {
 		logger.Panic("Failed to create peer reconciliation job", zap.Error(err))
 	}
+	purchasePeers := service.NewWGPeer(db, mikrotikAdaptor, service.NewScheduler(mikrotikAdaptor), service.NewQueue(mikrotikAdaptor), service.NewConfigGenerator(db), service.NewQRCodeGenerator(db))
+	purchases := service.NewPeerPurchases(service.NewBilling(db), purchasePeers)
+	_, err = scheduler.NewJob(gocron.DurationJob(10*time.Second), gocron.NewTask(purchases.Run), gocron.WithStartAt(gocron.WithStartImmediately()))
+	if err != nil {
+		logger.Panic("Failed to create purchase reconciliation job", zap.Error(err))
+	}
 	scheduler.Start()
 
 	// Start the HTTP server

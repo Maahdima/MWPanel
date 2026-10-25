@@ -82,29 +82,33 @@ type PeerShareStatusResponse struct {
 }
 
 type PeerResponse struct {
-	ManualDisabled     bool         `json:"manual_disabled"`
-	RestrictionReasons []string     `json:"restriction_reasons"`
-	SyncStatus         string       `json:"sync_status"`
-	ServerID           uint         `json:"server_id"`
-	ResellerID         *uint        `json:"reseller_id"`
-	Id                 uint         `json:"id"`
-	UUID               string       `json:"uuid"`
-	Disabled           bool         `json:"disabled"`
-	Comment            *string      `json:"comment"`
-	TelegramUsername   *string      `json:"telegram_username"`
-	TelegramLinked     bool         `json:"telegram_linked"`
-	Name               string       `json:"name"`
-	Interface          string       `json:"interface"`
-	AllowedAddress     string       `json:"allowed_address"`
-	TrafficLimit       *string      `json:"traffic_limit"`
-	ExpireTime         *string      `json:"expire_time"`
-	CreatedAt          string       `json:"created_at"`
-	DownloadBandwidth  *string      `json:"download_bandwidth"`
-	UploadBandwidth    *string      `json:"upload_bandwidth"`
-	TotalUsage         string       `json:"total_usage"`
-	Status             []PeerStatus `json:"status"`
-	IsOnline           bool         `json:"is_online"`
-	IsShared           bool         `json:"is_shared"`
+	TrafficLimitBytes      *string      `json:"traffic_limit_bytes"`
+	TotalUsageBytes        string       `json:"total_usage_bytes"`
+	ConfiguredDurationDays string       `json:"configured_duration_days"`
+	PurchasePending        bool         `json:"purchase_pending"`
+	ManualDisabled         bool         `json:"manual_disabled"`
+	RestrictionReasons     []string     `json:"restriction_reasons"`
+	SyncStatus             string       `json:"sync_status"`
+	ServerID               uint         `json:"server_id"`
+	ResellerID             *uint        `json:"reseller_id"`
+	Id                     uint         `json:"id"`
+	UUID                   string       `json:"uuid"`
+	Disabled               bool         `json:"disabled"`
+	Comment                *string      `json:"comment"`
+	TelegramUsername       *string      `json:"telegram_username"`
+	TelegramLinked         bool         `json:"telegram_linked"`
+	Name                   string       `json:"name"`
+	Interface              string       `json:"interface"`
+	AllowedAddress         string       `json:"allowed_address"`
+	TrafficLimit           *string      `json:"traffic_limit"`
+	ExpireTime             *string      `json:"expire_time"`
+	CreatedAt              string       `json:"created_at"`
+	DownloadBandwidth      *string      `json:"download_bandwidth"`
+	UploadBandwidth        *string      `json:"upload_bandwidth"`
+	TotalUsage             string       `json:"total_usage"`
+	Status                 []PeerStatus `json:"status"`
+	IsOnline               bool         `json:"is_online"`
+	IsShared               bool         `json:"is_shared"`
 }
 
 type PeerStatsResponse struct {

@@ -71,7 +71,7 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 		if err := tx.First(&peer, id).Error; err != nil {
 			return err
 		}
-		if !uintPointersEqual(peer.ResellerID, initial.ResellerID) {
+		if peer.PurchaseID != nil || !uintPointersEqual(peer.ResellerID, initial.ResellerID) {
 			return ErrPendingPeerOperation
 		}
 		disabled := !peer.Disabled
@@ -459,6 +459,12 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 		w.logger.Error("failed to get peer from database", zap.Error(err))
 		return nil, err
 	}
+	if peer.ResellerID != nil && !req.BillingAuthorized {
+		return nil, ErrBilledOperationRequired
+	}
+	if peer.PurchaseID != nil {
+		return nil, ErrPendingPeerOperation
+	}
 	bound, err := w.ForServer(peer.ServerID)
 	if err != nil {
 		return nil, err
@@ -569,6 +575,11 @@ func (w *WgPeer) DeletePeersByInterfaceName(interfaceName string) error {
 		return err
 	}
 
+	for _, peer := range peers {
+		if peer.ResellerID != nil || peer.PurchaseID != nil {
+			return ErrPendingPeerOperation
+		}
+	}
 	var firstErr error
 	for i := range peers {
 		if err := w.deletePeerRecord(&peers[i]); err != nil {
@@ -618,6 +629,12 @@ func (w *WgPeer) rollbackPartialPeerCreate(mtPeer *mikrotik.WireGuardPeer, sched
 func (w *WgPeer) deletePeerRecord(peer *model.Peer) error {
 	if peer == nil {
 		return errors.New("peer is required")
+	}
+	if peer.ResellerID != nil && peer.PurchaseID == nil {
+		return ErrBilledOperationRequired
+	}
+	if peer.PurchaseID != nil {
+		return ErrPendingPeerOperation
 	}
 	bound, err := w.ForServer(peer.ServerID)
 	if err != nil {
@@ -1011,6 +1028,9 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 	if peer.AdminBlocked {
 		reasons = append(reasons, "administrative")
 	}
+	if peer.ProvisioningBlocked {
+		reasons = append(reasons, "provisioning")
+	}
 	syncStatus := "synced"
 	if peer.SyncedDisabled == nil || peer.AppliedRevision != peer.RestrictionRevision {
 		syncStatus = "pending"
@@ -1019,6 +1039,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		syncStatus = "error"
 	}
 	return schema.PeerResponse{
+		TrafficLimitBytes: int64Text(peer.TrafficLimit), TotalUsageBytes: strconv.FormatInt(peer.DownloadUsage+peer.UploadUsage, 10), ConfiguredDurationDays: strconv.FormatInt(peer.ConfiguredDurationDays, 10), PurchasePending: peer.PurchaseID != nil,
 		ManualDisabled: peer.ManualDisabled, RestrictionReasons: reasons, SyncStatus: syncStatus,
 		Id:                peer.ID,
 		ServerID:          peer.ServerID,
@@ -1127,7 +1148,7 @@ func (w *WgPeer) transformPeerStatus(peer model.Peer) []schema.PeerStatus {
 }
 
 func (w *WgPeer) syncExpiredPeer(peer *model.Peer) error {
-	if peer.Disabled || !utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+	if peer.PurchaseID != nil || peer.Disabled || !utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
 		return nil
 	}
 

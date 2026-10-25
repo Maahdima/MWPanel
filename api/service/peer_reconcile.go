@@ -104,6 +104,9 @@ func (r *PeerReconciler) prepare(id uint) (model.Peer, bool, error) {
 		if err := tx.First(&peer, id).Error; err != nil {
 			return err
 		}
+		if peer.ProvisioningBlocked && peer.PurchaseID != nil {
+			return nil
+		}
 		manual := peer.ManualDisabled
 		if !peer.RestrictionsInitialized {
 			manual = peer.Disabled
@@ -123,7 +126,11 @@ func (r *PeerReconciler) prepare(id uint) (model.Peer, bool, error) {
 			}
 			billing = account.BillingSuspended
 		}
-		desired := manual || expiry || quota || billing || admin
+		desired := peer.ProvisioningBlocked || manual || expiry || quota || billing || admin
+		// Pending purchases may never prevent an urgent suspension. Defer only reactivation.
+		if peer.PurchaseID != nil && !desired {
+			return nil
+		}
 		changed := !peer.RestrictionsInitialized || peer.ManualDisabled != manual || peer.ExpiryBlocked != expiry || peer.QuotaBlocked != quota || peer.BillingBlocked != billing || peer.AdminBlocked != admin || peer.Disabled != desired
 		if changed {
 			peer.RestrictionRevision++
@@ -242,7 +249,7 @@ func (r *PeerReconciler) apply(peer model.Peer) error {
 		if err != nil {
 			return err
 		}
-		if restricted || current.ManualDisabled {
+		if restricted || current.ManualDisabled || current.ProvisioningBlocked {
 			return ErrPeerRestricted
 		}
 		if _, err := adaptor.UpdateWgPeer(ctx, peer.PeerID, mikrotik.WireGuardPeer{Disabled: disabled}); err != nil {

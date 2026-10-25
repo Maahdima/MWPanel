@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/dataservice/model"
@@ -153,6 +154,10 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 		return err
 	}
 
+	if peer.ResellerID != nil || peer.PurchaseID != nil {
+		return fmt.Errorf("owned peer requires a billed reset")
+	}
+
 	selected, err := c.forServer(peer.ServerID)
 	if err != nil {
 		return err
@@ -197,9 +202,21 @@ func (c *Calculator) ResetPeerUsage(id uint) error {
 func (c *Calculator) ResetPeerUsages() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	var owned int64
+	if err := c.db.Model(&model.Peer{}).Where("reseller_id IS NOT NULL OR purchase_id IS NOT NULL").Count(&owned).Error; err != nil {
+		return err
+	}
+	if owned > 0 {
+		return fmt.Errorf("owned peers require individual billed resets")
+	}
 	peers, err := c.fetchPeers()
 	if err != nil {
 		return err
+	}
+	for _, peer := range peers {
+		if peer.ResellerID != nil || peer.PurchaseID != nil {
+			return fmt.Errorf("owned peers require individual billed resets")
+		}
 	}
 	observed := c.observedPeers(peers)
 	// Preflight every router/peer before resetting any database row.
@@ -222,7 +239,7 @@ func (c *Calculator) ResetPeerUsages() error {
 
 func (c *Calculator) fetchPeers() ([]model.Peer, error) {
 	var peers []model.Peer
-	if err := c.db.Find(&peers).Error; err != nil {
+	if err := c.db.Where("purchase_id IS NULL").Find(&peers).Error; err != nil {
 		c.logger.Error("Failed to fetch peers from database", zap.Error(err))
 		return nil, err
 	}
@@ -230,6 +247,16 @@ func (c *Calculator) fetchPeers() ([]model.Peer, error) {
 }
 
 func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
+	now := time.Now().Unix()
+	lease := c.db.Model(&model.Peer{}).Where("id = ? AND purchase_id IS NULL AND sync_lease_until <= ?", peer.ID, now).UpdateColumn("sync_lease_until", now+120)
+	if lease.Error != nil || lease.RowsAffected != 1 {
+		return
+	}
+	defer c.db.Model(&model.Peer{}).Where("id = ? AND sync_lease_until = ?", peer.ID, now+120).UpdateColumn("sync_lease_until", 0)
+	if c.db.First(&peer, peer.ID).Error != nil {
+		return
+	}
+
 	selected, err := c.forServer(peer.ServerID)
 	if err != nil {
 		return
@@ -376,20 +403,5 @@ func (c *Calculator) ResetTotalTrafficUsage() error {
 }
 
 func calculateDelta(prev, current, maxCounter int64) (int64, bool) {
-	if current >= prev {
-		return current - prev, false
-	}
-
-	// If counters are already beyond the expected 32-bit max, treat this as a reset.
-	if maxCounter <= 0 || prev > maxCounter || current > maxCounter {
-		return current, true
-	}
-
-	// If the counter moved backwards by a large amount, assume a wrap.
-	if (prev - current) > (maxCounter / 2) {
-		return (maxCounter - prev) + current, false
-	}
-
-	// Otherwise treat it as a reset to avoid a large, incorrect delta.
-	return current, true
+	return utils.PeerCounterDelta(prev, current, maxCounter)
 }

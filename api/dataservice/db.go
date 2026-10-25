@@ -76,6 +76,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.BillingInvoice{},
 		&model.InvoiceAllocation{},
 		&model.BillingCharge{},
+		&model.PeerPurchase{},
 		&model.LedgerEntry{},
 		&model.BillingAuditEvent{},
 		&model.TelegramChat{},

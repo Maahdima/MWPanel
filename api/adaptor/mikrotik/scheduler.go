@@ -89,3 +89,13 @@ func (a *Adaptor) FetchScheduler(ctx context.Context, id string) (*Scheduler, er
 	}
 	return &scheduler, nil
 }
+
+func (a *Adaptor) FetchSchedulers(ctx context.Context) ([]Scheduler, error) {
+	client, err := a.client()
+	if err != nil {
+		return nil, err
+	}
+	var rows []Scheduler
+	err = client.Get(ctx, common.SchedulerPath, &rows)
+	return rows, err
+}

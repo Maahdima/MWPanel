@@ -367,6 +367,16 @@ func ValidatePeerResource(tx *gorm.DB, resellerID uint, peer model.Peer, exclude
 	}
 	active, total := int64(0), int64(0)
 	for _, other := range existing {
+		if other.PurchaseID != nil {
+			var pending model.PeerPurchase
+			if err := tx.First(&pending, "id = ?", *other.PurchaseID).Error; err != nil {
+				return err
+			}
+			other.TrafficLimit = &pending.QuotaBytes
+			if pending.Kind == string(BillingCreate) {
+				other.Disabled = other.ManualDisabled || other.AdminBlocked || other.BillingBlocked
+			}
+		}
 		if !other.Disabled && !utils.IsPeerExpired(other.ExpireTime, time.Now()) && (other.TrafficLimit == nil || other.DownloadUsage+other.UploadUsage < *other.TrafficLimit) {
 			active++
 		}
@@ -395,6 +405,14 @@ func ValidatePeerResource(tx *gorm.DB, resellerID uint, peer model.Peer, exclude
 }
 
 func (s *Resellers) TransferPeer(actor Principal, peerID uint, target *uint, reason string) error {
+	return s.TransferPeerPlan(actor, peerID, target, reason, nil)
+}
+
+func (s *Resellers) TransferPeerPlan(actor Principal, peerID uint, target *uint, reason string, duration *int64) error {
+	if duration != nil && (*duration <= 0 || *duration > 36500) {
+		return ErrResellerSettings
+	}
+
 	if !billingAdmin(actor) {
 		return ErrRoleForbidden
 	}
@@ -435,10 +453,10 @@ func (s *Resellers) TransferPeer(actor Principal, peerID uint, target *uint, rea
 		if err := tx.First(&peer, peerID).Error; err != nil {
 			return err
 		}
-		if !uintPointersEqual(peer.ResellerID, initial.ResellerID) {
+		if peer.PurchaseID != nil || !uintPointersEqual(peer.ResellerID, initial.ResellerID) {
 			return ErrPendingPeerOperation
 		}
-		if uintPointersEqual(peer.ResellerID, target) {
+		if uintPointersEqual(peer.ResellerID, target) && duration == nil {
 			return nil
 		}
 		var pending int64
@@ -458,10 +476,14 @@ func (s *Resellers) TransferPeer(actor Principal, peerID uint, target *uint, rea
 			copyID := *previous
 			previous = &copyID
 		}
-		if err := tx.Model(&peer).Updates(map[string]any{"reseller_id": target, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
+		updates := map[string]any{"reseller_id": target, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}
+		if duration != nil {
+			updates["configured_duration_days"] = *duration
+		}
+		if err := tx.Model(&peer).Updates(updates).Error; err != nil {
 			return err
 		}
-		return tx.Create(&model.PeerOwnershipEvent{ID: uuid.NewString(), PeerID: peerID, PreviousResellerID: previous, ResellerID: target, ActorID: actor.AccountID, Reason: reason}).Error
+		return tx.Create(&model.PeerOwnershipEvent{ID: uuid.NewString(), PeerID: peerID, PreviousResellerID: previous, ResellerID: target, ActorID: actor.AccountID, Reason: reason, ConfiguredDurationDays: duration}).Error
 	}
 	if len(accounts) > 0 {
 		return NewBilling(s.db).accountTransaction(accounts[0], func(tx *gorm.DB, _ *model.BillingAccount) error { return transfer(tx) })
@@ -500,7 +522,7 @@ func (s *Resellers) SetSuspension(actor Principal, id uint, suspended bool, reas
 		if err := tx.Model(&model.Peer{}).Where("reseller_id = ? AND restrictions_initialized = ?", id, false).Updates(map[string]any{"manual_disabled": gorm.Expr("disabled"), "restrictions_initialized": true}).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&model.Peer{}).Where("reseller_id = ?", id).Updates(map[string]any{"admin_blocked": suspended, "disabled": gorm.Expr("manual_disabled OR quota_blocked OR expiry_blocked OR billing_blocked OR ?", suspended), "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
+		if err := tx.Model(&model.Peer{}).Where("reseller_id = ?", id).Updates(map[string]any{"admin_blocked": suspended, "disabled": gorm.Expr("provisioning_blocked OR manual_disabled OR quota_blocked OR expiry_blocked OR billing_blocked OR ?", suspended), "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
 			return err
 		}
 		event := "administrative_suspension"
