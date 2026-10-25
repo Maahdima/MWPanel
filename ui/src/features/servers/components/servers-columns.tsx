@@ -12,7 +12,7 @@ import { DataTableColumnHeader } from '@/features/shared-components/table/data-t
 export const serversColumns: ColumnDef<Server>[] = [
   {
     id: 'is_active',
-    cell: ({ row }) => {
+    cell: function ServerStatusCell({ row }) {
       const server = row.original
       const updateServerStatusMutation = useUpdateServerStatusMutation()
 

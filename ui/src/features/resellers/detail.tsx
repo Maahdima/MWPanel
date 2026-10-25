@@ -1,0 +1,157 @@
+import { FormEvent, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
+import { PeersResponseSchema } from '@/schema/peers'
+import axiosInstance from '@/api/axios-instance'
+import {
+  useBillingBook,
+  useResellerAction,
+  useResellerQuery,
+} from '@/hooks/resellers/useResellerQueries'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { peersColumns } from '@/features/peers/components/peers-columns'
+import { PeersDialogs } from '@/features/peers/components/peers-dialogs'
+import PeersProvider from '@/features/peers/context/peers-context'
+import { DataTable } from '@/features/shared-components/table/data-table'
+import { BillingPanel } from './billing-panel'
+import { PageFrame } from './page-frame'
+import { ResellerEditor } from './reseller-editor'
+
+export default function ResellerDetail({ id }: { id: number }) {
+  const query = useResellerQuery(id),
+    book = useBillingBook(id)
+  const peers = useQuery({
+    queryKey: ['peers_list', 'reseller', id],
+    queryFn: async () =>
+      PeersResponseSchema.parse(
+        (await axiosInstance.get(`/reseller/${id}/peers`)).data
+      ).data ?? [],
+  })
+  const [dialog, setDialog] = useState<'settings' | 'suspension' | null>(null)
+  const suspension = useResellerAction(
+    (reason: string) =>
+      axiosInstance.post(`/reseller/${id}/suspension`, {
+        suspended: !book.data?.state.administrative_suspended,
+        reason,
+      }),
+    'Administrative restriction updated'
+  )
+  async function saveSuspension(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await suspension.mutateAsync(
+      String(new FormData(event.currentTarget).get('reason'))
+    )
+    setDialog(null)
+  }
+  if (query.isPending)
+    return (
+      <PageFrame title='Reseller'>
+        <p>Loading account...</p>
+      </PageFrame>
+    )
+  if (query.isError || !query.data)
+    return (
+      <PageFrame title='Reseller'>
+        <p role='alert'>Unable to load reseller.</p>
+      </PageFrame>
+    )
+  const reseller = query.data
+  return (
+    <PeersProvider>
+      <PageFrame
+        title={reseller.name}
+        description={`Account: ${reseller.username}`}
+        actions={
+          <div className='flex flex-wrap gap-2'>
+            <Button variant='outline' asChild>
+              <Link to='/resellers'>All resellers</Link>
+            </Button>
+            <Button variant='outline' onClick={() => setDialog('settings')}>
+              Edit settings
+            </Button>
+            <Button
+              variant='outline'
+              disabled={!book.data}
+              onClick={() => setDialog('suspension')}
+            >
+              {book.data?.state.administrative_suspended
+                ? 'Lift admin suspension'
+                : 'Suspend reseller'}
+            </Button>
+          </div>
+        }
+      >
+        <Tabs defaultValue='billing'>
+          <TabsList>
+            <TabsTrigger value='billing'>Billing and payments</TabsTrigger>
+            <TabsTrigger value='peers'>Configurations</TabsTrigger>
+          </TabsList>
+          <TabsContent value='billing' className='pt-3'>
+            <BillingPanel resellerID={id} />
+          </TabsContent>
+          <TabsContent value='peers' className='pt-3'>
+            {peers.isPending ? (
+              <p>Loading configurations...</p>
+            ) : peers.isError ? (
+              <p role='alert'>Unable to load configurations.</p>
+            ) : (
+              <DataTable data={peers.data ?? []} columns={peersColumns} />
+            )}
+          </TabsContent>
+        </Tabs>
+        <PeersDialogs />
+        <Dialog
+          open={dialog !== null}
+          onOpenChange={(open) => {
+            if (!open) setDialog(null)
+          }}
+        >
+          <DialogContent className='sm:max-w-2xl'>
+            <DialogHeader>
+              <DialogTitle>
+                {dialog === 'settings'
+                  ? 'Reseller settings'
+                  : 'Administrative suspension'}
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              {dialog === 'settings' ? (
+                <ResellerEditor
+                  current={reseller}
+                  onClose={() => setDialog(null)}
+                />
+              ) : dialog === 'suspension' ? (
+                <form onSubmit={saveSuspension} className='space-y-3'>
+                  <p className='text-muted-foreground text-sm'>
+                    Billing, expiration, quota and manual restrictions remain
+                    independent.
+                  </p>
+                  <Label htmlFor='suspension-reason'>Reason</Label>
+                  <Input
+                    id='suspension-reason'
+                    name='reason'
+                    required
+                    maxLength={1000}
+                  />
+                  <Button disabled={suspension.isPending}>
+                    Confirm change
+                  </Button>
+                </form>
+              ) : null}
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
+      </PageFrame>
+    </PeersProvider>
+  )
+}

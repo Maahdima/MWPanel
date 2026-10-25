@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { format, parseISO } from 'date-fns'
+import { Peer, PeerSession, PeerSessions } from '@/schema/peers.ts'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -9,7 +10,6 @@ import {
   RadioIcon,
   TimerIcon,
 } from 'lucide-react'
-import { Peer, PeerSession, PeerSessions } from '@/schema/peers.ts'
 import { usePeerSessionsQuery } from '@/hooks/peers/usePeerSessionsQuery.ts'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -80,15 +80,14 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
     setFilter('all')
   }, [open])
 
-  const sessions = data?.sessions ?? []
+  const sessions = useMemo(() => data?.sessions ?? [], [data?.sessions])
   const filteredSessions = useMemo(() => {
     if (filter === 'all') return sessions
     return sessions.filter((session) => session.status === filter)
   }, [filter, sessions])
 
   const showSkeleton = (isLoading || isFetching) && !data
-  const endedCount =
-    (data?.total_sessions ?? 0) - (data?.ongoing_sessions ?? 0)
+  const endedCount = (data?.total_sessions ?? 0) - (data?.ongoing_sessions ?? 0)
 
   const body = (() => {
     if (showSkeleton) {

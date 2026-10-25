@@ -1,4 +1,4 @@
-import { Control } from 'react-hook-form'
+import { Control, FieldValues, FieldPath } from 'react-hook-form'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   FormControl,
@@ -8,13 +8,17 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 
-interface Props {
-  name: string
+interface Props<T extends FieldValues> {
+  name: FieldPath<T>
   label: string
-  control: Control<any>
+  control: Control<T>
 }
 
-export function CheckboxField({ name, label, control }: Props) {
+export function CheckboxField<T extends FieldValues>({
+  name,
+  label,
+  control,
+}: Props<T>) {
   return (
     <FormField
       control={control}

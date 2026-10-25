@@ -1,5 +1,6 @@
 import { Cross2Icon } from '@radix-ui/react-icons'
 import { Table } from '@tanstack/react-table'
+import { useResellersQuery } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { DataTableFacetedFilter } from './data-table-faceted-filter.tsx'
@@ -7,7 +8,14 @@ import { DataTableViewOptions } from './data-table-view-options.tsx'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
-  type: 'Servers' | 'Interfaces' | 'Pools' | 'Peers' | 'Orders' | 'Plans'
+  type:
+    | 'Servers'
+    | 'Interfaces'
+    | 'Pools'
+    | 'Peers'
+    | 'Orders'
+    | 'Plans'
+    | 'Resellers'
 }
 
 const serverStatusOptions = [
@@ -59,23 +67,26 @@ export function DataTableToolbar<TData>({
           className='h-8 w-full min-w-0 sm:w-[150px] lg:w-[250px]'
         />
         <div className='flex gap-x-2'>
-          {type !== 'Pools' && table.getColumn('status') && (
-            <DataTableFacetedFilter
-              column={table.getColumn('status')}
-              title='Status'
-              options={
-                type === 'Servers'
-                  ? serverStatusOptions
-                  : type === 'Interfaces'
-                    ? interfaceStatusOptions
-                    : type === 'Orders'
-                      ? orderStatusOptions
-                      : type === 'Plans'
-                        ? planStatusOptions
-                        : peerStatusOptions
-              }
-            />
-          )}
+          {table.getColumn('reseller') && <OwnerFilter table={table} />}
+          {type !== 'Pools' &&
+            type !== 'Resellers' &&
+            table.getColumn('status') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('status')}
+                title='Status'
+                options={
+                  type === 'Servers'
+                    ? serverStatusOptions
+                    : type === 'Interfaces'
+                      ? interfaceStatusOptions
+                      : type === 'Orders'
+                        ? orderStatusOptions
+                        : type === 'Plans'
+                          ? planStatusOptions
+                          : peerStatusOptions
+                }
+              />
+            )}
         </div>
         {isFiltered && (
           <Button
@@ -90,5 +101,22 @@ export function DataTableToolbar<TData>({
       </div>
       <DataTableViewOptions table={table} />
     </div>
+  )
+}
+
+function OwnerFilter<TData>({ table }: { table: Table<TData> }) {
+  const { data } = useResellersQuery()
+  return (
+    <DataTableFacetedFilter
+      column={table.getColumn('reseller')}
+      title='Reseller'
+      options={[
+        { label: 'Superadmin', value: 'admin' },
+        ...(data ?? []).map((x) => ({
+          label: `${x.name} (${x.username})`,
+          value: String(x.id),
+        })),
+      ]}
+    />
   )
 }

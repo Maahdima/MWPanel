@@ -1,7 +1,12 @@
 import Cookies from 'js-cookie'
-import { Outlet } from '@tanstack/react-router'
+import { Navigate, Outlet, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
+import {
+  usePrincipal,
+  useBillingBook,
+} from '@/hooks/resellers/useResellerQueries'
+import { Button } from '@/components/ui/button'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import SkipToMain from '@/components/skip-to-main'
@@ -12,6 +17,31 @@ interface Props {
 
 export function AuthenticatedLayout({ children }: Props) {
   const defaultOpen = Cookies.get('sidebar_state') !== 'false'
+  const principal = usePrincipal()
+  const location = useLocation()
+  const reseller = principal.data?.role === 'reseller'
+  const book = useBillingBook(undefined, reseller)
+  if (principal.isPending || (reseller && book.isPending))
+    return <div className='p-8'>Loading account…</div>
+  if (principal.isError || (reseller && book.isError))
+    return (
+      <div className='p-8'>
+        Unable to load account.{' '}
+        <Button
+          onClick={() => {
+            principal.refetch()
+            book.refetch()
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    )
+  if (
+    reseller &&
+    !['/billing', '/peers'].includes(location.pathname.replace(/\/$/, ''))
+  )
+    return <Navigate to='/billing' replace />
   return (
     <SearchProvider>
       <SidebarProvider defaultOpen={defaultOpen}>
@@ -20,7 +50,7 @@ export function AuthenticatedLayout({ children }: Props) {
         <div
           id='content'
           className={cn(
-            'ml-auto w-full min-w-0 max-w-full',
+            'ml-auto w-full max-w-full min-w-0',
             'md:peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon)-1rem)]',
             'md:peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]',
             'sm:transition-[width] sm:duration-200 sm:ease-linear',

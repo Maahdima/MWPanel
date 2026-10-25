@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Control } from 'react-hook-form'
+import { Control, useController } from 'react-hook-form'
 import { CreatePeerRequest } from '@/schema/peers'
 import { XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button.tsx'
@@ -30,6 +30,7 @@ interface Props {
 const units = ['Kb', 'Mb', 'Gb']
 
 export function BandwidthField({ control, name, label }: Props) {
+  const { field: watchedField } = useController({ control, name })
   const [rawValue, setRawValue] = useState('')
   const [unit, setUnit] = useState('Mb')
 
@@ -39,21 +40,21 @@ export function BandwidthField({ control, name, label }: Props) {
     return `${val}${suffix}`
   }
 
+  useEffect(() => {
+    if (!watchedField.value) return
+    const match = watchedField.value.match(/^(\d+(?:\.\d+)?)([KMG])$/i)
+    if (match) {
+      setRawValue(match[1])
+      const unitMap = { K: 'Kb', M: 'Mb', G: 'Gb' }
+      setUnit(unitMap[match[2].toUpperCase() as 'K' | 'M' | 'G'] ?? 'Mb')
+    }
+  }, [watchedField.value])
+
   return (
     <FormField
       control={control}
       name={name}
       render={({ field }) => {
-        useEffect(() => {
-          if (!field.value) return
-          const match = field.value.match(/^(\d+(?:\.\d+)?)([KMG])$/i)
-          if (match) {
-            setRawValue(match[1])
-            const unitMap = { K: 'Kb', M: 'Mb', G: 'Gb' }
-            setUnit(unitMap[match[2].toUpperCase() as 'K' | 'M' | 'G'] ?? 'Mb')
-          }
-        }, [field.value])
-
         return (
           <FormItem>
             <FormLabel>{label}</FormLabel>

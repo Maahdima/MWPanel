@@ -22,11 +22,19 @@ import {
   OnlineBadge,
 } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
+import { OwnerCell } from '@/features/resellers/owner-cell'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'
 
 export const peersColumns: ColumnDef<Peer>[] = [
+  {
+    id: 'reseller',
+    accessorFn: (row) => (row.reseller_id ? String(row.reseller_id) : 'admin'),
+    header: 'Owner',
+    cell: ({ row }) => <OwnerCell peer={row.original} />,
+    filterFn: (row, id, values) => values.includes(row.getValue(id)),
+  },
   {
     accessorKey: 'server_id',
     header: () => 'Server',
@@ -34,7 +42,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
   },
   {
     id: 'is_active',
-    cell: ({ row }) => {
+    cell: function PeerStatusCell({ row }) {
       const peer = row.original
       const updatePeerStatusMutation = useUpdatePeerStatusMutation()
 
@@ -151,7 +159,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Traffic' />
     ),
-    cell: ({ row }) => {
+    cell: function PeerTrafficCell({ row }) {
       const [dialogOpen, setDialogOpen] = useState(false)
 
       const resetUsageMutation = useResetUsageMutation()

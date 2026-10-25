@@ -1,4 +1,4 @@
-import { Control } from 'react-hook-form'
+import { Control, FieldValues, FieldPath } from 'react-hook-form'
 import {
   FormControl,
   FormField,
@@ -8,14 +8,19 @@ import {
 } from '@/components/ui/form.tsx'
 import { PasswordInput } from '@/components/password-input.tsx'
 
-interface Props {
-  name: string
+interface Props<T extends FieldValues> {
+  name: FieldPath<T>
   label: string
   placeholder?: string
-  control: Control<any>
+  control: Control<T>
 }
 
-export function PasswordField({ name, label, placeholder, control }: Props) {
+export function PasswordField<T extends FieldValues>({
+  name,
+  label,
+  placeholder,
+  control,
+}: Props<T>) {
   return (
     <FormField
       control={control}

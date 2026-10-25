@@ -18,7 +18,7 @@ export const interfacesColumns: ColumnDef<Interface>[] = [
   },
   {
     id: 'is_active',
-    cell: ({ row }) => {
+    cell: function InterfaceStatusCell({ row }) {
       const iface = row.original
       const updateInterfaceStatusMutation = useUpdateInterfaceStatusMutation()
 
