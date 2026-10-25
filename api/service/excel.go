@@ -1,7 +1,9 @@
 package service
 
 import (
+	"github.com/maahdima/mwp/api/config"
 	"net"
+	"os"
 	"sort"
 	"strings"
 
@@ -29,7 +31,18 @@ func (e *ExcelGenerator) GetTrafficUsageReport() (filePath string, err error) {
 	var peers []model.Peer
 
 	sheetName := "traffic-usage"
-	filePath = "traffic-report.xlsx"
+	temporary, err := os.CreateTemp(config.GetAppConfig().DataDirPath, "traffic-report-*.xlsx")
+	if err != nil {
+		return "", err
+	}
+	filePath = temporary.Name()
+	temporary.Close()
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			os.Remove(filePath)
+		}
+	}()
 
 	if err = e.db.Find(&peers).Error; err != nil {
 		e.logger.Error("failed to get peers from database", zap.Error(err))
@@ -86,6 +99,7 @@ func (e *ExcelGenerator) GetTrafficUsageReport() (filePath string, err error) {
 		return "", err
 	}
 
+	succeeded = true
 	return filePath, nil
 }
 

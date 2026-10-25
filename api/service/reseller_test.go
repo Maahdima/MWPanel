@@ -145,3 +145,13 @@ func TestResellerLimitsRejectTransfers(t *testing.T) {
 		t.Fatal("failed transfer changed ownership")
 	}
 }
+
+func TestResellerJSONKeepsExactIntegerSettingsAndCredentials(t *testing.T) {
+	var input service.CreateReseller
+	if err := json.Unmarshal([]byte(`{"name":"exact","username":"member","password":"long-secret-password","billing_mode":"prepaid","rate_rial":"10000000000000001","max_total_traffic_bytes":"9223372036854775807","interface_ids":[],"role":"superadmin"}`), &input); err != nil {
+		t.Fatal(err)
+	}
+	if input.Username != "member" || input.Password != "long-secret-password" || input.RateRial == nil || *input.RateRial != 10000000000000001 || input.MaxTotalTrafficBytes == nil || *input.MaxTotalTrafficBytes != 9223372036854775807 {
+		t.Fatal("exact settings or embedded credentials were lost")
+	}
+}

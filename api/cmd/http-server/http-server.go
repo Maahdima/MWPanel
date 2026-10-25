@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"golang.org/x/crypto/acme/autocert"
 
@@ -65,6 +66,8 @@ func StartHttpServer(
 		syncService,
 		shopAPI,
 		service.NewResellers(db, peerService),
+		service.NewBilling(db),
+		service.NewPayments(service.NewBilling(db), filepath.Join(appCfg.DataDirPath, "receipts")),
 	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {

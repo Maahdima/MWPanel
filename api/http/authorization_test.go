@@ -65,7 +65,7 @@ func authorizationAPI(t *testing.T) (*echo.Echo, *gorm.DB, *service.Authenticati
 	syncer := service.NewSyncService(db, adaptor, files, qr, peers, interfaces)
 	app := echo.New()
 	app.Validator = &validate.CustomValidator{Validator: validator.New()}
-	SetupMwpAPI(app, registry, auth, servers, interfaces, pools, peers, files, qr, excel, device, calculator, syncer, nil, service.NewResellers(db, peers))
+	SetupMwpAPI(app, registry, auth, servers, interfaces, pools, peers, files, qr, excel, device, calculator, syncer, nil, service.NewResellers(db, peers), service.NewBilling(db), service.NewPayments(service.NewBilling(db), t.TempDir()))
 	return app, db, auth, tenant
 }
 
@@ -88,6 +88,9 @@ func TestLegacyAdministrativeRoutesRejectResellers(t *testing.T) {
 	}
 	tested := 0
 	for _, route := range app.Routes() {
+		if strings.HasPrefix(route.Path, "/api/reseller/me/") || strings.HasPrefix(route.Path, "/api/billing/me") || (route.Path == "/api/billing/instructions" && route.Method == http.MethodGet) {
+			continue
+		}
 		if !strings.HasPrefix(route.Path, "/api/") || strings.HasPrefix(route.Path, "/api/auth/") || strings.HasPrefix(route.Path, "/api/user/") || strings.HasPrefix(route.Path, "/api/service/") || route.Path == "/api/telegram/status" || route.Path == "/api/bale/webhook" || route.Method == "echo_route_not_found" {
 			continue
 		}

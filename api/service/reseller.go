@@ -25,6 +25,9 @@ var (
 )
 
 type ResellerSettings struct {
+	IntervalDays         *int64 `json:"interval_days"`
+	GraceDays            *int64 `json:"grace_days"`
+	RecurringFeeRial     *int64 `json:"recurring_fee_rial"`
 	Name                 string `json:"name"`
 	Mode                 string `json:"billing_mode"`
 	RateRial             *int64 `json:"rate_rial"`
@@ -50,6 +53,12 @@ type ResellerResourceView struct {
 }
 
 type ResellerView struct {
+	IntervalDays         int64                  `json:"interval_days"`
+	GraceDays            int64                  `json:"grace_days"`
+	RecurringFeeRial     string                 `json:"recurring_fee_rial"`
+	AdminSuspended       bool                   `json:"admin_suspended"`
+	BillingSuspended     bool                   `json:"billing_suspended"`
+	NextInvoiceAt        int64                  `json:"next_invoice_at"`
 	ID                   uint                   `json:"id"`
 	Username             string                 `json:"username"`
 	Name                 string                 `json:"name"`
@@ -63,10 +72,10 @@ type ResellerView struct {
 	ActivePeers          int64                  `json:"active_peers"`
 	TotalPeers           int64                  `json:"total_peers"`
 	DefaultInterfaceID   *uint                  `json:"default_interface_id"`
-	MaxActivePeers       *int64                 `json:"max_active_peers"`
-	MaxPeerTrafficBytes  *int64                 `json:"max_peer_traffic_bytes"`
-	MaxTotalTrafficBytes *int64                 `json:"max_total_traffic_bytes"`
-	MaxDurationDays      *int64                 `json:"max_duration_days"`
+	MaxActivePeers       *string                `json:"max_active_peers"`
+	MaxPeerTrafficBytes  *string                `json:"max_peer_traffic_bytes"`
+	MaxTotalTrafficBytes *string                `json:"max_total_traffic_bytes"`
+	MaxDurationDays      *string                `json:"max_duration_days"`
 	Resources            []ResellerResourceView `json:"resources"`
 }
 
@@ -81,8 +90,19 @@ func validateResellerSettings(tx *gorm.DB, settings ResellerSettings) error {
 	if strings.TrimSpace(settings.Name) == "" || len(settings.Name) > 255 || (settings.Mode != model.BillingPrepaid && settings.Mode != model.BillingPostpaid) {
 		return ErrResellerSettings
 	}
-	for _, limit := range []*int64{settings.RateRial, settings.MaxActivePeers, settings.MaxPeerTrafficBytes, settings.MaxTotalTrafficBytes, settings.MaxDurationDays} {
+	for _, limit := range []*int64{settings.RateRial, settings.RecurringFeeRial, settings.GraceDays, settings.MaxActivePeers, settings.MaxPeerTrafficBytes, settings.MaxTotalTrafficBytes, settings.MaxDurationDays} {
 		if limit != nil && *limit < 0 {
+			return ErrResellerSettings
+		}
+	}
+	if settings.IntervalDays != nil {
+		seconds, err := billingDays(*settings.IntervalDays)
+		if err != nil || seconds == 0 {
+			return ErrResellerSettings
+		}
+	}
+	if settings.GraceDays != nil {
+		if _, err := billingDays(*settings.GraceDays); err != nil {
 			return ErrResellerSettings
 		}
 	}
@@ -146,7 +166,11 @@ func (s *Resellers) Create(actor Principal, input CreateReseller) (ResellerView,
 		if err := NewBilling(tx).CreateAccount(actor, id, input.Mode); err != nil {
 			return err
 		}
-		if err := tx.Model(&model.BillingAccount{}).Where("reseller_id = ?", id).Update("rate_rial", input.RateRial).Error; err != nil {
+		var account model.BillingAccount
+		if err := tx.Where("reseller_id = ?", id).First(&account).Error; err != nil {
+			return err
+		}
+		if err := applyFinancialSettings(tx, &account, input.ResellerSettings); err != nil {
 			return err
 		}
 		if err := writeResellerResources(tx, id, input.InterfaceIDs); err != nil {
@@ -165,6 +189,10 @@ func (s *Resellers) Update(actor Principal, id uint, settings ResellerSettings) 
 	if !billingAdmin(actor) {
 		return ResellerView{}, ErrRoleForbidden
 	}
+	if _, err := NewBilling(s.db).ReconcileAccount(id); err != nil {
+		return ResellerView{}, err
+	}
+
 	err := NewBilling(s.db).accountTransaction(id, func(tx *gorm.DB, account *model.BillingAccount) error {
 		if err := validateResellerSettings(tx, settings); err != nil {
 			return err
@@ -213,7 +241,7 @@ func (s *Resellers) Update(actor Principal, id uint, settings ResellerSettings) 
 		if err := writeResellerResources(tx, id, settings.InterfaceIDs); err != nil {
 			return err
 		}
-		if err := tx.Model(account).Updates(map[string]any{"mode": settings.Mode, "rate_rial": settings.RateRial}).Error; err != nil {
+		if err := applyFinancialSettings(tx, account, settings); err != nil {
 			return err
 		}
 		encoded, _ := json.Marshal(settings)
@@ -246,7 +274,7 @@ func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
 	if err != nil {
 		return view, err
 	}
-	view = ResellerView{ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: reseller.MaxActivePeers, MaxPeerTrafficBytes: reseller.MaxPeerTrafficBytes, MaxTotalTrafficBytes: reseller.MaxTotalTrafficBytes, MaxDurationDays: reseller.MaxDurationDays, Resources: []ResellerResourceView{}}
+	view = ResellerView{IntervalDays: account.IntervalDays, GraceDays: account.GraceDays, RecurringFeeRial: strconv.FormatInt(account.RecurringFeeRial, 10), AdminSuspended: reseller.AdminSuspended, BillingSuspended: account.BillingSuspended, NextInvoiceAt: account.NextInvoiceAt, ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: int64Text(reseller.MaxActivePeers), MaxPeerTrafficBytes: int64Text(reseller.MaxPeerTrafficBytes), MaxTotalTrafficBytes: int64Text(reseller.MaxTotalTrafficBytes), MaxDurationDays: int64Text(reseller.MaxDurationDays), Resources: []ResellerResourceView{}}
 	if account.RateRial != nil {
 		rate := strconv.FormatInt(*account.RateRial, 10)
 		view.RateRial = &rate
@@ -430,7 +458,7 @@ func (s *Resellers) TransferPeer(actor Principal, peerID uint, target *uint, rea
 			copyID := *previous
 			previous = &copyID
 		}
-		if err := tx.Model(&peer).Update("reseller_id", target).Error; err != nil {
+		if err := tx.Model(&peer).Updates(map[string]any{"reseller_id": target, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
 			return err
 		}
 		return tx.Create(&model.PeerOwnershipEvent{ID: uuid.NewString(), PeerID: peerID, PreviousResellerID: previous, ResellerID: target, ActorID: actor.AccountID, Reason: reason}).Error
@@ -452,4 +480,118 @@ func (s *Resellers) PeerList(actor Principal, id uint) (*[]schema.PeerResponse, 
 	selected := *s.peers
 	selected.tenantID = &id
 	return selected.GetPeers()
+}
+
+func (s *Resellers) SetSuspension(actor Principal, id uint, suspended bool, reason string) error {
+	if !billingAdmin(actor) {
+		return ErrRoleForbidden
+	}
+	if strings.TrimSpace(reason) == "" || len(reason) > 1000 {
+		return ErrResellerSettings
+	}
+	return NewBilling(s.db).accountTransaction(id, func(tx *gorm.DB, _ *model.BillingAccount) error {
+		var reseller model.Reseller
+		if err := tx.First(&reseller, id).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&reseller).Updates(map[string]any{"admin_suspended": suspended, "admin_suspend_reason": reason}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.Peer{}).Where("reseller_id = ? AND restrictions_initialized = ?", id, false).Updates(map[string]any{"manual_disabled": gorm.Expr("disabled"), "restrictions_initialized": true}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.Peer{}).Where("reseller_id = ?", id).Updates(map[string]any{"admin_blocked": suspended, "disabled": gorm.Expr("manual_disabled OR quota_blocked OR expiry_blocked OR billing_blocked OR ?", suspended), "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}).Error; err != nil {
+			return err
+		}
+		event := "administrative_suspension"
+		if !suspended {
+			event = "administrative_reactivation"
+		}
+		return billingAudit(tx, id, actor.AccountID, nil, event, reason)
+	})
+}
+
+func myReseller(actor Principal) (uint, error) {
+	if actor.AccountID == 0 || actor.Role != model.RoleReseller || actor.ResellerID == nil || *actor.ResellerID == 0 {
+		return 0, ErrRoleForbidden
+	}
+	return *actor.ResellerID, nil
+}
+func (s *Resellers) MyPeers(actor Principal) (*[]schema.PeerResponse, error) {
+	id, err := myReseller(actor)
+	if err != nil {
+		return nil, err
+	}
+	selected := *s.peers
+	selected.tenantID = &id
+	return selected.GetPeers()
+}
+func (s *Resellers) MyConfig(actor Principal, id uint) (string, string, error) {
+	if _, err := myReseller(actor); err != nil {
+		return "", "", err
+	}
+	if _, err := actor.FindOwnedPeer(s.db, id); err != nil {
+		return "", "", err
+	}
+	return s.peers.configGenerator.GetPeerConfig(id)
+}
+func (s *Resellers) MyQRCode(actor Principal, id uint) (string, error) {
+	if _, err := myReseller(actor); err != nil {
+		return "", err
+	}
+	if _, err := actor.FindOwnedPeer(s.db, id); err != nil {
+		return "", err
+	}
+	return s.peers.qrCodeGenerator.GetPeerQRCode(id)
+}
+func (s *Resellers) MySessions(actor Principal, id uint) (*schema.PeerSessionsResponse, error) {
+	if _, err := myReseller(actor); err != nil {
+		return nil, err
+	}
+	if _, err := actor.FindOwnedPeer(s.db, id); err != nil {
+		return nil, err
+	}
+	return s.peers.GetPeerSessions(id)
+}
+func (s *Resellers) MyExport(actor Principal) (string, error) {
+	if _, err := myReseller(actor); err != nil {
+		return "", err
+	}
+	return NewExcelGenerator(actor.PeerScope(s.db)).GetTrafficUsageReport()
+}
+
+func int64Text(value *int64) *string {
+	if value == nil {
+		return nil
+	}
+	text := strconv.FormatInt(*value, 10)
+	return &text
+}
+
+func applyFinancialSettings(tx *gorm.DB, a *model.BillingAccount, settings ResellerSettings) error {
+	interval, grace, fee := a.IntervalDays, a.GraceDays, a.RecurringFeeRial
+	if settings.IntervalDays != nil {
+		interval = *settings.IntervalDays
+	}
+	if settings.GraceDays != nil {
+		grace = *settings.GraceDays
+	}
+	if settings.RecurringFeeRial != nil {
+		fee = *settings.RecurringFeeRial
+	}
+	seconds, err := billingDays(interval)
+	if err != nil || seconds == 0 {
+		return ErrResellerSettings
+	}
+	next := a.NextInvoiceAt
+	if interval != a.IntervalDays {
+		next, err = checkedRialAdd(a.PeriodStart, seconds)
+		if err != nil {
+			return err
+		}
+	}
+	if err := tx.Model(a).Updates(map[string]any{"mode": settings.Mode, "rate_rial": settings.RateRial, "interval_days": interval, "grace_days": grace, "recurring_fee_rial": fee, "next_invoice_at": next}).Error; err != nil {
+		return err
+	}
+	return NewBilling(tx).advancePeriods(tx, a, time.Now().UTC().Unix())
 }

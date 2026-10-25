@@ -31,6 +31,8 @@ func SetupMwpAPI(
 	syncService *service.SyncService,
 	shopAPI *shopclient.Client,
 	resellers *service.Resellers,
+	billing *service.Billing,
+	payments *service.Payments,
 ) {
 	router := app.Group("/api")
 
@@ -46,6 +48,12 @@ func SetupMwpAPI(
 			// fail-closed for resellers until each dedicated route is implemented.
 			if principal.Role != model.RoleSuperadmin {
 				switch c.Path() {
+				case "/api/reseller/me/peers", "/api/reseller/me/peers/:id/config", "/api/reseller/me/peers/:id/qrcode", "/api/reseller/me/peers/:id/sessions", "/api/reseller/me/peers/export":
+				case "/api/billing/me", "/api/billing/me/receipts", "/api/billing/me/receipts/:id/image":
+				case "/api/billing/instructions":
+					if c.Request().Method != http.MethodGet {
+						return nil, service.ErrRoleForbidden
+					}
 				case "/api/auth/me", "/api/auth/profile", "/api/auth/totp", "/api/auth/totp/setup", "/api/auth/totp/confirm", "/api/auth/totp/disable":
 				default:
 					return nil, service.ErrRoleForbidden
@@ -80,8 +88,30 @@ func SetupMwpAPI(
 	serviceController := NewServiceController(peerService, configGeneratorService, qrCodeGeneratorService)
 
 	setupAuthenticationRoutes(router, jwtConfig, authController)
+	billingController := NewBillingController(billing, payments)
+	billingGroup := router.Group("/billing", echojwt.WithConfig(jwtConfig))
+	billingGroup.GET("/me", billingController.Book)
+	billingGroup.GET("/me/receipts", billingController.Receipts)
+	billingGroup.POST("/me/receipts", billingController.Submit)
+	billingGroup.GET("/me/receipts/:id/image", billingController.Image)
+	billingGroup.GET("/instructions", billingController.Instructions)
+	billingGroup.PUT("/instructions", billingController.UpdateInstructions)
+	billingGroup.GET("/account/:reseller_id", billingController.Book)
+	billingGroup.GET("/account/:reseller_id/receipts", billingController.Receipts)
+	billingGroup.POST("/account/:reseller_id/adjustments", billingController.Adjust)
+	billingGroup.POST("/account/:reseller_id/grace", billingController.ExtendGrace)
+	billingGroup.POST("/account/:reseller_id/override", billingController.Override)
+	billingGroup.GET("/receipts/:id/image", billingController.Image)
+	billingGroup.POST("/receipts/:id/approve", billingController.Approve)
+	billingGroup.POST("/receipts/:id/reject", billingController.Reject)
 	resellerController := NewResellerController(resellers)
 	resellerGroup := router.Group("/reseller", echojwt.WithConfig(jwtConfig))
+	resellerGroup.GET("/me/peers", resellerController.MyPeers)
+	resellerGroup.GET("/me/peers/:id/config", resellerController.MyConfig)
+	resellerGroup.GET("/me/peers/:id/qrcode", resellerController.MyQRCode)
+	resellerGroup.GET("/me/peers/:id/sessions", resellerController.MySessions)
+	resellerGroup.GET("/me/peers/export", resellerController.MyExport)
+	resellerGroup.POST("/:id/suspension", resellerController.Suspension)
 	resellerGroup.GET("", resellerController.List)
 	resellerGroup.POST("", resellerController.Create)
 	resellerGroup.GET("/:id", resellerController.Get)
