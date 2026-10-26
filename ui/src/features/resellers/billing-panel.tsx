@@ -2,13 +2,17 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Receipt } from '@/schema/billing'
 import { toast } from 'sonner'
-import axiosInstance from '@/api/axios-instance'
+import { downloadPrivate, fetchPrivateFile } from '@/api/files'
 import {
-  downloadPrivate,
+  useSubmitReceiptMutation,
+  useReviewReceiptMutation,
+  useBillingActionMutation,
+  usePaymentInstructionsMutation,
+} from '@/hooks/resellers/useResellerMutations'
+import {
   useBillingBook,
   usePaymentInstructions,
   useReceiptHistory,
-  useResellerAction,
 } from '@/hooks/resellers/useResellerQueries'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,25 +50,8 @@ export function BillingPanel({ resellerID }: { resellerID?: number }) {
     },
     [preview]
   )
-  const upload = useResellerAction(
-    ({ body, key }: { body: FormData; key: string }) =>
-      axiosInstance.post('/billing/me/receipts', body, {
-        headers: { 'Idempotency-Key': key },
-      }),
-    'Receipt submitted for review'
-  )
-  const review = useResellerAction(
-    ({
-      id,
-      action,
-      reason,
-    }: {
-      id: number
-      action: 'approve' | 'reject'
-      reason?: string
-    }) => axiosInstance.post(`/billing/receipts/${id}/${action}`, { reason }),
-    'Receipt review saved'
-  )
+  const upload = useSubmitReceiptMutation()
+  const review = useReviewReceiptMutation()
   async function submitReceipt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget,
@@ -106,7 +93,7 @@ export function BillingPanel({ resellerID }: { resellerID?: number }) {
       const path = resellerID
         ? `/billing/receipts/${receipt.id}/image`
         : `/billing/me/receipts/${receipt.id}/image`
-      const { data } = await axiosInstance.get(path, { responseType: 'blob' })
+      const data = await fetchPrivateFile(path)
       setPreview(URL.createObjectURL(data))
     } catch {
       toast.error('Unable to load receipt image')
@@ -533,13 +520,7 @@ export function BillingPanel({ resellerID }: { resellerID?: number }) {
 function BillingAdminAction({ id }: { id: number }) {
   const [action, setAction] = useState('adjustments')
   const key = useRef(crypto.randomUUID())
-  const mutation = useResellerAction(
-    (body: { path: string; data: Record<string, unknown> }) =>
-      axiosInstance.post(body.path, body.data, {
-        headers: { 'Idempotency-Key': key.current },
-      }),
-    'Account action saved'
-  )
+  const mutation = useBillingActionMutation(id)
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget,
@@ -557,7 +538,8 @@ function BillingAdminAction({ id }: { id: number }) {
         )
       }
       await mutation.mutateAsync({
-        path: `/billing/account/${id}/${action}`,
+        action,
+        key: key.current,
         data: payload,
       })
       key.current = crypto.randomUUID()
@@ -654,11 +636,7 @@ function BillingAdminAction({ id }: { id: number }) {
 
 export function PaymentSettings({ onClose }: { onClose: () => void }) {
   const query = usePaymentInstructions()
-  const mutation = useResellerAction(
-    (data: Record<string, string>) =>
-      axiosInstance.put('/billing/instructions', data),
-    'Payment settings updated'
-  )
+  const mutation = usePaymentInstructionsMutation()
   if (!query.data)
     return (
       <p>{query.isError ? 'Unable to load payment settings.' : 'Loading...'}</p>

@@ -1,9 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { Reseller, ResellerInput } from '@/schema/billing'
 import { toast } from 'sonner'
-import axiosInstance from '@/api/axios-instance'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
-import { useResellerAction } from '@/hooks/resellers/useResellerQueries'
+import { useSaveResellerMutation } from '@/hooks/resellers/useResellerMutations'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -28,13 +27,7 @@ export function ResellerEditor({
   const [selected, setSelected] = useState<number[]>(
     current?.resources.map((resource) => resource.interface_id) ?? []
   )
-  const mutation = useResellerAction(
-    (data: ResellerInput) =>
-      current
-        ? axiosInstance.put(`/reseller/${current.id}`, data)
-        : axiosInstance.post('/reseller', data),
-    current ? 'Reseller updated' : 'Reseller created'
-  )
+  const mutation = useSaveResellerMutation(current?.id)
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const fields = new FormData(event.currentTarget)

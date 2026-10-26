@@ -1,10 +1,10 @@
 import { FormEvent, useRef, useState } from 'react'
-import { z } from 'zod'
-import { useQuery } from '@tanstack/react-query'
-import { createApiResponseSchema } from '@/schema/api-response'
 import { Reseller } from '@/schema/billing'
-import axiosInstance from '@/api/axios-instance'
-import { useResellerAction } from '@/hooks/resellers/useResellerQueries'
+import {
+  useBeginRouterMigrationMutation,
+  useCancelRouterMigrationMutation,
+} from '@/hooks/resellers/useResellerMutations'
+import { useRouterMigrationsQuery } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,36 +16,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const migrationSchema = z.array(
-  z.object({
-    id: z.string(),
-    state: z.string(),
-    destination_interface_id: z.number(),
-    total_peers: z.number(),
-    completed_peers: z.number(),
-    attempts: z.number(),
-    needs_attention: z.boolean(),
-  })
-)
 export function MigrationButton({ reseller }: { reseller: Reseller }) {
   const [open, setOpen] = useState(false)
   const key = useRef({ signature: '', key: crypto.randomUUID() })
-  const history = useQuery({
-    queryKey: ['router_migrations', reseller.id],
-    queryFn: async () =>
-      createApiResponseSchema(migrationSchema).parse(
-        (await axiosInstance.get(`/reseller/${reseller.id}/migrations`)).data
-      ).data,
-    enabled: open || !!reseller.migration_id,
-    refetchInterval: open || reseller.migration_id ? 5000 : false,
-  })
-  const begin = useResellerAction(
-    (data: { interface_id: number; reason: string; endpoint: string }) =>
-      axiosInstance.post(`/reseller/${reseller.id}/migrations`, data, {
-        headers: { 'Idempotency-Key': key.current.key },
-      }),
-    'Migration queued after successful preflight'
+  const history = useRouterMigrationsQuery(
+    reseller.id,
+    open || !!reseller.migration_id
   )
+  const begin = useBeginRouterMigrationMutation(reseller.id)
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget),
@@ -57,16 +35,10 @@ export function MigrationButton({ reseller }: { reseller: Reseller }) {
       signature = JSON.stringify(data)
     if (signature !== key.current.signature)
       key.current = { signature, key: crypto.randomUUID() }
-    await begin.mutateAsync(data)
+    await begin.mutateAsync({ data, key: key.current.key })
     await history.refetch()
   }
-  const cancel = useResellerAction(
-    (id: string) =>
-      axiosInstance.post(`/reseller/${reseller.id}/migrations/${id}/cancel`, {
-        reason: 'Administrator requested cancellation before routing switch',
-      }),
-    'Safe cancellation queued'
-  )
+  const cancel = useCancelRouterMigrationMutation(reseller.id)
   const pending =
     history.data?.some((x) => ['pending', 'cancelling'].includes(x.state)) ||
     !!reseller.migration_id

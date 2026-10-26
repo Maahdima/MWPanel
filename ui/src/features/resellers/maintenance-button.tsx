@@ -1,8 +1,7 @@
 import { FormEvent, useRef, useState } from 'react'
 import { Peer } from '@/schema/peers'
 import { toast } from 'sonner'
-import axiosInstance from '@/api/axios-instance'
-import { useResellerAction } from '@/hooks/resellers/useResellerQueries'
+import { usePeerMaintenanceMutation } from '@/hooks/resellers/useResellerMutations'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -26,17 +25,7 @@ export function MaintenanceButton({
     [action, setAction] = useState('rename'),
     [value, setValue] = useState(peer.name)
   const request = useRef({ signature: '', key: crypto.randomUUID() })
-  const mutation = useResellerAction(
-    (data: { action: string; value: string; enabled: boolean | null }) =>
-      axiosInstance.post(
-        resellerID
-          ? `/reseller/${resellerID}/peers/${peer.id}/mutations`
-          : `/reseller/me/peers/${peer.id}/mutations`,
-        data,
-        { headers: { 'Idempotency-Key': request.current.key } }
-      ),
-    'Change queued for verification'
-  )
+  const mutation = usePeerMaintenanceMutation(peer.id, resellerID)
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     try {
@@ -61,7 +50,7 @@ export function MaintenanceButton({
       const signature = JSON.stringify(data)
       if (signature !== request.current.signature)
         request.current = { signature, key: crypto.randomUUID() }
-      await mutation.mutateAsync(data)
+      await mutation.mutateAsync({ data, key: request.current.key })
       setOpen(false)
     } catch (error) {
       toast.error(

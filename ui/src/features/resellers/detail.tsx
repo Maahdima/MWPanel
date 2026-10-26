@@ -1,11 +1,9 @@
 import { FormEvent, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { PeersResponseSchema } from '@/schema/peers'
-import axiosInstance from '@/api/axios-instance'
+import { useResellerSuspensionMutation } from '@/hooks/resellers/useResellerMutations'
 import {
   useBillingBook,
-  useResellerAction,
+  useResellerPeersQuery,
   useResellerQuery,
 } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
@@ -32,27 +30,15 @@ import { ResellerEditor } from './reseller-editor'
 export default function ResellerDetail({ id }: { id: number }) {
   const query = useResellerQuery(id),
     book = useBillingBook(id)
-  const peers = useQuery({
-    queryKey: ['peers_list', 'reseller', id],
-    queryFn: async () =>
-      PeersResponseSchema.parse(
-        (await axiosInstance.get(`/reseller/${id}/peers`)).data
-      ).data ?? [],
-  })
+  const peers = useResellerPeersQuery(id)
   const [dialog, setDialog] = useState<'settings' | 'suspension' | null>(null)
-  const suspension = useResellerAction(
-    (reason: string) =>
-      axiosInstance.post(`/reseller/${id}/suspension`, {
-        suspended: !book.data?.state.administrative_suspended,
-        reason,
-      }),
-    'Administrative restriction updated'
-  )
+  const suspension = useResellerSuspensionMutation(id)
   async function saveSuspension(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    await suspension.mutateAsync(
-      String(new FormData(event.currentTarget).get('reason'))
-    )
+    await suspension.mutateAsync({
+      reason: String(new FormData(event.currentTarget).get('reason')),
+      suspended: !book.data?.state.administrative_suspended,
+    })
     setDialog(null)
   }
   if (query.isPending)

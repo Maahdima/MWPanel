@@ -23,6 +23,7 @@ import {
   SyncPeersResponseSchema,
 } from '@/schema/sync.ts'
 import axiosInstance from '@/api/axios-instance.ts'
+import { saveBlob } from '@/lib/download'
 
 export const fetchPeersList = async (): Promise<Peer[]> => {
   const { data } = await axiosInstance.get('/peer')
@@ -127,16 +128,10 @@ export const exportTrafficExcel = async (): Promise<void> => {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
 
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-
-  link.href = url
-  link.download = `traffic-report-${new Date().toISOString().split('T')[0]}.xlsx`
-
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  saveBlob(
+    blob,
+    `traffic-report-${new Date().toISOString().split('T')[0]}.xlsx`
+  )
 }
 
 export const syncPeers = async (): Promise<void> => {

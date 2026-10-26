@@ -123,3 +123,61 @@ export type ResellerInput = {
   username?: string
   password?: string
 }
+
+export const ResellerResourceSchema = ResellerSchema.shape.resources.element
+export const PeerPurchasesSchema = z.array(
+  z.object({
+    id: z.string(),
+    peer_id: z.number(),
+    state: z.string(),
+    amount_rial: integerText,
+    attempts: z.number(),
+  })
+)
+export const RouterMigrationsSchema = z.array(
+  z.object({
+    id: z.string(),
+    state: z.string(),
+    destination_interface_id: z.number(),
+    total_peers: z.number(),
+    completed_peers: z.number(),
+    attempts: z.number(),
+    needs_attention: z.boolean(),
+  })
+)
+export type PeerPurchaseInput = {
+  operation: string
+  bytes: string
+  days: string
+}
+export type PeerMutationInput = {
+  action: string
+  value: string
+  enabled: boolean | null
+}
+export type ResellerPeerInput = {
+  name: string
+  interface_id: number
+  quota_bytes: string
+  duration_days: string
+}
+export type RouterMigrationInput = {
+  interface_id: number
+  reason: string
+  endpoint: string
+}
+export type OwnershipInput = {
+  reseller_id: number | null
+  reason: string
+  configured_duration_days: string | null
+}
+export type ReceiptReviewInput = {
+  id: number
+  action: 'approve' | 'reject'
+  reason?: string
+}
+export type BillingActionInput = {
+  action: string
+  data: Record<string, unknown>
+  key: string
+}

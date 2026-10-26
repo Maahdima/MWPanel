@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Peer, PeersResponseSchema } from '@/schema/peers'
+import { Peer } from '@/schema/peers'
 import { toast } from 'sonner'
-import axiosInstance from '@/api/axios-instance'
+import { downloadPrivate } from '@/api/files'
 import {
   useBillingBook,
-  downloadPrivate,
+  useResellerPeersQuery,
 } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,14 +29,7 @@ export function MyPeers() {
   const { data: book } = useBillingBook()
   const readOnly =
     book?.state.billing_suspended || book?.state.administrative_suspended
-  const peers = useQuery({
-    queryKey: ['my_peers'],
-    queryFn: async () =>
-      PeersResponseSchema.parse(
-        (await axiosInstance.get('/reseller/me/peers')).data
-      ).data,
-    refetchInterval: 15000,
-  })
+  const peers = useResellerPeersQuery()
   const download = (path: string, name: string) =>
     downloadPrivate(path, name).catch(() => toast.error('Download failed'))
   return (

@@ -1,10 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { Peer } from '@/schema/peers'
-import axiosInstance from '@/api/axios-instance'
-import {
-  useResellersQuery,
-  useResellerAction,
-} from '@/hooks/resellers/useResellerQueries'
+import { useTransferPeerMutation } from '@/hooks/resellers/useResellerMutations'
+import { useResellersQuery } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,14 +17,7 @@ import { PurchaseButton } from './purchase-button'
 export function OwnerCell({ peer }: { peer: Peer }) {
   const { data } = useResellersQuery(),
     [open, setOpen] = useState(false)
-  const action = useResellerAction(
-    (payload: {
-      reseller_id: number | null
-      reason: string
-      configured_duration_days: string | null
-    }) => axiosInstance.put(`/peer/${peer.id}/owner`, payload),
-    'Ownership updated'
-  )
+  const action = useTransferPeerMutation(peer.id)
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)

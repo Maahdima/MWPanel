@@ -1,12 +1,9 @@
 import { FormEvent, useRef, useState } from 'react'
-import { z } from 'zod'
-import { useQuery } from '@tanstack/react-query'
-import { createApiResponseSchema } from '@/schema/api-response'
 import { toast } from 'sonner'
-import axiosInstance from '@/api/axios-instance'
+import { useCreateResellerPeerMutation } from '@/hooks/resellers/useResellerMutations'
 import {
   useBillingBook,
-  useResellerAction,
+  useMyResourcesQuery,
   useResellerQuery,
 } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
@@ -21,14 +18,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatToman, gibToBytes } from './money'
 
-const resourcesSchema = z.array(
-  z.object({
-    interface_id: z.number(),
-    name: z.string(),
-    server_id: z.number(),
-    pool_id: z.number().nullable(),
-  })
-)
 export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
   const [open, setOpen] = useState(false),
     [quota, setQuota] = useState('10'),
@@ -36,29 +25,9 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
   const request = useRef({ signature: '', key: crypto.randomUUID() })
   const account = useBillingBook(resellerID, open)
   const reseller = useResellerQuery(resellerID ?? 0)
-  const own = useQuery({
-    queryKey: ['my_resources'],
-    queryFn: async () =>
-      createApiResponseSchema(resourcesSchema).parse(
-        (await axiosInstance.get('/reseller/me/resources')).data
-      ).data,
-    enabled: open && !resellerID,
-  })
+  const own = useMyResourcesQuery(open && !resellerID)
   const resources = resellerID ? reseller.data?.resources : own.data
-  const create = useResellerAction(
-    (data: {
-      name: string
-      interface_id: number
-      quota_bytes: string
-      duration_days: string
-    }) =>
-      axiosInstance.post(
-        resellerID ? `/reseller/${resellerID}/peers` : '/reseller/me/peers',
-        data,
-        { headers: { 'Idempotency-Key': request.current.key } }
-      ),
-    'Configuration queued for provisioning'
-  )
+  const create = useCreateResellerPeerMutation(resellerID)
   let estimated: string | null = null
   try {
     if (account.data && /^\d+$/.test(days)) {
@@ -89,7 +58,7 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
       const signature = JSON.stringify(data)
       if (signature !== request.current.signature)
         request.current = { signature, key: crypto.randomUUID() }
-      await create.mutateAsync(data)
+      await create.mutateAsync({ data, key: request.current.key })
       setOpen(false)
     } catch (error) {
       toast.error(
