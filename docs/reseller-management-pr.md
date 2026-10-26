@@ -11,6 +11,10 @@ MWPanel previously treated administrative users and router access as global, so 
 - Migrate reseller peers across routers through preflight, disabled destination preparation, protected counter sampling, atomic metadata switching, refreshed configs/QR codes and verified source cleanup. Support compensation before any switch and forward recovery afterward.
 - Reuse existing UI components for reseller administration, billing/payment review, resource/owner filters, exact toman forms, scoped configurations and migration progress. Complete scoped financial histories are downloadable as CSV.
 
+## Architectural alignment
+
+Reseller transport schemas follow `http/schema`, JWT policy lives in the existing middleware package, and frontend requests run through domain API modules and named hooks. Administration reuses existing form/select/password controls; scoped configurations reuse the shared table and skeleton. See [refactor verification](reseller-management-refactor.md). Financial and router recovery algorithms retain their original semantics.
+
 ## Compatibility and migration
 
 SQLite and PostgreSQL are supported. Additive models and composite router indexes preserve legacy records. Ambiguous legacy router ownership requires `LEGACY_ROUTER_SERVER_ID`; it is never silently assigned. Configurations/QR codes are written atomically with owner-only permissions. SQL diagnostic values are redacted. No new dependency or separate application is introduced.
@@ -36,4 +40,6 @@ Implements the proposal in [#6](https://github.com/Maahdima/MWPanel/issues/6).
 
 ![Reseller migration dialog](images/reseller-router-migration.png)
 
-The preview uses disposable local demo data.
+![Shared reseller settings form](images/reseller-settings.png)
+
+The previews use disposable local demo data.

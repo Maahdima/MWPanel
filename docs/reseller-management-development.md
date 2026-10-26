@@ -40,3 +40,7 @@ A local embedded binary ran against disposable SQLite data and loopback-only Moc
 `PeerPurchase` is the shared durable operation outbox; free mutations have a null charge ID. A held amount is not a ledger debit. Failed/ambiguous external changes stay pending with bounded per-tick work and persisted backoff. Workers inventory stable public keys and UUID resource names before retrying creation. A finalized charge and the matching peer metadata are committed in one account transaction. SQLite serializes writers; PostgreSQL account updates lock rows. Source/router objects with unexpected identities are never changed or deleted.
 
 Pending operations prevent ownership changes and conflicting legacy mutations. New configurations are provisioned disabled and activated only by restriction reconciliation. Billing or admin suspension can still disable an existing peer while a purchase is pending. A legacy peer without a known original duration cannot be fully reset until an admin records that duration explicitly; it is never guessed.
+
+## Architectural alignment
+
+The follow-up refactor follows the original repository boilerplate without changing business rules. See [alignment and verification](reseller-management-refactor.md) for the inspected patterns, structural changes and current test evidence.
