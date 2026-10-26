@@ -12,7 +12,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { bytesToGiB, gibToBytes } from './money'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { bytesToGiB, gibToBytes } from '../money'
 
 export function MaintenanceButton({
   peer,
@@ -71,33 +78,40 @@ export function MaintenanceButton({
           <DialogBody className='space-y-4 pb-5'>
             <form onSubmit={submit} className='space-y-3'>
               <Label htmlFor={`maintenance-${peer.id}`}>Free operation</Label>
-              <select
-                id={`maintenance-${peer.id}`}
+              <Select
                 value={action}
-                onChange={(e) => {
-                  setAction(e.target.value)
+                onValueChange={(selected) => {
+                  setAction(selected)
                   setValue(
-                    e.target.value === 'rename'
+                    selected === 'rename'
                       ? peer.name
-                      : e.target.value === 'set_address'
+                      : selected === 'set_address'
                         ? peer.allowed_address
-                        : e.target.value === 'reduce_quota'
+                        : selected === 'reduce_quota'
                           ? bytesToGiB(peer.traffic_limit_bytes)
                           : ''
                   )
                 }}
-                className='border-input bg-background h-9 w-full rounded-md border px-3'
               >
-                <option value='rename'>Rename</option>
-                <option value='set_address'>Change client address</option>
-                <option value='regenerate_keys'>Regenerate keys</option>
-                <option value='enable'>Enable manually</option>
-                <option value='disable'>Disable manually</option>
-                <option value='share'>Enable public share</option>
-                <option value='unshare'>Disable public share</option>
-                <option value='reduce_quota'>Reduce quota</option>
-                <option value='delete'>Delete configuration</option>
-              </select>
+                <SelectTrigger id={`maintenance-${peer.id}`} className='w-full'>
+                  <SelectValue placeholder='Select' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='rename'>Rename</SelectItem>
+                  <SelectItem value='set_address'>
+                    Change client address
+                  </SelectItem>
+                  <SelectItem value='regenerate_keys'>
+                    Regenerate keys
+                  </SelectItem>
+                  <SelectItem value='enable'>Enable manually</SelectItem>
+                  <SelectItem value='disable'>Disable manually</SelectItem>
+                  <SelectItem value='share'>Enable public share</SelectItem>
+                  <SelectItem value='unshare'>Disable public share</SelectItem>
+                  <SelectItem value='reduce_quota'>Reduce quota</SelectItem>
+                  <SelectItem value='delete'>Delete configuration</SelectItem>
+                </SelectContent>
+              </Select>
               {['rename', 'set_address', 'reduce_quota'].includes(action) && (
                 <>
                   <Label htmlFor={`maintenance-value-${peer.id}`}>

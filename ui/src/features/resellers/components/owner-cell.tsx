@@ -12,6 +12,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import { PurchaseButton } from './purchase-button'
 
 export function OwnerCell({ peer }: { peer: Peer }) {
@@ -22,7 +29,10 @@ export function OwnerCell({ peer }: { peer: Peer }) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     await action.mutateAsync({
-      reseller_id: form.get('owner') ? Number(form.get('owner')) : null,
+      reseller_id:
+        form.get('owner') && form.get('owner') !== 'none'
+          ? Number(form.get('owner'))
+          : null,
       reason: String(form.get('reason')),
       configured_duration_days: String(form.get('duration') ?? '') || null,
     })
@@ -48,19 +58,22 @@ export function OwnerCell({ peer }: { peer: Peer }) {
             <form onSubmit={submit} className='space-y-3'>
               <p>{peer.name}</p>
               <Label htmlFor={`owner-${peer.id}`}>Owner</Label>
-              <select
-                id={`owner-${peer.id}`}
+              <Select
                 name='owner'
-                defaultValue={peer.reseller_id ?? ''}
-                className='border-input bg-background h-9 w-full rounded-md border px-3'
+                defaultValue={peer.reseller_id?.toString() ?? 'none'}
               >
-                <option value=''>Superadmin</option>
-                {data?.map((x) => (
-                  <option value={x.id} key={x.id}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id={`owner-${peer.id}`} className='w-full'>
+                  <SelectValue placeholder='Select' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='none'>Superadmin</SelectItem>
+                  {data?.map((x) => (
+                    <SelectItem value={String(x.id)} key={x.id}>
+                      {x.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Label htmlFor={`duration-${peer.id}`}>
                 Original plan duration (days)
               </Label>

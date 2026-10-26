@@ -22,8 +22,8 @@ import {
   OnlineBadge,
 } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
-import { MaintenanceButton } from '@/features/resellers/maintenance-button'
-import { OwnerCell } from '@/features/resellers/owner-cell'
+import { MaintenanceButton } from '@/features/resellers/components/maintenance-button'
+import { OwnerCell } from '@/features/resellers/components/owner-cell'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'

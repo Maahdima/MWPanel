@@ -16,7 +16,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatToman, gibToBytes } from './money'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { formatToman, gibToBytes } from '../money'
 
 export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
   const [open, setOpen] = useState(false),
@@ -88,27 +95,29 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
               <Label htmlFor='reseller-peer-interface'>
                 Assigned interface
               </Label>
-              <select
-                id='reseller-peer-interface'
+              <Select
                 name='interface'
                 required
-                className='border-input bg-background h-9 w-full rounded-md border px-3'
-                defaultValue={reseller.data?.default_interface_id ?? ''}
+                defaultValue={
+                  reseller.data?.default_interface_id?.toString() ?? ''
+                }
               >
-                <option value='' disabled>
-                  Select assigned interface
-                </option>
-                {resources?.map((resource) => (
-                  <option
-                    key={resource.interface_id}
-                    value={resource.interface_id}
-                    disabled={!resource.pool_id}
-                  >
-                    {resource.name} · Server #{resource.server_id}
-                    {!resource.pool_id ? ' (no IP pool)' : ''}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id='reseller-peer-interface' className='w-full'>
+                  <SelectValue placeholder='Select assigned interface' />
+                </SelectTrigger>
+                <SelectContent>
+                  {resources?.map((resource) => (
+                    <SelectItem
+                      key={resource.interface_id}
+                      value={String(resource.interface_id)}
+                      disabled={!resource.pool_id}
+                    >
+                      {resource.name} · Server #{resource.server_id}
+                      {!resource.pool_id ? ' (no IP pool)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className='grid grid-cols-2 gap-3'>
                 <div className='space-y-2'>
                   <Label htmlFor='reseller-peer-quota'>Quota (GiB)</Label>

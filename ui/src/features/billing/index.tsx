@@ -1,4 +1,4 @@
-import { BillingPanel } from '@/features/resellers/billing-panel'
+import { BillingPanel } from '@/features/resellers/components/billing-panel'
 import { PageFrame } from '@/features/resellers/page-frame'
 
 export default function BillingPage() {

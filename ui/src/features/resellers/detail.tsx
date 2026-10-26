@@ -21,11 +21,11 @@ import { peersColumns } from '@/features/peers/components/peers-columns'
 import { PeersDialogs } from '@/features/peers/components/peers-dialogs'
 import PeersProvider from '@/features/peers/context/peers-context'
 import { DataTable } from '@/features/shared-components/table/data-table'
-import { BillingPanel } from './billing-panel'
-import { CreatePeerButton } from './create-peer-button'
-import { MigrationButton } from './migration-button'
+import { BillingPanel } from './components/billing-panel'
+import { CreatePeerButton } from './components/create-peer-button'
+import { MigrationButton } from './components/migration-button'
+import { ResellerEditor } from './components/reseller-editor'
 import { PageFrame } from './page-frame'
-import { ResellerEditor } from './reseller-editor'
 
 export default function ResellerDetail({ id }: { id: number }) {
   const query = useResellerQuery(id),

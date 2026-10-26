@@ -181,3 +181,22 @@ export type BillingActionInput = {
   data: Record<string, unknown>
   key: string
 }
+
+// Form values stay strings until exact rial/byte conversion at submission.
+export const ResellerFormSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  username: z.string().trim().min(1).max(64),
+  password: z.string(),
+  mode: z.enum(['prepaid', 'postpaid']),
+  rate: z.string(),
+  interval: z.string(),
+  grace: z.string(),
+  fee: z.string(),
+  max_active: z.string(),
+  max_duration: z.string(),
+  max_peer: z.string(),
+  max_total: z.string(),
+  interface_ids: z.array(z.number()),
+  default_interface: z.string(),
+})
+export type ResellerFormValues = z.infer<typeof ResellerFormSchema>

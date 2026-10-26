@@ -27,6 +27,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -35,7 +42,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { dateLabel, formatToman, inputToman, tomanToRial } from './money'
+import { dateLabel, formatToman, inputToman, tomanToRial } from '../money'
 
 export function BillingPanel({ resellerID }: { resellerID?: number }) {
   const account = useBillingBook(resellerID),
@@ -559,19 +566,24 @@ function BillingAdminAction({ id }: { id: number }) {
         <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
           <div className='space-y-1'>
             <Label htmlFor='billing-action'>Action</Label>
-            <select
-              id='billing-action'
+            <Select
               value={action}
-              onChange={(e) => {
-                setAction(e.target.value)
+              onValueChange={(selected) => {
+                setAction(selected)
                 key.current = crypto.randomUUID()
               }}
-              className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm'
             >
-              <option value='adjustments'>Manual adjustment</option>
-              <option value='grace'>Extend grace</option>
-              <option value='override'>Temporary billing reactivation</option>
-            </select>
+              <SelectTrigger id='billing-action' className='w-full'>
+                <SelectValue placeholder='Select' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='adjustments'>Manual adjustment</SelectItem>
+                <SelectItem value='grace'>Extend grace</SelectItem>
+                <SelectItem value='override'>
+                  Temporary billing reactivation
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {action === 'adjustments' ? (
             <>
@@ -589,17 +601,21 @@ function BillingAdminAction({ id }: { id: number }) {
               </div>
               <div className='space-y-1'>
                 <Label htmlFor='adjust-direction'>Direction</Label>
-                <select
-                  id='adjust-direction'
+                <Select
                   name='direction'
-                  className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm'
-                  onChange={() => {
+                  onValueChange={() => {
                     key.current = crypto.randomUUID()
                   }}
+                  defaultValue='credit'
                 >
-                  <option value='credit'>Credit / discount</option>
-                  <option value='debit'>Debit / penalty</option>
-                </select>
+                  <SelectTrigger id='adjust-direction' className='w-full'>
+                    <SelectValue placeholder='Select' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='credit'>Credit / discount</SelectItem>
+                    <SelectItem value='debit'>Debit / penalty</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </>
           ) : (

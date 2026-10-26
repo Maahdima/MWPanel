@@ -15,6 +15,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 export function MigrationButton({ reseller }: { reseller: Reseller }) {
   const [open, setOpen] = useState(false)
@@ -62,27 +69,23 @@ export function MigrationButton({ reseller }: { reseller: Reseller }) {
               <Label htmlFor='migration-interface'>
                 Assigned destination interface
               </Label>
-              <select
-                id='migration-interface'
-                name='interface'
-                required
-                defaultValue=''
-                className='border-input bg-background h-9 w-full rounded-md border px-3'
-              >
-                <option value='' disabled>
-                  Select destination
-                </option>
-                {reseller.resources.map((resource) => (
-                  <option
-                    key={resource.interface_id}
-                    value={resource.interface_id}
-                    disabled={!resource.pool_id}
-                  >
-                    {resource.name} · Server #{resource.server_id}
-                    {!resource.pool_id ? ' (no IP pool)' : ''}
-                  </option>
-                ))}
-              </select>
+              <Select name='interface' required defaultValue=''>
+                <SelectTrigger id='migration-interface' className='w-full'>
+                  <SelectValue placeholder='Select destination' />
+                </SelectTrigger>
+                <SelectContent>
+                  {reseller.resources.map((resource) => (
+                    <SelectItem
+                      key={resource.interface_id}
+                      value={String(resource.interface_id)}
+                      disabled={!resource.pool_id}
+                    >
+                      {resource.name} · Server #{resource.server_id}
+                      {!resource.pool_id ? ' (no IP pool)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className='text-muted-foreground text-xs'>
                 Assign the destination resource in reseller settings first.
                 Source and destination must be on different routers.

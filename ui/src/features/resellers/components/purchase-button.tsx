@@ -16,7 +16,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatToman, gibToBytes } from './money'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { formatToman, gibToBytes } from '../money'
 
 export function PurchaseButton({
   peer,
@@ -82,25 +89,30 @@ export function PurchaseButton({
           <DialogBody className='space-y-4 pb-5'>
             <form onSubmit={submit} className='space-y-3'>
               <Label htmlFor={`purchase-${peer.id}`}>Operation</Label>
-              <select
-                id={`purchase-${peer.id}`}
+              <Select
                 value={operation}
-                onChange={(e) => {
-                  setOperation(e.target.value)
+                onValueChange={(selected) => {
+                  setOperation(selected)
                   setQuantity('1')
                 }}
-                className='border-input bg-background h-9 w-full rounded-md border px-3'
               >
-                <option value='add_traffic'>Add traffic</option>
-                <option value='extend_expiry'>Extend validity</option>
-                <option value='reset_usage'>Reset consumed usage</option>
-                <option
-                  value='full_reset'
-                  disabled={peer.configured_duration_days === '0'}
-                >
-                  Full reset
-                </option>
-              </select>
+                <SelectTrigger id={`purchase-${peer.id}`} className='w-full'>
+                  <SelectValue placeholder='Select' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='add_traffic'>Add traffic</SelectItem>
+                  <SelectItem value='extend_expiry'>Extend validity</SelectItem>
+                  <SelectItem value='reset_usage'>
+                    Reset consumed usage
+                  </SelectItem>
+                  <SelectItem
+                    value='full_reset'
+                    disabled={peer.configured_duration_days === '0'}
+                  >
+                    Full reset
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               {['add_traffic', 'extend_expiry'].includes(operation) && (
                 <>
                   <Label htmlFor={`quantity-${peer.id}`}>
