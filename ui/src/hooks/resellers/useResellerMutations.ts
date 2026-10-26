@@ -50,63 +50,75 @@ function useResellerMutation<T>(
     },
   })
 }
+
 export const useSaveResellerMutation = (id?: number) =>
   useResellerMutation(
     (input: ResellerInput) => saveReseller(input, id),
     id ? 'Reseller updated' : 'Reseller created'
   )
+
 export const useResellerSuspensionMutation = (id: number) =>
   useResellerMutation(
     (input: { suspended: boolean; reason: string }) =>
       setResellerSuspension(id, input),
     'Administrative restriction updated'
   )
+
 export const useTransferPeerMutation = (peerID: number) =>
   useResellerMutation(
     (input: OwnershipInput) => transferPeerOwnership(peerID, input),
     'Ownership updated'
   )
+
 export const useCreateResellerPeerMutation = (id?: number) =>
   useResellerMutation(
     ({ data, key }: { data: ResellerPeerInput; key: string }) =>
       createResellerPeer(data, key, id),
     'Configuration queued for provisioning'
   )
+
 export const usePeerPurchaseMutation = (peerID: number, id?: number) =>
   useResellerMutation(
     ({ data, key }: { data: PeerPurchaseInput; key: string }) =>
       purchasePeerOperation(peerID, data, key, id),
     'Purchase queued for verification'
   )
+
 export const usePeerMaintenanceMutation = (peerID: number, id?: number) =>
   useResellerMutation(
     ({ data, key }: { data: PeerMutationInput; key: string }) =>
       mutateResellerPeer(peerID, data, key, id),
     'Change queued for verification'
   )
+
 export const useBeginRouterMigrationMutation = (id: number) =>
   useResellerMutation(
     ({ data, key }: { data: RouterMigrationInput; key: string }) =>
       beginRouterMigration(id, data, key),
     'Migration queued after successful preflight'
   )
+
 export const useCancelRouterMigrationMutation = (id: number) =>
   useResellerMutation(
     (migrationID: string) => cancelRouterMigration(id, migrationID),
     'Safe cancellation queued'
   )
+
 export const useSubmitReceiptMutation = () =>
   useResellerMutation(
     ({ body, key }: { body: FormData; key: string }) =>
       submitReceipt(body, key),
     'Receipt submitted for review'
   )
+
 export const useReviewReceiptMutation = () =>
   useResellerMutation(reviewReceipt, 'Receipt review saved')
+
 export const useBillingActionMutation = (id: number) =>
   useResellerMutation(
     (input: BillingActionInput) => postBillingAction(id, input),
     'Account action saved'
   )
+
 export const usePaymentInstructionsMutation = () =>
   useResellerMutation(updatePaymentInstructions, 'Payment settings updated')

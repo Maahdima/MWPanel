@@ -1,12 +1,14 @@
 import { z } from 'zod'
 
 export const integerText = z.string().regex(/^-?\d+$/)
+
 export const PrincipalSchema = z.object({
   account_id: z.number(),
   username: z.string(),
   role: z.enum(['superadmin', 'reseller']),
   reseller_id: z.number().optional(),
 })
+
 export const ResellerSchema = z.object({
   migration_id: z.string().nullable(),
   active_peers: z.number(),
@@ -41,12 +43,14 @@ export const ResellerSchema = z.object({
     })
   ),
 })
+
 export const InstructionsSchema = z.object({
   rate_rial: integerText,
   card_number: z.string(),
   cardholder: z.string(),
   instructions: z.string(),
 })
+
 export const ReceiptSchema = z.object({
   id: z.number(),
   reseller_id: z.number(),
@@ -58,6 +62,7 @@ export const ReceiptSchema = z.object({
   reviewed_at: z.number().nullable(),
   created_at: z.number(),
 })
+
 export const BillingBookSchema = z.object({
   reseller_id: z.number(),
   billing_mode: z.enum(['prepaid', 'postpaid']),
@@ -103,6 +108,7 @@ export const BillingBookSchema = z.object({
     })
   ),
 })
+
 export type Reseller = z.infer<typeof ResellerSchema>
 export type Receipt = z.infer<typeof ReceiptSchema>
 export type Instructions = z.infer<typeof InstructionsSchema>
@@ -134,6 +140,7 @@ export const PeerPurchasesSchema = z.array(
     attempts: z.number(),
   })
 )
+
 export const RouterMigrationsSchema = z.array(
   z.object({
     id: z.string(),
@@ -145,37 +152,44 @@ export const RouterMigrationsSchema = z.array(
     needs_attention: z.boolean(),
   })
 )
+
 export type PeerPurchaseInput = {
   operation: string
   bytes: string
   days: string
 }
+
 export type PeerMutationInput = {
   action: string
   value: string
   enabled: boolean | null
 }
+
 export type ResellerPeerInput = {
   name: string
   interface_id: number
   quota_bytes: string
   duration_days: string
 }
+
 export type RouterMigrationInput = {
   interface_id: number
   reason: string
   endpoint: string
 }
+
 export type OwnershipInput = {
   reseller_id: number | null
   reason: string
   configured_duration_days: string | null
 }
+
 export type ReceiptReviewInput = {
   id: number
   action: 'approve' | 'reject'
   reason?: string
 }
+
 export type BillingActionInput = {
   action: string
   data: Record<string, unknown>
@@ -199,4 +213,5 @@ export const ResellerFormSchema = z.object({
   interface_ids: z.array(z.number()),
   default_interface: z.string(),
 })
+
 export type ResellerFormValues = z.infer<typeof ResellerFormSchema>

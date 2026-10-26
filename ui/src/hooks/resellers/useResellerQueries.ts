@@ -25,14 +25,17 @@ export const usePrincipal = () => {
     retry: false,
   })
 }
+
 export const useResellersQuery = () =>
   useQuery({ queryKey: ['resellers'], queryFn: fetchResellers })
+
 export const useResellerQuery = (id: number) =>
   useQuery({
     queryKey: ['reseller', id],
     queryFn: () => fetchReseller(id),
     enabled: id > 0,
   })
+
 export const useBillingBook = (id?: number, enabled = true) =>
   useQuery({
     queryKey: ['billing', id ?? 'me'],
@@ -40,25 +43,30 @@ export const useBillingBook = (id?: number, enabled = true) =>
     enabled,
     refetchInterval: 15000,
   })
+
 export const useReceiptHistory = (id?: number) =>
   useQuery({
     queryKey: ['receipts', id ?? 'me'],
     queryFn: () => fetchReceiptHistory(id),
     refetchInterval: 15000,
   })
+
 export const usePaymentInstructions = () =>
   useQuery({
     queryKey: ['payment_instructions'],
     queryFn: fetchPaymentInstructions,
   })
+
 export const useResellerPeersQuery = (id?: number) =>
   useQuery({
     queryKey: ['peers_list', 'reseller', id ?? 'me'],
     queryFn: () => fetchResellerPeers(id),
     refetchInterval: id ? false : 15000,
   })
+
 export const useMyResourcesQuery = (enabled: boolean) =>
   useQuery({ queryKey: ['my_resources'], queryFn: fetchMyResources, enabled })
+
 export const usePeerPurchasesQuery = (
   peerID: number,
   id: number | undefined,
@@ -70,6 +78,7 @@ export const usePeerPurchasesQuery = (
     enabled: open,
     refetchInterval: open ? 5000 : false,
   })
+
 export const useRouterMigrationsQuery = (id: number, enabled: boolean) =>
   useQuery({
     queryKey: ['router_migrations', id],
