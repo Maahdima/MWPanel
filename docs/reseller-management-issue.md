@@ -13,4 +13,4 @@ Acceptance checklist:
 - [ ] Two mock routers with colliding IDs remain isolated; migrations recover from partial failure.
 - [ ] Existing workflows, frontend checks and embedded production builds pass.
 
-See `docs/reseller-management-design.md` for the inspected architecture and phased design. This is a local proposal pending review, not a published issue.
+Published proposal: [#6](https://github.com/Maahdima/MWPanel/issues/6). See `docs/reseller-management-design.md` for the inspected architecture and phased design.

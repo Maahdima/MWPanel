@@ -28,6 +28,12 @@ Cross-router migration can change client addresses and VPN endpoints; clients ma
 
 Browser verification caught and fixed reseller navigation repeatedly calling admin APIs. The final checked login used only successful auth/billing requests. UI captures are available with the local review artifacts; no real MikroTik or production data was used.
 
-## Issue and publication
+## Related issue
 
-The focused issue proposal is prepared in `reseller-management-issue.md` and must be published before submitting this large PR. No issue URL is claimed before publication. No push or remote PR has been made: publication requires the user's approval, and the current local GitHub CLI authentication must first be renewed. Use the existing Git identity and preserve the feature branch's individual conventional commits.
+Implements the proposal in [#6](https://github.com/Maahdima/MWPanel/issues/6).
+
+## UI preview
+
+![Reseller migration dialog](images/reseller-router-migration.png)
+
+The preview uses disposable local demo data.

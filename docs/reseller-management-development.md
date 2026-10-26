@@ -1,6 +1,6 @@
 # Reseller contribution development status
 
-Local implementation and review are prepared on `feat/reseller-billing-management`, based on `c935efa`. No remote issue, push or PR has been published. The issue proposal is prepared locally. Existing Git identity is retained.
+Local implementation and review are prepared on `feat/reseller-billing-management`, based on `c935efa`. The proposal is published as [#6](https://github.com/Maahdima/MWPanel/issues/6). Existing Git identity is retained.
 
 ## Implemented and verified
 
@@ -33,7 +33,7 @@ A local embedded binary ran against disposable SQLite data and loopback-only Moc
 - Same-router moves between different interfaces are rejected by migration preflight. Cross-router migrations are supported and tested; no zero-downtime promise is made.
 - A legacy peer with unknown original duration needs an explicit audited duration before full reset.
 - Physical RouterOS acceptance and real-world interruption behavior remain operator validation tasks; automated checks use configurable REST mocks.
-- The upstream Issue proposal and PR description are prepared locally. Publishing the Issue, pushing the branch and opening the single PR require explicit user approval. Local GitHub CLI authentication currently needs renewal. No remote publication has occurred.
+- The upstream proposal is published as [#6](https://github.com/Maahdima/MWPanel/issues/6); the user authorized pushing the branch and opening one PR. GitHub authentication was renewed for AryanFekri.
 
 ## Recovery and operational boundaries
 
