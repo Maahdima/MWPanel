@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/maahdima/mwp/api/cmd/jobs"
@@ -36,8 +37,10 @@ func NewWgPeerController(PeerService *service.WgPeer, configGeneratorService *se
 
 func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {
 	credentials, err := c.peerService.GetPeerCredentials()
+
 	if err != nil {
 		c.logger.Error("failed to get wireguard peer credentials", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -56,17 +59,21 @@ func (c *WgPeerController) GetNewPeerAllowedAddress(ctx echo.Context) error {
 
 	if err := ctx.Bind(&req); err != nil {
 		c.logger.Warn("failed to bind request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		c.logger.Warn("failed to validate request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	allowedAddress, err := c.peerService.GetNewPeerAllowedAddress(req.InterfaceId)
+
 	if err != nil {
 		c.logger.Error("failed to get wireguard peer allowed addresses", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -82,8 +89,10 @@ func (c *WgPeerController) GetNewPeerAllowedAddress(ctx echo.Context) error {
 
 func (c *WgPeerController) GetPeers(ctx echo.Context) error {
 	peers, err := c.peerService.GetPeers()
+
 	if err != nil {
 		c.logger.Error("failed to get wireguard peers", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -107,17 +116,21 @@ func (c *WgPeerController) CreatePeer(ctx echo.Context) error {
 
 	if err := ctx.Bind(&req); err != nil {
 		c.logger.Warn("failed to bind request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		c.logger.Warn("failed to validate request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peer, err := c.peerService.CreatePeer(&req)
+
 	if err != nil {
 		c.logger.Error("failed to create wireguard peer", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -133,20 +146,34 @@ func (c *WgPeerController) CreatePeer(ctx echo.Context) error {
 
 func (c *WgPeerController) UpdatePeerStatus(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	err = c.peerService.TogglePeerStatus(uint(peerId))
+
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusAccepted, schema.OkBasicResponse)
+		}
+
+		if errors.Is(err, service.ErrPeerRestricted) || errors.Is(err, service.ErrResellerLimit) {
+			return resellerError(ctx, err)
+		}
+
 		c.logger.Error("failed to update wireguard peer status", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -159,31 +186,44 @@ func (c *WgPeerController) UpdatePeerStatus(ctx echo.Context) error {
 
 func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	var req schema.UpdatePeerRequest
+
 	if err := ctx.Bind(&req); err != nil {
 		c.logger.Warn("failed to bind request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		c.logger.Warn("failed to validate request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peer, err := c.peerService.UpdatePeer(uint(peerId), &req)
+
 	if err != nil {
+		if errors.Is(err, service.ErrBilledOperationRequired) || errors.Is(err, service.ErrInvalidBillingQuantity) {
+			return resellerError(ctx, err)
+		}
+
 		c.logger.Error("failed to update wireguard peer", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -199,20 +239,26 @@ func (c *WgPeerController) UpdatePeer(ctx echo.Context) error {
 
 func (c *WgPeerController) DeletePeer(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	err = c.peerService.DeletePeer(uint(peerId))
+
 	if err != nil {
 		c.logger.Error("failed to delete wireguard peer", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -228,18 +274,23 @@ func (c *WgPeerController) DeletePeer(ctx echo.Context) error {
 
 func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	config, downloadName, err := c.configGeneratorService.GetPeerConfig(uint(peerId))
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -261,18 +312,23 @@ func (c *WgPeerController) GetPeerConfig(ctx echo.Context) error {
 
 func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	qrCode, err := c.qrCodeGeneratorService.GetPeerQRCode(uint(peerId))
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -294,18 +350,23 @@ func (c *WgPeerController) GetPeerQRCode(ctx echo.Context) error {
 
 func (c *WgPeerController) GetPeerSessions(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	sessions, err := c.peerService.GetPeerSessions(uint(peerId))
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -316,6 +377,7 @@ func (c *WgPeerController) GetPeerSessions(ctx echo.Context) error {
 		}
 
 		c.logger.Error("failed to get peer sessions", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -331,18 +393,23 @@ func (c *WgPeerController) GetPeerSessions(ctx echo.Context) error {
 
 func (c *WgPeerController) GetPeerShareStatus(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	status, err := c.peerService.GetPeerShareStatus(uint(peerId))
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
@@ -367,20 +434,26 @@ func (c *WgPeerController) GetPeerShareStatus(ctx echo.Context) error {
 
 func (c *WgPeerController) UpdatePeerShareStatus(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	err = c.peerService.TogglePeerShareStatus(uint(peerId))
+
 	if err != nil {
 		c.logger.Error("failed to toggle wireguard peer share status", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -393,31 +466,40 @@ func (c *WgPeerController) UpdatePeerShareStatus(ctx echo.Context) error {
 
 func (c *WgPeerController) UpdatePeerShareExpire(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	var req schema.UpdatePeerShareExpireRequest
+
 	if err := ctx.Bind(&req); err != nil {
 		c.logger.Warn("failed to bind request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		c.logger.Warn("failed to validate request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	err = c.peerService.UpdatePeerShareExpireTime(uint(peerId), req.ExpireTime)
+
 	if err != nil {
 		c.logger.Error("failed to update peer share expire time", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -430,20 +512,36 @@ func (c *WgPeerController) UpdatePeerShareExpire(ctx echo.Context) error {
 
 func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
 	id := ctx.Param("id")
+
 	if id == "" {
 		c.logger.Error("Peer ID is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	peerId, err := strconv.Atoi(id)
+
 	if err != nil {
 		c.logger.Error("Invalid peer ID", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
+	peer, lookupErr := c.peerService.FindPeerByID(uint(peerId))
+
+	if lookupErr != nil {
+		return resellerError(ctx, lookupErr)
+	}
+
+	if peer.ResellerID != nil {
+		return resellerError(ctx, service.ErrBilledOperationRequired)
+	}
+
 	err = c.trafficCalculator.ResetPeerUsage(uint(peerId))
+
 	if err != nil {
 		c.logger.Error("failed to reset wireguard peer usage", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -455,9 +553,21 @@ func (c *WgPeerController) ResetPeerUsage(ctx echo.Context) error {
 }
 
 func (c *WgPeerController) ResetPeerUsages(ctx echo.Context) error {
-	err := c.trafficCalculator.ResetPeerUsages()
+	owned, err := c.peerService.HasResellerPeers()
+
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+
+	if owned {
+		return resellerError(ctx, service.ErrBilledOperationRequired)
+	}
+
+	err = c.trafficCalculator.ResetPeerUsages()
+
 	if err != nil {
 		c.logger.Error("failed to reset wireguard peer usages", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -470,14 +580,18 @@ func (c *WgPeerController) ResetPeerUsages(ctx echo.Context) error {
 
 func (c *WgPeerController) ExportPeersTrafficData(ctx echo.Context) error {
 	filePath, err := c.excelGeneratorService.GetTrafficUsageReport()
+
 	if err != nil {
 		c.logger.Error("failed to export peers traffic data", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
 			Message:    "failed to export peers traffic data: " + err.Error(),
 		})
 	}
+
+	defer os.Remove(filePath)
 
 	return ctx.File(filePath)
 }

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon } from 'lucide-react'
-import { useInterfaces } from '@/features/interfaces/context/interfaces-context.tsx'
-import { useSyncInterfacesQuery } from '@/hooks/interfaces/useSyncInterfacesQuery.ts'
+import { toast } from 'sonner'
 import { syncSelectedInterfaces } from '@/api/interfaces.ts'
+import { useSyncInterfacesQuery } from '@/hooks/interfaces/useSyncInterfacesQuery.ts'
+import { useServersListQuery } from '@/hooks/servers/useServersListQuery'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogBody,
@@ -14,32 +16,51 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.tsx'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table.tsx'
+import { ServerSelect } from '@/components/server-select'
+import { useInterfaces } from '@/features/interfaces/context/interfaces-context.tsx'
 
 export function InterfacesSyncDialog() {
   const { open, setOpen } = useInterfaces()
   const queryClient = useQueryClient()
   const enabled = open === 'sync'
-  const { data, isLoading } = useSyncInterfacesQuery(enabled)
+  const { data: servers = [] } = useServersListQuery()
+  const [selectedServer, setSelectedServer] = useState<number>()
+  const serverID =
+    selectedServer ?? servers.find((server) => server.is_active)?.id
+  const { data, isLoading, error } = useSyncInterfacesQuery(enabled, serverID)
   const [selected, setSelected] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (!enabled) return
     setSelected({})
-  }, [enabled])
+  }, [enabled, serverID])
 
   const interfaceIds = useMemo(
-    () => Object.entries(selected).filter(([, checked]) => checked).map(([id]) => id),
+    () =>
+      Object.entries(selected)
+        .filter(([, checked]) => checked)
+        .map(([id]) => id),
     [selected]
   )
 
   const handleSubmit = async () => {
     try {
-      await syncSelectedInterfaces({ interface_ids: interfaceIds })
+      await syncSelectedInterfaces({
+        interface_ids: interfaceIds,
+        server_id: serverID,
+      })
       await queryClient.invalidateQueries({ queryKey: ['interfaces_list'] })
-      toast.success('Selected interfaces synced successfully', { duration: 5000 })
+      toast.success('Selected interfaces synced successfully', {
+        duration: 5000,
+      })
       setOpen(null)
     } catch (error) {
       toast.error('Failed to sync selected interfaces')
@@ -57,7 +78,13 @@ export function InterfacesSyncDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className='space-y-3'>
+          <ServerSelect value={serverID} onValueChange={setSelectedServer} />
+          {error && (
+            <p role='alert' className='text-destructive text-sm'>
+              Unable to load interfaces from this server.
+            </p>
+          )}
           <div className='overflow-hidden rounded-xl border'>
             <Table>
               <TableHeader>
@@ -93,7 +120,9 @@ export function InterfacesSyncDialog() {
                       <TableCell>{iface.name}</TableCell>
                       <TableCell>{iface.listen_port}</TableCell>
                       <TableCell>{iface.mtu}</TableCell>
-                      <TableCell>{iface.is_running ? 'Running' : 'Not Running'}</TableCell>
+                      <TableCell>
+                        {iface.is_running ? 'Running' : 'Not Running'}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
@@ -110,7 +139,10 @@ export function InterfacesSyncDialog() {
           <Button variant='outline' onClick={() => setOpen(null)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!interfaceIds.length}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!serverID || !interfaceIds.length}
+          >
             Sync Selected
           </Button>
         </DialogFooter>
@@ -118,4 +150,3 @@ export function InterfacesSyncDialog() {
     </Dialog>
   )
 }
-

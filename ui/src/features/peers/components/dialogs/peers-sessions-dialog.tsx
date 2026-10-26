@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { format, parseISO } from 'date-fns'
+import { Peer, PeerSession, PeerSessions } from '@/schema/peers.ts'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -9,7 +10,6 @@ import {
   RadioIcon,
   TimerIcon,
 } from 'lucide-react'
-import { Peer, PeerSession, PeerSessions } from '@/schema/peers.ts'
 import { usePeerSessionsQuery } from '@/hooks/peers/usePeerSessionsQuery.ts'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -27,6 +27,7 @@ import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 type SessionFilter = 'all' | 'ongoing' | 'ended'
 
 type Props = {
+  scope?: 'admin' | 'reseller'
   open: boolean
   onOpenChange: (state: boolean) => void
   currentRow: Peer
@@ -60,13 +61,18 @@ function sessionSeconds(session: PeerSession, now: number) {
   return Math.max(0, Math.floor((end - start) / 1000))
 }
 
-export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
+export function PeersSessionsDialog({
+  open,
+  onOpenChange,
+  currentRow,
+  scope = 'admin',
+}: Props) {
   const [filter, setFilter] = useState<SessionFilter>('all')
   const [now, setNow] = useState(() => Date.now())
 
   const { data, isLoading, isFetching, isError } = usePeerSessionsQuery(
     currentRow.id,
-    { enabled: open }
+    { enabled: open, scope }
   )
 
   useEffect(() => {
@@ -80,15 +86,14 @@ export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
     setFilter('all')
   }, [open])
 
-  const sessions = data?.sessions ?? []
+  const sessions = useMemo(() => data?.sessions ?? [], [data?.sessions])
   const filteredSessions = useMemo(() => {
     if (filter === 'all') return sessions
     return sessions.filter((session) => session.status === filter)
   }, [filter, sessions])
 
   const showSkeleton = (isLoading || isFetching) && !data
-  const endedCount =
-    (data?.total_sessions ?? 0) - (data?.ongoing_sessions ?? 0)
+  const endedCount = (data?.total_sessions ?? 0) - (data?.ongoing_sessions ?? 0)
 
   const body = (() => {
     if (showSkeleton) {

@@ -6,6 +6,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
+	Role         string `json:"role,omitempty"`
+	ResellerID   *uint  `json:"reseller_id,omitempty"`
 	Requires2FA  bool   `json:"requires_2fa"`
 	TempToken    string `json:"temp_token,omitempty"`
 	UserID       uint   `json:"user_id,omitempty"`

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
@@ -31,8 +32,10 @@ func NewServerService(db *gorm.DB, mwpClients *common.MwpClient, mikrotikAdaptor
 
 func (s *Server) ToggleServerStatus(id uint) (*schema.ServerResponse, error) {
 	var server model.Server
+
 	if err := s.db.First(&server, id).Error; err != nil {
 		s.logger.Error("failed to find server by ID", zap.Uint("id", id), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -40,6 +43,7 @@ func (s *Server) ToggleServerStatus(id uint) (*schema.ServerResponse, error) {
 
 	if err := s.db.Save(&server).Error; err != nil {
 		s.logger.Error("failed to update server status", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -56,16 +60,26 @@ func (s *Server) ToggleServerStatus(id uint) (*schema.ServerResponse, error) {
 
 func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerResponse, error) {
 	apiPort, err := strconv.Atoi(req.APIPort)
+
 	if err != nil {
 		s.logger.Error("invalid API port", zap.Error(err))
+
 		return nil, err
 	}
 
-	s.mwpClient.SetClient(req)
+	candidate := model.Server{IPAddress: req.IPAddress, APIPort: apiPort, Username: req.Username, Password: req.Password, IsSSL: req.IsSSL != nil && *req.IsSSL}
 
-	_, err = s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
+	client, err := common.NewServerHTTPClient(candidate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.mikrotikAdaptor.ForConnection(client).FetchDeviceIdentity(context.Background())
+
 	if err != nil {
 		s.logger.Error("failed to connect to device when creating a new server", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -76,10 +90,12 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 		APIPort:   apiPort,
 		Username:  req.Username,
 		Password:  req.Password,
+		IsSSL:     req.IsSSL != nil && *req.IsSSL,
 	}
 
 	if err := s.db.Create(&server).Error; err != nil {
 		s.logger.Error("failed to create server record", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -96,19 +112,26 @@ func (s *Server) CreateServer(req *schema.CreateServerRequest) (*schema.ServerRe
 
 func (s *Server) GetServers() (*[]schema.ServerResponse, error) {
 	var servers []model.Server
+
 	if err := s.db.Find(&servers).Error; err != nil {
 		s.logger.Error("failed to fetch servers from database", zap.Error(err))
+
 		return nil, err
 	}
 
 	var serverResponses []schema.ServerResponse
+
 	for _, server := range servers {
 		var serverStatus schema.ServerStatus
 
-		_, err := s.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
+		adaptor, err := s.mikrotikAdaptor.ForServer(server.ID)
+
+		if err == nil {
+			_, err = adaptor.FetchDeviceIdentity(context.Background())
+		}
+
 		if err != nil {
 			serverStatus = schema.NotAvailableServer
-			continue
 		} else {
 			serverStatus = schema.AvailableServer
 		}
@@ -129,27 +152,36 @@ func (s *Server) GetServers() (*[]schema.ServerResponse, error) {
 
 func (s *Server) UpdateServer(id uint, req *schema.UpdateServerRequest) (*schema.ServerResponse, error) {
 	var server model.Server
+
 	if err := s.db.First(&server, id).Error; err != nil {
 		s.logger.Error("failed to find server by ID", zap.Uint("id", id), zap.Error(err))
+
 		return nil, err
 	}
 
 	server.Comment = req.Comment
+
 	server.Name = *req.Name
+
 	server.IPAddress = *req.IPAddress
 
 	apiPort, err := strconv.Atoi(*req.APIPort)
+
 	if err != nil {
 		s.logger.Error("invalid API port", zap.Error(err))
+
 		return nil, err
 	}
+
 	server.APIPort = apiPort
 
 	server.Username = *req.Username
+
 	server.Password = *req.Password
 
 	if err := s.db.Save(&server).Error; err != nil {
 		s.logger.Error("failed to update server record", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -166,13 +198,28 @@ func (s *Server) UpdateServer(id uint, req *schema.UpdateServerRequest) (*schema
 
 func (s *Server) DeleteServer(id uint) error {
 	var server model.Server
+
 	if err := s.db.First(&server, id).Error; err != nil {
 		s.logger.Error("failed to find server by ID", zap.Uint("id", id), zap.Error(err))
+
 		return err
+	}
+
+	for _, resource := range []any{&model.Peer{}, &model.Interface{}} {
+		var count int64
+
+		if err := s.db.Model(resource).Where("server_id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+
+		if count > 0 {
+			return fmt.Errorf("server still owns interfaces or peers; migrate or remove them before deleting it")
+		}
 	}
 
 	if err := s.db.Unscoped().Delete(&server).Error; err != nil {
 		s.logger.Error("failed to delete server record", zap.Error(err))
+
 		return err
 	}
 
@@ -181,14 +228,18 @@ func (s *Server) DeleteServer(id uint) error {
 
 func (s *Server) GetServersData() (*schema.ServerStatsResponse, error) {
 	var totalServers int64
+
 	if err := s.db.Model(&model.Server{}).Count(&totalServers).Error; err != nil {
 		s.logger.Error("failed to count total servers", zap.Error(err))
+
 		return nil, err
 	}
 
 	var activeServers int64
+
 	if err := s.db.Model(&model.Server{}).Where("is_active = ?", true).Count(&activeServers).Error; err != nil {
 		s.logger.Error("failed to count active servers", zap.Error(err))
+
 		return nil, err
 	}
 

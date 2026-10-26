@@ -23,15 +23,18 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedServersIndexRouteImport } from './routes/_authenticated/servers/index'
+import { Route as AuthenticatedResellersIndexRouteImport } from './routes/_authenticated/resellers/index'
 import { Route as AuthenticatedPoolsIndexRouteImport } from './routes/_authenticated/pools/index'
 import { Route as AuthenticatedPlansIndexRouteImport } from './routes/_authenticated/plans/index'
 import { Route as AuthenticatedPeersIndexRouteImport } from './routes/_authenticated/peers/index'
 import { Route as AuthenticatedOrdersIndexRouteImport } from './routes/_authenticated/orders/index'
 import { Route as AuthenticatedInterfacesIndexRouteImport } from './routes/_authenticated/interfaces/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
+import { Route as AuthenticatedBillingIndexRouteImport } from './routes/_authenticated/billing/index'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings/security'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
+import { Route as AuthenticatedResellersIdRouteImport } from './routes/_authenticated/resellers/$id'
 
 const ShareRoute = ShareRouteImport.update({
   id: '/share',
@@ -105,6 +108,12 @@ const AuthenticatedServersIndexRoute =
     path: '/servers/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedResellersIndexRoute =
+  AuthenticatedResellersIndexRouteImport.update({
+    id: '/resellers/',
+    path: '/resellers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPoolsIndexRoute = AuthenticatedPoolsIndexRouteImport.update({
   id: '/pools/',
   path: '/pools/',
@@ -138,6 +147,12 @@ const AuthenticatedHelpCenterIndexRoute =
     path: '/help-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBillingIndexRoute =
+  AuthenticatedBillingIndexRouteImport.update({
+    id: '/billing/',
+    path: '/billing/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsSecurityRoute =
   AuthenticatedSettingsSecurityRouteImport.update({
     id: '/security',
@@ -156,6 +171,12 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedResellersIdRoute =
+  AuthenticatedResellersIdRouteImport.update({
+    id: '/resellers/$id',
+    path: '/resellers/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -169,15 +190,18 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/resellers/$id': typeof AuthenticatedResellersIdRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/billing/': typeof AuthenticatedBillingIndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces/': typeof AuthenticatedInterfacesIndexRoute
   '/orders/': typeof AuthenticatedOrdersIndexRoute
   '/peers/': typeof AuthenticatedPeersIndexRoute
   '/plans/': typeof AuthenticatedPlansIndexRoute
   '/pools/': typeof AuthenticatedPoolsIndexRoute
+  '/resellers/': typeof AuthenticatedResellersIndexRoute
   '/servers/': typeof AuthenticatedServersIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
@@ -192,15 +216,18 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/': typeof AuthenticatedIndexRoute
+  '/resellers/$id': typeof AuthenticatedResellersIdRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/billing': typeof AuthenticatedBillingIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/interfaces': typeof AuthenticatedInterfacesIndexRoute
   '/orders': typeof AuthenticatedOrdersIndexRoute
   '/peers': typeof AuthenticatedPeersIndexRoute
   '/plans': typeof AuthenticatedPlansIndexRoute
   '/pools': typeof AuthenticatedPoolsIndexRoute
+  '/resellers': typeof AuthenticatedResellersIndexRoute
   '/servers': typeof AuthenticatedServersIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
@@ -218,15 +245,18 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/resellers/$id': typeof AuthenticatedResellersIdRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/_authenticated/billing/': typeof AuthenticatedBillingIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/interfaces/': typeof AuthenticatedInterfacesIndexRoute
   '/_authenticated/orders/': typeof AuthenticatedOrdersIndexRoute
   '/_authenticated/peers/': typeof AuthenticatedPeersIndexRoute
   '/_authenticated/plans/': typeof AuthenticatedPlansIndexRoute
   '/_authenticated/pools/': typeof AuthenticatedPoolsIndexRoute
+  '/_authenticated/resellers/': typeof AuthenticatedResellersIndexRoute
   '/_authenticated/servers/': typeof AuthenticatedServersIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
@@ -244,15 +274,18 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
+    | '/resellers/$id'
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/security'
+    | '/billing/'
     | '/help-center/'
     | '/interfaces/'
     | '/orders/'
     | '/peers/'
     | '/plans/'
     | '/pools/'
+    | '/resellers/'
     | '/servers/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
@@ -267,15 +300,18 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/'
+    | '/resellers/$id'
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/security'
+    | '/billing'
     | '/help-center'
     | '/interfaces'
     | '/orders'
     | '/peers'
     | '/plans'
     | '/pools'
+    | '/resellers'
     | '/servers'
     | '/settings'
   id:
@@ -292,15 +328,18 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/'
+    | '/_authenticated/resellers/$id'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/security'
+    | '/_authenticated/billing/'
     | '/_authenticated/help-center/'
     | '/_authenticated/interfaces/'
     | '/_authenticated/orders/'
     | '/_authenticated/peers/'
     | '/_authenticated/plans/'
     | '/_authenticated/pools/'
+    | '/_authenticated/resellers/'
     | '/_authenticated/servers/'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
@@ -418,6 +457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedServersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/resellers/': {
+      id: '/_authenticated/resellers/'
+      path: '/resellers'
+      fullPath: '/resellers/'
+      preLoaderRoute: typeof AuthenticatedResellersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pools/': {
       id: '/_authenticated/pools/'
       path: '/pools'
@@ -460,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/billing/': {
+      id: '/_authenticated/billing/'
+      path: '/billing'
+      fullPath: '/billing/'
+      preLoaderRoute: typeof AuthenticatedBillingIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/security': {
       id: '/_authenticated/settings/security'
       path: '/security'
@@ -480,6 +533,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/account'
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
+    '/_authenticated/resellers/$id': {
+      id: '/_authenticated/resellers/$id'
+      path: '/resellers/$id'
+      fullPath: '/resellers/$id'
+      preLoaderRoute: typeof AuthenticatedResellersIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -507,24 +567,30 @@ const AuthenticatedSettingsRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedResellersIdRoute: typeof AuthenticatedResellersIdRoute
+  AuthenticatedBillingIndexRoute: typeof AuthenticatedBillingIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedInterfacesIndexRoute: typeof AuthenticatedInterfacesIndexRoute
   AuthenticatedOrdersIndexRoute: typeof AuthenticatedOrdersIndexRoute
   AuthenticatedPeersIndexRoute: typeof AuthenticatedPeersIndexRoute
   AuthenticatedPlansIndexRoute: typeof AuthenticatedPlansIndexRoute
   AuthenticatedPoolsIndexRoute: typeof AuthenticatedPoolsIndexRoute
+  AuthenticatedResellersIndexRoute: typeof AuthenticatedResellersIndexRoute
   AuthenticatedServersIndexRoute: typeof AuthenticatedServersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedResellersIdRoute: AuthenticatedResellersIdRoute,
+  AuthenticatedBillingIndexRoute: AuthenticatedBillingIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedInterfacesIndexRoute: AuthenticatedInterfacesIndexRoute,
   AuthenticatedOrdersIndexRoute: AuthenticatedOrdersIndexRoute,
   AuthenticatedPeersIndexRoute: AuthenticatedPeersIndexRoute,
   AuthenticatedPlansIndexRoute: AuthenticatedPlansIndexRoute,
   AuthenticatedPoolsIndexRoute: AuthenticatedPoolsIndexRoute,
+  AuthenticatedResellersIndexRoute: AuthenticatedResellersIndexRoute,
   AuthenticatedServersIndexRoute: AuthenticatedServersIndexRoute,
 }
 

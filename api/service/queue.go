@@ -24,16 +24,24 @@ func NewQueue(mikrotikAdaptor *mikrotik.Adaptor) *Queue {
 }
 
 func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwidth, uploadBandwidth *string) (*string, error) {
+	return q.createQueueContext(context.Background(), peerName, peerAllowedAddress, downloadBandwidth, uploadBandwidth)
+}
+
+func (q *Queue) createQueueContext(ctx context.Context, peerName, peerAllowedAddress string, downloadBandwidth, uploadBandwidth *string) (*string, error) {
 	normalizedDownload := downloadBandwidth
+
 	if normalizedDownload == nil {
 		normalizedDownload = utils.Ptr("0")
 	}
+
 	normalizedUpload := uploadBandwidth
+
 	if normalizedUpload == nil {
 		normalizedUpload = utils.Ptr("0")
 	}
 
 	maxLimit := *normalizedDownload + "/" + *normalizedUpload
+
 	wgQueue := mikrotik.Queue{
 		Comment:  utils.Ptr(common.QueueComment + peerName),
 		Name:     common.QueueName + peerName,
@@ -41,9 +49,11 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 		MaxLimit: &maxLimit,
 	}
 
-	createdQueue, err := q.mikrotikAdaptor.CreateSimpleQueue(context.Background(), wgQueue)
+	createdQueue, err := q.mikrotikAdaptor.CreateSimpleQueue(ctx, wgQueue)
+
 	if err != nil {
 		q.logger.Error("failed to create simple queue for wireguard peer", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -52,22 +62,28 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 
 func (q *Queue) updateQueue(queueID, downloadBandwidth, uploadBandwidth *string) error {
 	normalizedDownload := downloadBandwidth
+
 	if normalizedDownload == nil {
 		normalizedDownload = utils.Ptr("0")
 	}
+
 	normalizedUpload := uploadBandwidth
+
 	if normalizedUpload == nil {
 		normalizedUpload = utils.Ptr("0")
 	}
 
 	maxLimit := *normalizedDownload + "/" + *normalizedUpload
+
 	queue := mikrotik.Queue{
 		MaxLimit: &maxLimit,
 	}
 
 	_, err := q.mikrotikAdaptor.UpdateSimpleQueue(context.Background(), *queueID, queue)
+
 	if err != nil {
 		q.logger.Error("failed to update simple queue for wireguard peer", zap.String("queueId", *queueID), zap.Error(err))
+
 		return err
 	}
 
@@ -80,12 +96,16 @@ func (q *Queue) deleteQueue(queueID *string) error {
 	}
 
 	err := q.mikrotikAdaptor.DeleteSimpleQueue(context.Background(), *queueID)
+
 	if err != nil {
 		if httphelper.IsNotFound(err) {
 			q.logger.Warn("simple queue already deleted", zap.String("queueId", *queueID))
+
 			return nil
 		}
+
 		q.logger.Error("failed to delete simple queue", zap.String("queueId", *queueID), zap.Error(err))
+
 		return err
 	}
 

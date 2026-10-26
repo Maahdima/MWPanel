@@ -1,18 +1,28 @@
-import { Control } from 'react-hook-form';
-import { Dices } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form.tsx';
+import { Control, FieldValues, FieldPath } from 'react-hook-form'
+import { Dices } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form.tsx'
 import { Input } from '@/components/ui/input.tsx'
 
-
-interface Props {
-  name: string
+interface Props<T extends FieldValues> {
+  name: FieldPath<T>
   label: string
   placeholder?: string
-  control: Control<any>
+  control: Control<T>
 }
 
-export function SimpleField({ name, label, placeholder, control }: Props) {
+export function SimpleField<T extends FieldValues>({
+  name,
+  label,
+  placeholder,
+  control,
+}: Props<T>) {
   return (
     <FormField
       control={control}
@@ -41,7 +51,9 @@ export function SimpleField({ name, label, placeholder, control }: Props) {
                         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
                       let s = ''
                       for (let i = 0; i < 10; i++) {
-                        s += chars.charAt(Math.floor(Math.random() * chars.length))
+                        s += chars.charAt(
+                          Math.floor(Math.random() * chars.length)
+                        )
                       }
                       onChange(s)
                       // focus the input after generating
@@ -55,7 +67,7 @@ export function SimpleField({ name, label, placeholder, control }: Props) {
                     }}
                     aria-label='Generate random name'
                   >
-                    <Dices  />
+                    <Dices />
                   </Button>
                 </div>
               ) : (

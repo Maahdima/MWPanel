@@ -1,4 +1,7 @@
+import React from 'react'
 import { IconHeartFilled, IconRoute } from '@tabler/icons-react'
+import { usePrincipal } from '@/hooks/resellers/useResellerQueries'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
 import {
   Sidebar,
   SidebarContent,
@@ -10,14 +13,16 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { NavGroup } from '@/components/layout/nav-group'
-import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
-import { sidebarDataForShop } from './data/sidebar-data'
-import React from 'react'
+import { sidebarDataForRole } from './data/sidebar-data'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open } = useSidebar()
-  const { enabled } = useShopEnabled()
-  const sidebarData = sidebarDataForShop(enabled)
+  const { data: principal } = usePrincipal()
+  const { enabled } = useShopEnabled(principal?.role === 'superadmin')
+  const sidebarData = sidebarDataForRole(
+    principal?.role === 'reseller',
+    enabled
+  )
 
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>
@@ -53,7 +58,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </div>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <div className='text-xs text-white/70 text-center w-full'>v{__APP_VERSION__}</div>
+              <div className='w-full text-center text-xs text-white/70'>
+                v{__APP_VERSION__}
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

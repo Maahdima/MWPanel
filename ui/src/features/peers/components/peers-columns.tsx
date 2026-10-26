@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { format, parseISO } from 'date-fns'
 import { ColumnDef } from '@tanstack/react-table'
 import { IconRestore } from '@tabler/icons-react'
-import { format, parseISO } from 'date-fns'
 import { Peer, PeerStatus } from '@/schema/peers.ts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -16,19 +16,34 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import LongText from '@/components/long-text'
+import { ServerName } from '@/components/server-select'
 import {
   OfflineBadge,
   OnlineBadge,
 } from '@/features/peers/components/activity-badge.tsx'
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
+import { MaintenanceButton } from '@/features/resellers/components/maintenance-button'
+import { OwnerCell } from '@/features/resellers/components/owner-cell'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'
 
 export const peersColumns: ColumnDef<Peer>[] = [
   {
+    id: 'reseller',
+    accessorFn: (row) => (row.reseller_id ? String(row.reseller_id) : 'admin'),
+    header: 'Owner',
+    cell: ({ row }) => <OwnerCell peer={row.original} />,
+    filterFn: (row, id, values) => values.includes(row.getValue(id)),
+  },
+  {
+    accessorKey: 'server_id',
+    header: () => 'Server',
+    cell: ({ row }) => <ServerName id={row.original.server_id} />,
+  },
+  {
     id: 'is_active',
-    cell: ({ row }) => {
+    cell: function PeerStatusCell({ row }) {
       const peer = row.original
       const updatePeerStatusMutation = useUpdatePeerStatusMutation()
 
@@ -145,7 +160,7 @@ export const peersColumns: ColumnDef<Peer>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Traffic' />
     ),
-    cell: ({ row }) => {
+    cell: function PeerTrafficCell({ row }) {
       const [dialogOpen, setDialogOpen] = useState(false)
 
       const resetUsageMutation = useResetUsageMutation()
@@ -355,6 +370,14 @@ export const peersColumns: ColumnDef<Peer>[] = [
   },
   {
     id: 'actions',
-    cell: PeersTableRowActions,
+    cell: ({ row, ...props }) =>
+      row.original.reseller_id ? (
+        <MaintenanceButton
+          peer={row.original}
+          resellerID={row.original.reseller_id}
+        />
+      ) : (
+        <PeersTableRowActions row={row} {...props} />
+      ),
   },
 ]

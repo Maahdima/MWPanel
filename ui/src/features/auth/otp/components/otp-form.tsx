@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { TEMP_2FA_TOKEN_KEY } from '@/lib/auth-2fa'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { TEMP_2FA_TOKEN_KEY } from '@/lib/auth-2fa'
 import { cn } from '@/lib/utils'
 import { useVerify2FAMutation } from '@/hooks/authentication/useVerify2FAMutation.tsx'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,9 @@ import {
 type OtpFormProps = HTMLAttributes<HTMLFormElement>
 
 const totpSchema = z.object({
-  otp: z.string().length(6, { message: 'Enter the 6-digit code from your app.' }),
+  otp: z
+    .string()
+    .length(6, { message: 'Enter the 6-digit code from your app.' }),
 })
 
 const recoverySchema = z.object({
@@ -96,7 +98,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
         user_id: response.user_id,
         username: response.username,
       })
-      navigate({ to: '/' })
+      navigate({ to: response.role === 'reseller' ? '/billing' : '/' })
     } catch {
       submittingRef.current = false
       totpForm.setValue('otp', '')
@@ -122,7 +124,11 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
               <FormItem>
                 <FormLabel>Recovery code</FormLabel>
                 <FormControl>
-                  <Input placeholder='XXXX-XXXX' autoComplete='off' {...field} />
+                  <Input
+                    placeholder='XXXX-XXXX'
+                    autoComplete='off'
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

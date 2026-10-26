@@ -18,14 +18,19 @@ type Queue struct {
 func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, error) {
 	var createdQueue Queue
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Put(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Put(
 		c,
 		common.QueuePath,
 		queue,
 		&createdQueue,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -36,14 +41,19 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Queue) (*Queue, error) {
 	var updatedQueue Queue
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Patch(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Patch(
 		c,
 		common.QueuePath+"/"+queueID,
 		queue,
 		&updatedQueue,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -52,16 +62,51 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 }
 
 func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Delete(
+	if err != nil {
+		return err
+	}
+
+	err = httpClient.Delete(
 		c,
 		common.QueuePath+"/"+queueID,
 		nil,
 	)
+
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (a *Adaptor) FetchSimpleQueue(ctx context.Context, id string) (*Queue, error) {
+	client, err := a.client()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var queue Queue
+
+	if err := client.Get(ctx, common.QueuePath+"/"+id, &queue); err != nil {
+		return nil, err
+	}
+
+	return &queue, nil
+}
+
+func (a *Adaptor) FetchSimpleQueues(ctx context.Context) ([]Queue, error) {
+	client, err := a.client()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []Queue
+
+	err = client.Get(ctx, common.QueuePath, &rows)
+
+	return rows, err
 }

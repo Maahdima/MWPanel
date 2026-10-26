@@ -5,14 +5,20 @@ import { cn } from '@/lib/utils'
 import { useUpdateInterfaceStatusMutation } from '@/hooks/interfaces/useUpdateInterfaceStatusMutation.ts'
 import { Switch } from '@/components/ui/switch.tsx'
 import LongText from '@/components/long-text'
+import { ServerName } from '@/components/server-select'
 import { InterfacesTableRowActions } from '@/features/interfaces/components/interfaces-table-row-actions.tsx'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 
 export const interfacesColumns: ColumnDef<Interface>[] = [
   {
+    accessorKey: 'server_id',
+    header: () => 'Server',
+    cell: ({ row }) => <ServerName id={row.original.server_id} />,
+  },
+  {
     id: 'is_active',
-    cell: ({ row }) => {
+    cell: function InterfaceStatusCell({ row }) {
       const iface = row.original
       const updateInterfaceStatusMutation = useUpdateInterfaceStatusMutation()
 

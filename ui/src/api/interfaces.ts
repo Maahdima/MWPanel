@@ -52,10 +52,12 @@ export const syncInterfaces = async (): Promise<void> => {
   await axiosInstance.post('/sync/interfaces')
 }
 
-export const fetchSyncInterfaces = async (): Promise<
-  SyncInterfacePreview[]
-> => {
-  const { data } = await axiosInstance.get('/sync/interfaces')
+export const fetchSyncInterfaces = async (
+  serverID?: number
+): Promise<SyncInterfacePreview[]> => {
+  const { data } = await axiosInstance.get('/sync/interfaces', {
+    params: { server_id: serverID },
+  })
   const parsed = SyncInterfacesResponseSchema.parse(data)
   return parsed.data || []
 }
@@ -64,6 +66,8 @@ export const syncSelectedInterfaces = async (
   payload: SyncInterfacesRequest
 ): Promise<void> => {
   const validated = SyncInterfacesRequestSchema.parse(payload)
-  await axiosInstance.post('/sync/interfaces/selected', validated)
+  const { server_id, ...body } = validated
+  await axiosInstance.post('/sync/interfaces/selected', body, {
+    params: { server_id },
+  })
 }
-

@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useDeviceDataQuery } from '@/hooks/dashboard/useDeviceDataQuery.ts'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { ServerSelect } from '@/components/server-select'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { DashboardSummary } from '@/features/dashboard/components/dashboard-summary.tsx'
 import DeviceInfo from '@/features/dashboard/components/device-info.tsx'
@@ -15,8 +17,9 @@ import DeviceStatsSkeleton from '@/features/dashboard/components/skeletons/stati
 import { TrafficChart } from '@/features/dashboard/components/traffic-chart.tsx'
 
 export default function Dashboard() {
+  const [serverID, setServerID] = useState<number>()
   const { data: deviceData, isLoading: isDeviceDataLoading } =
-    useDeviceDataQuery()
+    useDeviceDataQuery(serverID)
 
   return (
     <>
@@ -38,6 +41,9 @@ export default function Dashboard() {
           <h1 className='text-xl font-semibold tracking-tight'>
             Servers/Clients Summary
           </h1>
+          <div className='w-full max-w-xs'>
+            <ServerSelect value={serverID} onValueChange={setServerID} />
+          </div>
         </div>
         <Tabs
           orientation='vertical'

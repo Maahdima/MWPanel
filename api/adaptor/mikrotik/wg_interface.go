@@ -24,13 +24,18 @@ type WireGuardInterface struct {
 func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, error) {
 	var wgInterfaces []WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Get(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Get(
 		c,
 		common.WGInterfacePath,
 		&wgInterfaces,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +46,18 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*WireGuardInterface, error) {
 	var wgInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Get(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Get(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		&wgInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -58,14 +68,19 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var createdInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Put(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Put(
 		c,
 		common.WGInterfacePath,
 		wgInterface,
 		&createdInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +91,19 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInterface WireGuardInterface) (*WireGuardInterface, error) {
 	var updatedInterface WireGuardInterface
 
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Patch(
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpClient.Patch(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		wgInterface,
 		&updatedInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -92,19 +112,27 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 }
 
 func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error {
-	httpClient := a.mwpClient.GetClient(nil)
+	httpClient, err := a.client()
 
-	err := httpClient.Delete(
+	if err != nil {
+		return err
+	}
+
+	err = httpClient.Delete(
 		c,
 		common.WGInterfacePath+"/"+interfaceID,
 		nil,
 	)
+
 	if err != nil {
 		if httphelper.IsNotFound(err) {
 			a.logger.Warn("wireguard interface already deleted", zap.String("interfaceID", interfaceID))
+
 			return nil
 		}
+
 		a.logger.Error("failed to delete wireguard interface", zap.Error(err))
+
 		return err
 	}
 

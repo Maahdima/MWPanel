@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { getAvatarInitials } from '@/utils/helper.ts'
@@ -17,6 +18,7 @@ import {
 
 export function ProfileDropdown() {
   const authStore = useAuthStore()
+  const client = useQueryClient()
   const navigate = useNavigate()
 
   return (
@@ -57,7 +59,8 @@ export function ProfileDropdown() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
-            authStore.auth.resetAccessToken()
+            authStore.auth.reset()
+            client.clear()
             navigate({ to: '/sign-in' })
           }}
         >

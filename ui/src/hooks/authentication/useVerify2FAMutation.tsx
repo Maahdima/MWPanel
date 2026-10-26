@@ -7,7 +7,7 @@ export const useVerify2FAMutation = () => {
   return useMutation({
     mutationFn: verify2FA,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['device_data'] })
+      queryClient.clear()
     },
   })
 }

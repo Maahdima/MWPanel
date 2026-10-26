@@ -62,7 +62,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     })
 
     form.reset()
-    router.navigate({ to: '/' })
+    router.navigate({ to: response.role === 'reseller' ? '/billing' : '/' })
   }
 
   return (

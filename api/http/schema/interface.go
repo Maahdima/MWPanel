@@ -1,6 +1,7 @@
 package schema
 
 type InterfaceResponse struct {
+	ServerID    uint    `json:"server_id"`
 	Id          uint    `json:"id"`
 	InterfaceID string  `json:"interface_id"`
 	Disabled    bool    `json:"disabled"`
@@ -12,6 +13,7 @@ type InterfaceResponse struct {
 }
 
 type CreateInterfaceRequest struct {
+	ServerID   uint    `json:"server_id"`
 	Comment    *string `json:"comment,omitempty"`
 	Name       string  `json:"name" validate:"required"`
 	ListenPort string  `json:"listen_port" validate:"required"`

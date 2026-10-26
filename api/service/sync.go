@@ -13,10 +13,10 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
-	"github.com/maahdima/mwp/api/utils/wireguard"
 )
 
 type SyncService struct {
+	serverID         uint
 	db               *gorm.DB
 	mikrotikAdaptor  *mikrotik.Adaptor
 	configService    *ConfigGenerator
@@ -46,17 +46,28 @@ func NewSyncService(
 }
 
 func (s *SyncService) SyncPeers() error {
+	bound, err := s.selectedServer()
+
+	if err != nil {
+		return err
+	}
+
+	s = bound
+
 	mikrotikPeers, err := s.fetchMikrotikPeers()
+
 	if err != nil {
 		return err
 	}
 
 	dbPeers, err := s.fetchDBPeers()
+
 	if err != nil {
 		return err
 	}
 
 	mikrotikMap := s.mapMikrotikPeers(mikrotikPeers)
+
 	dbMap := s.mapDBPeers(dbPeers)
 
 	if err := s.syncNewAndUpdatedPeers(mikrotikMap, dbMap); err != nil {
@@ -68,21 +79,33 @@ func (s *SyncService) SyncPeers() error {
 	}
 
 	s.logger.Info("successfully synced peers with mikrotik")
+
 	return nil
 }
 
 func (s *SyncService) SyncInterfaces() error {
+	bound, err := s.selectedServer()
+
+	if err != nil {
+		return err
+	}
+
+	s = bound
+
 	mikrotikIfaces, err := s.fetchMikrotikInterfaces()
+
 	if err != nil {
 		return err
 	}
 
 	dbIfaces, err := s.fetchDBInterfaces()
+
 	if err != nil {
 		return err
 	}
 
 	mikrotikMap := s.mapMikrotikInterfaces(mikrotikIfaces)
+
 	dbMap := s.mapDBInterfaces(dbIfaces)
 
 	if err := s.syncNewAndUpdatedInterfaces(mikrotikMap, dbMap); err != nil {
@@ -94,227 +117,319 @@ func (s *SyncService) SyncInterfaces() error {
 	}
 
 	s.logger.Info("successfully synced interfaces with mikrotik")
+
 	return nil
 }
 
 func (s *SyncService) fetchMikrotikPeers() ([]mikrotik.WireGuardPeer, error) {
 	peers, err := s.mikrotikAdaptor.FetchWgPeers(context.Background())
+
 	if err != nil {
 		s.logger.Error("failed to get peers from Mikrotik", zap.Error(err))
 	}
+
 	return peers, err
 }
 
 func (s *SyncService) fetchDBPeers() ([]model.Peer, error) {
 	var peers []model.Peer
-	err := s.db.Find(&peers).Error
+
+	err := s.db.Where("server_id = ?", s.serverID).Find(&peers).Error
+
 	if err != nil {
 		s.logger.Error("failed to get peers from database", zap.Error(err))
 	}
+
 	return peers, err
 }
 
 func (s *SyncService) mapMikrotikPeers(peers []mikrotik.WireGuardPeer) map[string]mikrotik.WireGuardPeer {
 	m := make(map[string]mikrotik.WireGuardPeer)
+
 	for _, p := range peers {
 		m[p.ID] = p
 	}
+
 	return m
 }
 
 func (s *SyncService) mapDBPeers(peers []model.Peer) map[string]model.Peer {
 	m := make(map[string]model.Peer)
+
 	for _, p := range peers {
 		m[p.PeerID] = p
 	}
+
 	return m
 }
 
 func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range peers {
+		var reserved int64
+
+		if err := s.db.Model(&model.RouterMigrationPeer{}).Where("phase IN ? AND public_key = ? AND (source_server_id = ? OR destination_server_id = ?)", []string{"pending", "switched"}, peer.PublicKey, s.serverID, s.serverID).Count(&reserved).Error; err != nil {
+			return err
+		}
+
+		if reserved > 0 {
+			continue
+		}
+
+		pendingKey := false
+
+		for _, stored := range dbMap {
+			if stored.ResellerID != nil && stored.PublicKey == peer.PublicKey {
+				pendingKey = true
+
+				break
+			}
+		}
+
+		if pendingKey {
+			continue
+		}
+
 		if peer.PrivateKey == nil {
 			s.logger.Error("missing private key", zap.String("peer", id))
+
 			continue
 		}
 
 		server, err := s.fetchServer()
+
 		if err != nil {
 			return err
 		}
 
 		dbIface, err := s.fetchInterface(peer.Interface, id)
+
 		if err != nil {
 			return err
 		}
 
 		dbPeer, exists := dbMap[id]
+
+		if exists && (dbPeer.ResellerID != nil || dbPeer.PurchaseID != nil) {
+			continue
+		}
+
 		if !exists {
 			dbPeer = model.Peer{
-				UUID:                uuid.New().String(),
-				PeerID:              peer.ID,
-				PersistentKeepalive: common.DefaultKeepalive,
+				UUID:                    uuid.New().String(),
+				RestrictionsInitialized: true,
+				ManualDisabled:          parseBool(peer.Disabled),
+				ServerID:                s.serverID,
+				PeerID:                  peer.ID,
+				PersistentKeepalive:     common.DefaultKeepalive,
 			}
 		}
 
-		dbPeer.Disabled = parseBool(peer.Disabled)
+		dbPeer.Disabled = dbPeer.ManualDisabled || dbPeer.QuotaBlocked || dbPeer.ExpiryBlocked || dbPeer.BillingBlocked || dbPeer.AdminBlocked
+
 		dbPeer.Comment = peer.Comment
+
 		dbPeer.Name = peer.Name
+
 		dbPeer.PrivateKey = *peer.PrivateKey
+
 		dbPeer.PublicKey = peer.PublicKey
+
+		dbPeer.PresharedKey = peer.PresharedKey
+
 		dbPeer.Interface = dbIface.Name
+
 		dbPeer.AllowedAddress = peer.AllowedAddress
-		dbPeer.Endpoint = server.IPAddress
+
+		if dbPeer.Endpoint == "" {
+			dbPeer.Endpoint = server.IPAddress
+		}
+
 		dbPeer.EndpointPort = dbIface.ListenPort
 
-		config := s.buildConfig(peer, dbPeer, dbIface)
+		config, err := peerConfigText(dbPeer, dbIface.PublicKey)
+
+		if err != nil {
+			return err
+		}
 
 		if err := s.configService.BuildPeerConfig(config, dbPeer.UUID); err != nil {
 			s.logger.Error("failed to build peer config", zap.String("id", id), zap.Error(err))
+
 			return err
 		}
 
 		if err := s.qrCodeService.BuildPeerQRCode(config, dbPeer.UUID); err != nil {
 			s.logger.Error("failed to build QR code", zap.String("id", id), zap.Error(err))
+
 			return err
 		}
 
 		if err := s.db.Save(&dbPeer).Error; err != nil {
 			s.logger.Error("failed to upsert peer", zap.String("id", id), zap.Error(err))
+
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (s *SyncService) removeStalePeers(mikrotikMap map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range dbMap {
+		if peer.ResellerID != nil || peer.PurchaseID != nil {
+			continue
+		}
+
 		if _, found := mikrotikMap[id]; found {
 			continue
 		}
 
 		peerCopy := peer
+
 		if s.peerService != nil {
 			if err := s.peerService.deletePeerRecord(&peerCopy); err != nil {
 				s.logger.Error("failed to delete stale peer", zap.String("peerId", id), zap.Error(err))
+
 				return err
 			}
 		} else {
-			if err := s.peerService.deletePeerSessions(s.db, peer.ID); err != nil {
+			if err := s.db.Unscoped().Where("peer_id = ?", peer.ID).Delete(&model.PeerSession{}).Error; err != nil {
 				s.logger.Error("failed to delete peer sessions", zap.String("peerId", id), zap.Error(err))
+
 				return err
 			}
+
 			if err := s.db.Unscoped().Delete(&peerCopy).Error; err != nil {
 				s.logger.Error("failed to delete peer", zap.String("peerId", id), zap.Error(err))
+
 				return err
 			}
 		}
+
 		s.logger.Info("deleted stale peer from DB", zap.String("peerId", id))
 	}
+
 	return nil
 }
 
 func (s *SyncService) fetchServer() (model.Server, error) {
 	var server model.Server
-	err := s.db.First(&server).Error
+
+	err := s.db.First(&server, s.serverID).Error
+
 	if err != nil {
 		s.logger.Error("failed to get server", zap.Error(err))
 	}
+
 	return server, err
 }
 
 func (s *SyncService) fetchInterface(name, peerID string) (model.Interface, error) {
 	var iface model.Interface
-	err := s.db.Where("name = ?", name).First(&iface).Error
+
+	err := s.db.Where("server_id = ? AND name = ?", s.serverID, name).First(&iface).Error
+
 	if err != nil {
 		if errors.Is(gorm.ErrRecordNotFound, err) {
 			s.logger.Error("interface not found", zap.String("peerId", peerID), zap.String("interfaceId", name))
+
 			return iface, fmt.Errorf("interface %s not found for peer %s", name, peerID)
 		}
+
 		s.logger.Error("failed to get interface", zap.String("peerId", peerID), zap.Error(err))
 	}
-	return iface, err
-}
 
-func (s *SyncService) buildConfig(peer mikrotik.WireGuardPeer, dbPeer model.Peer, iface model.Interface) string {
-	return fmt.Sprintf(wireguard.Template,
-		*peer.PrivateKey,
-		dbPeer.AllowedAddress,
-		common.DefaultDns,
-		iface.PublicKey,
-		dbPeer.Endpoint,
-		dbPeer.EndpointPort,
-		common.AllowedIpsIncludeLocal,
-		dbPeer.PersistentKeepalive,
-	)
+	return iface, err
 }
 
 func (s *SyncService) fetchMikrotikInterfaces() ([]mikrotik.WireGuardInterface, error) {
 	ifaces, err := s.mikrotikAdaptor.FetchWgInterfaces(context.Background())
+
 	if err != nil {
 		s.logger.Error("failed to get interfaces from Mikrotik", zap.Error(err))
 	}
+
 	return ifaces, err
 }
 
 func (s *SyncService) fetchDBInterfaces() ([]model.Interface, error) {
 	var ifaces []model.Interface
-	err := s.db.Find(&ifaces).Error
+
+	err := s.db.Where("server_id = ?", s.serverID).Find(&ifaces).Error
+
 	if err != nil {
 		s.logger.Error("failed to get interfaces from database", zap.Error(err))
 	}
+
 	return ifaces, err
 }
 
 func (s *SyncService) mapMikrotikInterfaces(ifaces []mikrotik.WireGuardInterface) map[string]mikrotik.WireGuardInterface {
 	m := make(map[string]mikrotik.WireGuardInterface)
+
 	for _, iface := range ifaces {
 		m[iface.ID] = iface
 	}
+
 	return m
 }
 
 func (s *SyncService) mapDBInterfaces(ifaces []model.Interface) map[string]model.Interface {
 	m := make(map[string]model.Interface)
+
 	for _, iface := range ifaces {
 		m[iface.InterfaceID] = iface
 	}
+
 	return m
 }
 
 func (s *SyncService) syncNewAndUpdatedInterfaces(ifaceMap map[string]mikrotik.WireGuardInterface, dbMap map[string]model.Interface) error {
 	for id, mikrotikIface := range ifaceMap {
 		dbIface, exists := dbMap[id]
+
 		if !exists {
 			dbIface = model.Interface{
 				InterfaceID: mikrotikIface.ID,
+				ServerID:    s.serverID,
 			}
 		}
 
 		oldName := dbIface.Name
+
 		dbIface.Disabled = parseBool(mikrotikIface.Disabled)
+
 		dbIface.Comment = mikrotikIface.Comment
+
 		dbIface.Name = mikrotikIface.Name
+
 		dbIface.PrivateKey = mikrotikIface.PrivateKey
+
 		dbIface.PublicKey = mikrotikIface.PublicKey
+
 		dbIface.ListenPort = mikrotikIface.ListenPort
 
 		if err := s.db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Save(&dbIface).Error; err != nil {
 				return err
 			}
+
 			if oldName != "" && oldName != dbIface.Name {
 				if err := tx.Model(&model.Peer{}).
-					Where("interface = ?", oldName).
+					Where("server_id = ? AND interface = ?", s.serverID, oldName).
 					Update("interface", dbIface.Name).Error; err != nil {
 					return err
 				}
 			}
+
 			return nil
 		}); err != nil {
 			s.logger.Error("failed to upsert interface", zap.String("id", id), zap.Error(err))
+
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -325,21 +440,70 @@ func (s *SyncService) removeStaleInterfaces(mikrotikMap map[string]mikrotik.Wire
 		}
 
 		ifaceCopy := dbIface
+
 		if s.interfaceService != nil {
 			if err := s.interfaceService.deleteInterfaceRecord(&ifaceCopy); err != nil {
 				s.logger.Error("failed to delete stale interface", zap.String("interfaceId", id), zap.Error(err))
+
 				return err
 			}
 		} else if err := s.db.Unscoped().Delete(&ifaceCopy).Error; err != nil {
 			s.logger.Error("failed to delete interface", zap.String("interfaceId", id), zap.Error(err))
+
 			return err
 		}
+
 		s.logger.Info("deleted stale interface from DB", zap.String("interfaceId", id))
 	}
+
 	return nil
 }
 
 func parseBool(s string) bool {
 	b, _ := strconv.ParseBool(s)
+
 	return b
+}
+
+// ForServer scopes both external operations and the inventory used for deletion.
+func (s *SyncService) ForServer(id uint) (*SyncService, error) {
+	adaptor, err := s.mikrotikAdaptor.ForServer(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	peers, err := s.peerService.ForServer(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	interfaces, err := s.interfaceService.ForServer(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bound := *s
+
+	bound.serverID = id
+
+	bound.mikrotikAdaptor = adaptor
+
+	bound.peerService = peers
+
+	bound.interfaceService = interfaces
+
+	return &bound, nil
+}
+
+func (s *SyncService) selectedServer() (*SyncService, error) {
+	id, err := resolveServerID(s.db, s.serverID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ForServer(id)
 }

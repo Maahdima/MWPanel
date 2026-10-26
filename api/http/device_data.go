@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/maahdima/mwp/api/cmd/jobs"
 	"github.com/maahdima/mwp/api/http/schema"
@@ -27,8 +28,10 @@ func NewDeviceDataController(deviceDataService *service.DeviceData, trafficCalcu
 
 func (c *DeviceDataController) GetDailyTrafficUsage(ctx echo.Context) error {
 	rangeParam := ctx.QueryParam("range")
+
 	if rangeParam == "" {
 		c.logger.Error("failed to parse range query parameter")
+
 		return ctx.JSON(http.StatusBadRequest, schema.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Status:     "error",
@@ -37,8 +40,10 @@ func (c *DeviceDataController) GetDailyTrafficUsage(ctx echo.Context) error {
 	}
 
 	trafficData, err := c.deviceDataService.GetDailyTrafficUsage(rangeParam)
+
 	if err != nil {
 		c.logger.Error("failed to fetch daily traffic usage", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -53,9 +58,23 @@ func (c *DeviceDataController) GetDailyTrafficUsage(ctx echo.Context) error {
 }
 
 func (c *DeviceDataController) GetDeviceInfo(ctx echo.Context) error {
-	info, err := c.deviceDataService.GetDeviceData()
+	serverID := uint64(0)
+
+	if raw := ctx.QueryParam("server_id"); raw != "" {
+		parsed, err := strconv.ParseUint(raw, 10, 32)
+
+		if err != nil || parsed == 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid server_id")
+		}
+
+		serverID = parsed
+	}
+
+	info, err := c.deviceDataService.GetDeviceData(uint(serverID))
+
 	if err != nil {
 		c.logger.Error("failed to fetch device info", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -72,6 +91,7 @@ func (c *DeviceDataController) GetDeviceInfo(ctx echo.Context) error {
 func (c *DeviceDataController) ResetTotalTrafficUsage(ctx echo.Context) error {
 	if err := c.trafficCalculator.ResetTotalTrafficUsage(); err != nil {
 		c.logger.Error("failed to reset total traffic usage", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",

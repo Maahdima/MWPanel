@@ -30,17 +30,21 @@ func (a *AuthController) Login(ctx echo.Context) error {
 
 	if err := ctx.Bind(&req); err != nil {
 		a.logger.Error("failed to bind login request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		a.logger.Error("validation failed for login request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	admin, err := a.authService.Login(req.Username, req.Password)
+
 	if err != nil {
 		a.logger.Error("failed to login", zap.Error(err))
+
 		return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 			StatusCode: http.StatusNotFound,
 			Status:     "error",
@@ -56,22 +60,30 @@ func (a *AuthController) Login(ctx echo.Context) error {
 
 func (a *AuthController) Verify2FA(ctx echo.Context) error {
 	var req schema.Verify2FARequest
+
 	if err := ctx.Bind(&req); err != nil {
 		a.logger.Error("failed to bind 2FA verify request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
+
 	if err := ctx.Validate(&req); err != nil {
 		a.logger.Error("validation failed for 2FA verify request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	admin, err := a.authService.Verify2FA(req.TempToken, req.Code)
+
 	if err != nil {
 		status := http.StatusUnauthorized
+
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			status = http.StatusNotFound
 		}
+
 		a.logger.Error("failed to verify 2FA", zap.Error(err))
+
 		return ctx.JSON(status, schema.ErrorResponse{
 			StatusCode: status,
 			Status:     "error",
@@ -87,6 +99,7 @@ func (a *AuthController) Verify2FA(ctx echo.Context) error {
 
 func (a *AuthController) GetTotpStatus(ctx echo.Context) error {
 	username, err := a.usernameFromJWT(ctx)
+
 	if err != nil {
 		return ctx.JSON(http.StatusUnauthorized, schema.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
@@ -96,8 +109,10 @@ func (a *AuthController) GetTotpStatus(ctx echo.Context) error {
 	}
 
 	status, err := a.authService.GetTotpStatus(username)
+
 	if err != nil {
 		a.logger.Error("failed to get TOTP status", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -113,6 +128,7 @@ func (a *AuthController) GetTotpStatus(ctx echo.Context) error {
 
 func (a *AuthController) StartTotpSetup(ctx echo.Context) error {
 	username, err := a.usernameFromJWT(ctx)
+
 	if err != nil {
 		return ctx.JSON(http.StatusUnauthorized, schema.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
@@ -122,12 +138,16 @@ func (a *AuthController) StartTotpSetup(ctx echo.Context) error {
 	}
 
 	setup, err := a.authService.StartTotpSetup(username)
+
 	if err != nil {
 		status := http.StatusBadRequest
+
 		if errors.Is(err, service.ErrTotpAlreadyEnabled) {
 			status = http.StatusConflict
 		}
+
 		a.logger.Error("failed to start TOTP setup", zap.Error(err))
+
 		return ctx.JSON(status, schema.ErrorResponse{
 			StatusCode: status,
 			Status:     "error",
@@ -143,6 +163,7 @@ func (a *AuthController) StartTotpSetup(ctx echo.Context) error {
 
 func (a *AuthController) ConfirmTotpSetup(ctx echo.Context) error {
 	username, err := a.usernameFromJWT(ctx)
+
 	if err != nil {
 		return ctx.JSON(http.StatusUnauthorized, schema.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
@@ -152,20 +173,26 @@ func (a *AuthController) ConfirmTotpSetup(ctx echo.Context) error {
 	}
 
 	var req schema.TotpConfirmRequest
+
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
+
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	result, err := a.authService.ConfirmTotpSetup(username, req.Code)
+
 	if err != nil {
 		status := http.StatusBadRequest
+
 		if errors.Is(err, service.ErrInvalidTotpCode) {
 			status = http.StatusUnauthorized
 		}
+
 		a.logger.Error("failed to confirm TOTP setup", zap.Error(err))
+
 		return ctx.JSON(status, schema.ErrorResponse{
 			StatusCode: status,
 			Status:     "error",
@@ -181,6 +208,7 @@ func (a *AuthController) ConfirmTotpSetup(ctx echo.Context) error {
 
 func (a *AuthController) DisableTotp(ctx echo.Context) error {
 	username, err := a.usernameFromJWT(ctx)
+
 	if err != nil {
 		return ctx.JSON(http.StatusUnauthorized, schema.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
@@ -190,22 +218,28 @@ func (a *AuthController) DisableTotp(ctx echo.Context) error {
 	}
 
 	var req schema.TotpDisableRequest
+
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
+
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := a.authService.DisableTotp(username, req.Password, req.Code); err != nil {
 		status := http.StatusBadRequest
+
 		switch {
 		case errors.Is(err, service.ErrInvalidTotpCode), err.Error() == "password mismatch":
 			status = http.StatusUnauthorized
+
 		case errors.Is(err, service.ErrTotpNotEnabled):
 			status = http.StatusConflict
 		}
+
 		a.logger.Error("failed to disable TOTP", zap.Error(err))
+
 		return ctx.JSON(status, schema.ErrorResponse{
 			StatusCode: status,
 			Status:     "error",
@@ -218,19 +252,34 @@ func (a *AuthController) DisableTotp(ctx echo.Context) error {
 
 func (a *AuthController) UpdateProfile(ctx echo.Context) error {
 	var req schema.UpdateProfileRequest
+
 	if err := ctx.Bind(&req); err != nil {
 		a.logger.Warn("failed to bind request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	if err := ctx.Validate(&req); err != nil {
 		a.logger.Warn("failed to validate request", zap.Error(err))
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
-	err := a.authService.UpdateProfile(req.OldUsername, req.OldPassword, req.NewUsername, req.NewPassword)
+	username, err := a.usernameFromJWT(ctx)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	if username != req.OldUsername {
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	}
+
+	err = a.authService.UpdateProfile(req.OldUsername, req.OldPassword, req.NewUsername, req.NewPassword)
+
 	if err != nil {
 		a.logger.Error("failed to update profile", zap.Error(err))
+
 		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "error",
@@ -243,16 +292,32 @@ func (a *AuthController) UpdateProfile(ctx echo.Context) error {
 
 func (a *AuthController) usernameFromJWT(ctx echo.Context) (string, error) {
 	token, ok := ctx.Get("user").(*jwt.Token)
+
 	if !ok || token == nil {
 		return "", errors.New("missing token")
 	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
+
 	if !ok {
 		return "", errors.New("invalid claims")
 	}
+
 	username, _ := claims["sub"].(string)
+
 	if username == "" {
 		return "", errors.New("missing subject")
 	}
+
 	return username, nil
+}
+
+func (a *AuthController) Me(ctx echo.Context) error {
+	principal, ok := ctx.Get("principal").(service.Principal)
+
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[service.Principal]{BasicResponse: schema.OkBasicResponse, Data: principal})
 }

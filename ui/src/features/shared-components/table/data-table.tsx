@@ -38,6 +38,14 @@ declare module '@tanstack/react-table' {
 }
 
 interface DataTableProps<T> {
+  type?:
+    | 'Servers'
+    | 'Interfaces'
+    | 'Pools'
+    | 'Peers'
+    | 'Orders'
+    | 'Plans'
+    | 'Resellers'
   columns: ColumnDef<T>[]
   data: T[]
   initialSorting?: SortingState
@@ -47,6 +55,7 @@ export function DataTable<T>({
   columns,
   data,
   initialSorting = [],
+  type: tableType,
 }: DataTableProps<T>) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -79,17 +88,18 @@ export function DataTable<T>({
     <div className='space-y-4'>
       <DataTableToolbar
         type={
-          columns === serversColumns
+          tableType ??
+          (columns === serversColumns
             ? 'Servers'
             : columns === interfacesColumns
               ? 'Interfaces'
-              :           columns === poolsColumns
-            ? 'Pools'
-            : columns === ordersColumns
-              ? 'Orders'
-              : columns === plansColumns
-                ? 'Plans'
-                : 'Peers'
+              : columns === poolsColumns
+                ? 'Pools'
+                : columns === ordersColumns
+                  ? 'Orders'
+                  : columns === plansColumns
+                    ? 'Plans'
+                    : 'Peers')
         }
         table={table}
       />

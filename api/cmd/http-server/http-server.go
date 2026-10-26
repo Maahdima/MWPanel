@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"golang.org/x/crypto/acme/autocert"
 
@@ -30,25 +31,41 @@ func StartHttpServer(
 	appCfg := config.GetAppConfig()
 
 	authenticationService := service.NewAuthentication(db)
+
 	schedulerService := service.NewScheduler(mikrotikAdaptor)
+
 	queueService := service.NewQueue(mikrotikAdaptor)
+
 	configGenerator := service.NewConfigGenerator(db)
+
 	qrCodeGenerator := service.NewQRCodeGenerator(db)
+
 	excelGenerator := service.NewExcelGenerator(db)
+
 	serverService := service.NewServerService(db, mwpClients, mikrotikAdaptor)
+
 	peerService := service.NewWGPeer(db, mikrotikAdaptor, schedulerService, queueService, configGenerator, qrCodeGenerator)
+
 	peerService.SetShopLinks(shopAPI)
+
 	interfaceService := service.NewWgInterface(db, mikrotikAdaptor, peerService)
+
 	ipPoolService := service.NewIPPool(db, mikrotikAdaptor)
+
 	deviceDataService := service.NewDeviceData(db, mikrotikAdaptor, serverService, interfaceService, peerService)
+
 	syncService := service.NewSyncService(db, mikrotikAdaptor, configGenerator, qrCodeGenerator, peerService, interfaceService)
 
 	e := echo.New()
+
 	e.Use(middleware.Logger())
+
 	e.Use(middleware.CORS())
+
 	e.Validator = &validate.CustomValidator{Validator: validator.New()}
 
 	http.SetupMwpUI(e, appCfg.UIAssetsFs, appCfg.AdminPanelPath)
+
 	http.SetupMwpAPI(
 		e,
 		mwpClients,
@@ -64,10 +81,14 @@ func StartHttpServer(
 		trafficCalculator,
 		syncService,
 		shopAPI,
+		service.NewResellers(db, peerService),
+		service.NewBilling(db),
+		service.NewPayments(service.NewBilling(db), filepath.Join(appCfg.DataDirPath, "receipts")),
 	)
 
 	if appCfg.Port == "443" || appCfg.Port == "8443" {
 		e.AutoTLSManager.Cache = autocert.DirCache(appCfg.DataDirPath)
+
 		e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))
 	} else {
 		e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", appCfg.Host, appCfg.Port)))

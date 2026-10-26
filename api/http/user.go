@@ -31,13 +31,20 @@ func NewUserController(peerService *service.WgPeer, peerConfigService *service.C
 
 func (u *UserController) GetUserDetails(ctx echo.Context) error {
 	uuid := ctx.Param("uuid")
+
 	if uuid == "" {
 		u.logger.Error("Peer uuid is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	stats, err := u.peerService.GetPeerDetails(uuid)
+
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
+
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -61,13 +68,20 @@ func (u *UserController) GetUserDetails(ctx echo.Context) error {
 
 func (u *UserController) GetUserTelegram(ctx echo.Context) error {
 	uuid := ctx.Param("uuid")
+
 	if uuid == "" {
 		u.logger.Error("Peer uuid is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	status, err := u.peerService.GetPeerTelegramStatus(uuid)
+
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
+
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -91,13 +105,20 @@ func (u *UserController) GetUserTelegram(ctx echo.Context) error {
 
 func (u *UserController) GetUserConfig(ctx echo.Context) error {
 	uuid := ctx.Param("uuid")
+
 	if uuid == "" {
 		u.logger.Error("Peer uuid is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	config, downloadName, err := u.peerConfigService.GetUserConfig(uuid)
+
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
+
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -118,13 +139,20 @@ func (u *UserController) GetUserConfig(ctx echo.Context) error {
 
 func (u *UserController) GetUserQRCode(ctx echo.Context) error {
 	uuid := ctx.Param("uuid")
+
 	if uuid == "" {
 		u.logger.Error("Peer uuid is required")
+
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
 
 	qrCode, err := u.peerQrCodeService.GetUserQRCode(uuid)
+
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
+
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,

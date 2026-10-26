@@ -37,16 +37,20 @@ var (
 
 func (a *Authentication) Login(username, password string) (*schema.LoginResponse, error) {
 	admin, err := a.authenticatePassword(username, password)
+
 	if err != nil {
 		return nil, err
 	}
 
 	if admin.TotpEnabled {
 		tempToken, err := a.generate2FAPendingToken(admin.Username)
+
 		if err != nil {
 			a.logger.Error("failed to generate 2FA pending token", zap.Error(err))
+
 			return nil, err
 		}
+
 		return &schema.LoginResponse{
 			Requires2FA: true,
 			TempToken:   tempToken,
@@ -58,16 +62,20 @@ func (a *Authentication) Login(username, password string) (*schema.LoginResponse
 
 func (a *Authentication) Verify2FA(tempToken, code string) (*schema.LoginResponse, error) {
 	username, err := a.parse2FAPendingToken(tempToken)
+
 	if err != nil {
 		return nil, err
 	}
 
 	var admin model.Admin
+
 	if err := a.db.First(&admin, "username = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, gorm.ErrRecordNotFound
 		}
+
 		a.logger.Error("failed to query user from database", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -76,9 +84,11 @@ func (a *Authentication) Verify2FA(tempToken, code string) (*schema.LoginRespons
 	}
 
 	ok, err := a.verifyTotpOrRecovery(&admin, code)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if !ok {
 		return nil, ErrInvalidTotpCode
 	}
@@ -88,17 +98,21 @@ func (a *Authentication) Verify2FA(tempToken, code string) (*schema.LoginRespons
 
 func (a *Authentication) GetTotpStatus(username string) (*schema.TotpStatusResponse, error) {
 	admin, err := a.findAdminByUsername(username)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &schema.TotpStatusResponse{Enabled: admin.TotpEnabled}, nil
 }
 
 func (a *Authentication) StartTotpSetup(username string) (*schema.TotpSetupResponse, error) {
 	admin, err := a.findAdminByUsername(username)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if admin.TotpEnabled {
 		return nil, ErrTotpAlreadyEnabled
 	}
@@ -107,27 +121,36 @@ func (a *Authentication) StartTotpSetup(username string) (*schema.TotpSetupRespo
 		Issuer:      totpIssuer,
 		AccountName: admin.Username,
 	})
+
 	if err != nil {
 		a.logger.Error("failed to generate TOTP key", zap.Error(err))
+
 		return nil, err
 	}
 
 	secret := key.Secret()
+
 	admin.TotpPendingSecret = &secret
+
 	if err := a.db.Save(admin).Error; err != nil {
 		a.logger.Error("failed to save pending TOTP secret", zap.Error(err))
+
 		return nil, err
 	}
 
 	img, err := key.Image(200, 200)
+
 	if err != nil {
 		a.logger.Error("failed to generate TOTP QR image", zap.Error(err))
+
 		return nil, err
 	}
 
 	var buf bytes.Buffer
+
 	if err := png.Encode(&buf, img); err != nil {
 		a.logger.Error("failed to encode TOTP QR image", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -140,12 +163,15 @@ func (a *Authentication) StartTotpSetup(username string) (*schema.TotpSetupRespo
 
 func (a *Authentication) ConfirmTotpSetup(username, code string) (*schema.TotpConfirmResponse, error) {
 	admin, err := a.findAdminByUsername(username)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if admin.TotpEnabled {
 		return nil, ErrTotpAlreadyEnabled
 	}
+
 	if admin.TotpPendingSecret == nil || *admin.TotpPendingSecret == "" {
 		return nil, ErrTotpNotPending
 	}
@@ -155,18 +181,24 @@ func (a *Authentication) ConfirmTotpSetup(username, code string) (*schema.TotpCo
 	}
 
 	plainCodes, hashedJSON, err := utils.GenerateRecoveryCodes()
+
 	if err != nil {
 		a.logger.Error("failed to generate recovery codes", zap.Error(err))
+
 		return nil, err
 	}
 
 	admin.TotpSecret = admin.TotpPendingSecret
+
 	admin.TotpPendingSecret = nil
+
 	admin.TotpEnabled = true
+
 	admin.TotpRecoveryCodes = &hashedJSON
 
 	if err := a.db.Save(admin).Error; err != nil {
 		a.logger.Error("failed to enable TOTP", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -175,74 +207,104 @@ func (a *Authentication) ConfirmTotpSetup(username, code string) (*schema.TotpCo
 
 func (a *Authentication) DisableTotp(username, password, code string) error {
 	admin, err := a.authenticatePassword(username, password)
+
 	if err != nil {
 		return err
 	}
+
 	if !admin.TotpEnabled || admin.TotpSecret == nil {
 		return ErrTotpNotEnabled
 	}
 
 	ok, err := a.verifyTotpOrRecovery(admin, code)
+
 	if err != nil {
 		return err
 	}
+
 	if !ok {
 		return ErrInvalidTotpCode
 	}
 
 	admin.TotpEnabled = false
+
 	admin.TotpSecret = nil
+
 	admin.TotpPendingSecret = nil
+
 	admin.TotpRecoveryCodes = nil
 
 	if err := a.db.Save(admin).Error; err != nil {
 		a.logger.Error("failed to disable TOTP", zap.Error(err))
+
 		return err
 	}
+
 	return nil
 }
 
 func (a *Authentication) authenticatePassword(username, password string) (*model.Admin, error) {
 	var admin model.Admin
+
 	if err := a.db.First(&admin, "username = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("user not found", zap.String("username", username))
+
 			return nil, gorm.ErrRecordNotFound
 		}
+
 		a.logger.Error("failed to query user from database", zap.Error(err))
+
 		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password)); err != nil {
 		a.logger.Error("password mismatch", zap.String("username", username), zap.Error(err))
+
 		return nil, errors.New("password mismatch")
 	}
+
 	return &admin, nil
 }
 
 func (a *Authentication) findAdminByUsername(username string) (*model.Admin, error) {
 	var admin model.Admin
+
 	if err := a.db.First(&admin, "username = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("user not found", zap.String("username", username))
+
 			return nil, gorm.ErrRecordNotFound
 		}
+
 		a.logger.Error("failed to query user from database", zap.Error(err))
+
 		return nil, err
 	}
+
 	return &admin, nil
 }
 
 func (a *Authentication) issueLoginTokens(admin *model.Admin) (*schema.LoginResponse, error) {
+	principal, err := a.ResolvePrincipal(admin.Username)
+
+	if err != nil {
+		return nil, err
+	}
+
 	accessToken, err := a.generateAccessToken(admin.Username)
+
 	if err != nil {
 		a.logger.Error("failed to generate access token", zap.Error(err))
+
 		return nil, err
 	}
 
 	refreshToken, err := a.generateRefreshToken(admin.Username)
+
 	if err != nil {
 		a.logger.Error("failed to generate refresh token", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -250,6 +312,8 @@ func (a *Authentication) issueLoginTokens(admin *model.Admin) (*schema.LoginResp
 		Requires2FA:  false,
 		UserID:       admin.ID,
 		Username:     admin.Username,
+		Role:         principal.Role,
+		ResellerID:   principal.ResellerID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int64(accessTokenTTL.Seconds()),
@@ -262,7 +326,9 @@ func (a *Authentication) generate2FAPendingToken(username string) (string, error
 		"typ": totpPendingTokenTyp,
 		"exp": time.Now().Add(totpPendingTokenTTL).Unix(),
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
 	return token.SignedString(a.RefreshSecret)
 }
 
@@ -271,39 +337,48 @@ func (a *Authentication) parse2FAPendingToken(tokenStr string) (string, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+
 		return a.RefreshSecret, nil
 	})
+
 	if err != nil || !token.Valid {
 		return "", ErrInvalidTempToken
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
+
 	if !ok {
 		return "", ErrInvalidTempToken
 	}
 
 	typ, _ := claims["typ"].(string)
+
 	if typ != totpPendingTokenTyp {
 		return "", ErrInvalidTempToken
 	}
 
 	username, _ := claims["sub"].(string)
+
 	if username == "" {
 		return "", ErrInvalidTempToken
 	}
+
 	return username, nil
 }
 
 func (a *Authentication) verifyTotpOrRecovery(admin *model.Admin, code string) (bool, error) {
 	normalized := strings.TrimSpace(code)
+
 	if admin.TotpSecret != nil && totp.Validate(normalized, *admin.TotpSecret) {
 		return true, nil
 	}
 
 	used, err := a.consumeRecoveryCode(admin, normalized)
+
 	if err != nil {
 		return false, err
 	}
+
 	return used, nil
 }
 
@@ -313,24 +388,32 @@ func (a *Authentication) consumeRecoveryCode(admin *model.Admin, code string) (b
 	}
 
 	var hashes []string
+
 	if err := json.Unmarshal([]byte(*admin.TotpRecoveryCodes), &hashes); err != nil {
 		a.logger.Error("failed to parse recovery codes", zap.Error(err))
+
 		return false, err
 	}
 
 	normalized := utils.NormalizeRecoveryCode(code)
+
 	remaining := make([]string, 0, len(hashes))
+
 	matched := false
 
 	for _, hash := range hashes {
 		if matched {
 			remaining = append(remaining, hash)
+
 			continue
 		}
+
 		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(normalized)) == nil {
 			matched = true
+
 			continue
 		}
+
 		remaining = append(remaining, hash)
 	}
 
@@ -339,14 +422,20 @@ func (a *Authentication) consumeRecoveryCode(admin *model.Admin, code string) (b
 	}
 
 	encoded, err := json.Marshal(remaining)
+
 	if err != nil {
 		return false, err
 	}
+
 	encodedStr := string(encoded)
+
 	admin.TotpRecoveryCodes = &encodedStr
+
 	if err := a.db.Save(admin).Error; err != nil {
 		a.logger.Error("failed to update recovery codes", zap.Error(err))
+
 		return false, err
 	}
+
 	return true, nil
 }

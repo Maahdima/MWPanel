@@ -29,10 +29,12 @@ export const SyncPeersResponseSchema = createApiResponseSchema(
 )
 
 export const SyncInterfacesRequestSchema = z.object({
+  server_id: z.number().int().positive().optional(),
   interface_ids: z.array(z.string()),
 })
 
 export const SyncPeersRequestSchema = z.object({
+  server_id: z.number().int().positive().optional(),
   peer_ids: z.array(z.string()),
 })
 
@@ -40,4 +42,3 @@ export type SyncInterfacePreview = z.infer<typeof SyncInterfacePreviewSchema>
 export type SyncPeerPreview = z.infer<typeof SyncPeerPreviewSchema>
 export type SyncInterfacesRequest = z.infer<typeof SyncInterfacesRequestSchema>
 export type SyncPeersRequest = z.infer<typeof SyncPeersRequestSchema>
-

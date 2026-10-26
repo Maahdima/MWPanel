@@ -18,6 +18,11 @@ import (
 
 func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 	conf := new(gorm.Config)
+
+	// SQL values can contain router passwords, private keys and financial records.
+	// Parameterize diagnostics in every environment, including failed writes.
+	conf.Logger = logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{SlowThreshold: time.Second, LogLevel: logger.Warn, IgnoreRecordNotFoundError: true, ParameterizedQueries: true, Colorful: false})
+
 	if os.Getenv("MODE") == "development" {
 		newLogger := logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -25,14 +30,16 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 				SlowThreshold:             time.Second,
 				LogLevel:                  logger.Error,
 				IgnoreRecordNotFoundError: false,
-				ParameterizedQueries:      false,
+				ParameterizedQueries:      true,
 				Colorful:                  true,
 			},
 		)
+
 		conf.Logger = newLogger
 	}
 
 	var dialect gorm.Dialector
+
 	if config.Dialect == "sqlite" {
 		dialect = sqlite.Open(
 			fmt.Sprintf("file:%s?_pragma=foreign_keys(1)", config.Database),
@@ -46,10 +53,12 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 		dialect = postgres.New(postgres.Config{DSN: dsn})
 	} else {
 		err = errors.New("invalid db dialect")
+
 		return
 	}
 
 	db, err = gorm.Open(dialect, conf)
+
 	if err != nil {
 		return
 	}
@@ -66,13 +75,34 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.TotalTrafficUsage{},
 		&model.Server{},
 		&model.Admin{},
+		&model.Reseller{},
+		&model.ResellerResource{},
+		&model.PeerOwnershipEvent{},
+		&model.BillingAccount{},
+		&model.BillingSettings{},
+		&model.PaymentReceipt{},
+		&model.ApprovedPayment{},
+		&model.BillingInvoice{},
+		&model.InvoiceAllocation{},
+		&model.BillingCharge{},
+		&model.PeerPurchase{},
+		&model.RouterMigration{},
+		&model.RouterMigrationPeer{},
+		&model.LedgerEntry{},
+		&model.BillingAuditEvent{},
 		&model.TelegramChat{},
 		&model.PeerSession{},
 	)
+
 	if err != nil {
 		log.Panic("failed to auto migrate db: ", err)
+
 		return err
 	}
 
-	return nil
+	if err := MigrateRouterOwnership(db, os.Getenv("LEGACY_ROUTER_SERVER_ID")); err != nil {
+		return err
+	}
+
+	return MigratePeerRestrictions(db)
 }

@@ -23,6 +23,7 @@ import {
   SyncPeersResponseSchema,
 } from '@/schema/sync.ts'
 import axiosInstance from '@/api/axios-instance.ts'
+import { saveBlob } from '@/lib/download'
 
 export const fetchPeersList = async (): Promise<Peer[]> => {
   const { data } = await axiosInstance.get('/peer')
@@ -91,8 +92,15 @@ export const fetchPeerShareStatus = async (id: number): Promise<PeerShare> => {
   return parsed.data
 }
 
-export const fetchPeerSessions = async (id: number): Promise<PeerSessions> => {
-  const { data } = await axiosInstance.get(`/peer/${id}/sessions`)
+export const fetchPeerSessions = async (
+  id: number,
+  scope: 'admin' | 'reseller' = 'admin'
+): Promise<PeerSessions> => {
+  const { data } = await axiosInstance.get(
+    scope === 'reseller'
+      ? `/reseller/me/peers/${id}/sessions`
+      : `/peer/${id}/sessions`
+  )
   const parsed = PeerSessionsResponseSchema.parse(data)
   return parsed.data
 }
@@ -120,16 +128,10 @@ export const exportTrafficExcel = async (): Promise<void> => {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
 
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-
-  link.href = url
-  link.download = `traffic-report-${new Date().toISOString().split('T')[0]}.xlsx`
-
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  saveBlob(
+    blob,
+    `traffic-report-${new Date().toISOString().split('T')[0]}.xlsx`
+  )
 }
 
 export const syncPeers = async (): Promise<void> => {
@@ -137,10 +139,11 @@ export const syncPeers = async (): Promise<void> => {
 }
 
 export const fetchSyncPeers = async (
-  interfaceName?: string
+  interfaceName?: string,
+  serverID?: number
 ): Promise<SyncPeerPreview[]> => {
   const { data } = await axiosInstance.get('/sync/peers', {
-    params: interfaceName ? { interface: interfaceName } : undefined,
+    params: { interface: interfaceName, server_id: serverID },
   })
   const parsed = SyncPeersResponseSchema.parse(data)
   return parsed.data || []
@@ -150,6 +153,8 @@ export const syncSelectedPeers = async (
   payload: SyncPeersRequest
 ): Promise<void> => {
   const validated = SyncPeersRequestSchema.parse(payload)
-  await axiosInstance.post('/sync/peers/selected', validated)
+  const { server_id, ...body } = validated
+  await axiosInstance.post('/sync/peers/selected', body, {
+    params: { server_id },
+  })
 }
-

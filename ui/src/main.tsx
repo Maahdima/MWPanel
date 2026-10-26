@@ -8,8 +8,8 @@ import {
 } from '@tanstack/react-query'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { loadAppConfig } from '@/lib/app-config'
 import { useAuthStore } from '@/stores/authStore'
+import { loadAppConfig } from '@/lib/app-config'
 import { handleServerError } from '@/utils/handle-server-error'
 import { FontProvider } from './context/font-context'
 import { ThemeProvider } from './context/theme-context'
@@ -34,8 +34,10 @@ async function bootstrap() {
       const status = error.response?.status ?? 0
 
       if (status === 401) {
+        if (!useAuthStore.getState().auth.accessToken) return
         toast.error('Session expired!', { duration: 5000 })
         useAuthStore.getState().auth.reset()
+        queryClient.clear()
         void router.navigate({ to: '/sign-in' })
       }
 

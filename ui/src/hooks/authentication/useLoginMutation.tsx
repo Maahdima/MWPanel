@@ -8,7 +8,7 @@ export const useLoginMutation = () => {
     mutationFn: login,
     onSuccess: (data) => {
       if (!data.requires_2fa) {
-        queryClient.invalidateQueries({ queryKey: ['device_data'] })
+        queryClient.clear()
       }
     },
   })
