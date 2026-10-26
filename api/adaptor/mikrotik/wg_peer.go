@@ -32,6 +32,7 @@ func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 	var wgPeers []WireGuardPeer
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +42,10 @@ func (a *Adaptor) FetchWgPeers(c context.Context) ([]WireGuardPeer, error) {
 		common.WGPeerPath,
 		&wgPeers,
 	)
+
 	if err != nil {
 		a.logger.Error("failed to get wireguard peers", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -53,6 +56,7 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 	var wgPeer WireGuardPeer
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +66,10 @@ func (a *Adaptor) FetchWgPeer(c context.Context, peerID string) (*WireGuardPeer,
 		common.WGPeerPath+"/"+peerID,
 		&wgPeer,
 	)
+
 	if err != nil {
 		a.logger.Error("failed to get wireguard peer", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -74,6 +80,7 @@ func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGu
 	var createdPeer WireGuardPeer
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +91,7 @@ func (a *Adaptor) CreateWgPeer(c context.Context, wgPeer WireGuardPeer) (*WireGu
 		wgPeer,
 		&createdPeer,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +103,7 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 	var updatedPeer WireGuardPeer
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +114,7 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 		wgPeer,
 		&updatedPeer,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +124,7 @@ func (a *Adaptor) UpdateWgPeer(c context.Context, peerID string, wgPeer WireGuar
 
 func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
 	httpClient, err := a.client()
+
 	if err != nil {
 		return err
 	}
@@ -123,12 +134,16 @@ func (a *Adaptor) DeleteWgPeer(c context.Context, peerID string) error {
 		common.WGPeerPath+"/"+peerID,
 		nil,
 	)
+
 	if err != nil {
 		if httphelper.IsNotFound(err) {
 			a.logger.Warn("wireguard peer already deleted", zap.String("peerID", peerID))
+
 			return nil
 		}
+
 		a.logger.Error("failed to delete wireguard peer", zap.Error(err))
+
 		return err
 	}
 

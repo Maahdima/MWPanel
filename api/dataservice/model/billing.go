@@ -76,9 +76,12 @@ type BillingAuditEvent struct {
 
 var ErrImmutableAccounting = errors.New("accounting history is immutable; post a compensating entry")
 
-func (*LedgerEntry) BeforeUpdate(*gorm.DB) error       { return ErrImmutableAccounting }
-func (*LedgerEntry) BeforeDelete(*gorm.DB) error       { return ErrImmutableAccounting }
+func (*LedgerEntry) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+
+func (*LedgerEntry) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*BillingAuditEvent) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*BillingAuditEvent) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }
 
 type BillingInvoice struct {
@@ -105,8 +108,12 @@ func (i *BillingInvoice) BeforeUpdate(tx *gorm.DB) error {
 	if tx.Statement.Changed("ResellerID", "PeriodStart", "PeriodEnd", "DueAt", "GraceUntil", "TotalRial", "DueRial") {
 		return ErrImmutableAccounting
 	}
+
 	return nil
 }
-func (*BillingInvoice) BeforeDelete(*gorm.DB) error    { return ErrImmutableAccounting }
+
+func (*BillingInvoice) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*InvoiceAllocation) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*InvoiceAllocation) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }

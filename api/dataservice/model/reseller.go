@@ -37,4 +37,5 @@ type PeerOwnershipEvent struct {
 }
 
 func (*PeerOwnershipEvent) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*PeerOwnershipEvent) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }

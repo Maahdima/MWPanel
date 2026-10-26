@@ -25,6 +25,7 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 	var wgInterfaces []WireGuardInterface
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +35,7 @@ func (a *Adaptor) FetchWgInterfaces(c context.Context) ([]WireGuardInterface, er
 		common.WGInterfacePath,
 		&wgInterfaces,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +47,7 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 	var wgInterface WireGuardInterface
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +57,7 @@ func (a *Adaptor) FetchWgInterface(c context.Context, interfaceID string) (*Wire
 		common.WGInterfacePath+"/"+interfaceID,
 		&wgInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +69,7 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 	var createdInterface WireGuardInterface
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +80,7 @@ func (a *Adaptor) CreateWgInterface(c context.Context, wgInterface WireGuardInte
 		wgInterface,
 		&createdInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +92,7 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 	var updatedInterface WireGuardInterface
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +103,7 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 		wgInterface,
 		&updatedInterface,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +113,7 @@ func (a *Adaptor) UpdateWgInterface(c context.Context, interfaceID string, wgInt
 
 func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error {
 	httpClient, err := a.client()
+
 	if err != nil {
 		return err
 	}
@@ -114,12 +123,16 @@ func (a *Adaptor) DeleteWgInterface(c context.Context, interfaceID string) error
 		common.WGInterfacePath+"/"+interfaceID,
 		nil,
 	)
+
 	if err != nil {
 		if httphelper.IsNotFound(err) {
 			a.logger.Warn("wireguard interface already deleted", zap.String("interfaceID", interfaceID))
+
 			return nil
 		}
+
 		a.logger.Error("failed to delete wireguard interface", zap.Error(err))
+
 		return err
 	}
 

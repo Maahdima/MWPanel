@@ -34,11 +34,15 @@ func NewMwpClient(db *gorm.DB) *MwpClient {
 // IsConnected Check if the specified client is connected (not nil)
 func (c *MwpClient) IsConnected(serverName *string) bool {
 	client := c.GetClient(serverName)
+
 	if client == nil {
 		return false
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
+
 	return client.Get(ctx, DeviceIdentityPath, nil) == nil
 }
 
@@ -46,17 +50,23 @@ func (c *MwpClient) IsConnected(serverName *string) bool {
 // deterministically. Map iteration must never select a router for an operation.
 func (c *MwpClient) GetClient(serverName *string) *httphelper.Client {
 	var server model.Server
+
 	query := c.db.Where("is_active = ?", true)
+
 	if serverName != nil {
 		query = query.Where("name = ?", *serverName)
 	}
+
 	if err := query.Order("id ASC").First(&server).Error; err != nil {
 		return nil
 	}
+
 	client, err := c.clientForRecord(server)
+
 	if err != nil {
 		return nil
 	}
+
 	return client
 }
 
@@ -66,18 +76,23 @@ func (c *MwpClient) ClientForServer(serverID uint) (*httphelper.Client, error) {
 	if serverID == 0 {
 		return nil, fmt.Errorf("server ID is required")
 	}
+
 	var server model.Server
+
 	if err := c.db.Where("is_active = ?", true).First(&server, serverID).Error; err != nil {
 		return nil, err
 	}
+
 	return c.clientForRecord(server)
 }
 
 func NewServerHTTPClient(server model.Server) (*httphelper.Client, error) {
 	protocol := "http"
+
 	if server.IsSSL {
 		protocol = "https"
 	}
+
 	return httphelper.NewClient(httphelper.Config{
 		BaseURL:  fmt.Sprintf("%s://%s/rest", protocol, net.JoinHostPort(server.IPAddress, strconv.Itoa(server.APIPort))),
 		Username: server.Username, Password: server.Password, Timeout: 30 * time.Second,
@@ -96,31 +111,42 @@ type connectionKey struct {
 
 func (c *MwpClient) clientForRecord(server model.Server) (*httphelper.Client, error) {
 	key := connectionKey{server.ID, server.IPAddress, server.APIPort, server.Username, server.Password, server.IsSSL}
+
 	c.mu.Lock()
+
 	defer c.mu.Unlock()
+
 	if client := c.clients[key]; client != nil {
 		return client, nil
 	}
+
 	client, err := NewServerHTTPClient(server)
+
 	if err != nil {
 		return nil, err
 	}
+
 	// Already bound adaptors retain their own immutable client during configuration edits.
 	for old := range c.clients {
 		if old.ID == key.ID {
 			delete(c.clients, old)
 		}
 	}
+
 	c.clients[key] = client
+
 	return client, nil
 }
 
 func (c *MwpClient) InitClient() {
 	var servers []model.Server
+
 	if err := c.db.Where("is_active = ?", true).Find(&servers).Error; err != nil {
 		c.logger.Error("failed to fetch servers", zap.Error(err))
+
 		return
 	}
+
 	for _, server := range servers {
 		if _, err := c.clientForRecord(server); err != nil {
 			c.logger.Error("failed to initialize router client", zap.Uint("server_id", server.ID), zap.Error(err))
@@ -134,22 +160,30 @@ func (c *MwpClient) ResourceServerID(resource string, id uint) (uint, error) {
 	switch resource {
 	case "peer":
 		var peer model.Peer
+
 		if err := c.db.Select("server_id").First(&peer, id).Error; err != nil {
 			return 0, err
 		}
+
 		if peer.ServerID == 0 {
 			return 0, fmt.Errorf("peer router has not been assigned")
 		}
+
 		return peer.ServerID, nil
+
 	case "interface":
 		var iface model.Interface
+
 		if err := c.db.Select("server_id").First(&iface, id).Error; err != nil {
 			return 0, err
 		}
+
 		if iface.ServerID == 0 {
 			return 0, fmt.Errorf("interface router has not been assigned")
 		}
+
 		return iface.ServerID, nil
+
 	default:
 		return 0, fmt.Errorf("unsupported router resource")
 	}
@@ -157,11 +191,15 @@ func (c *MwpClient) ResourceServerID(resource string, id uint) (uint, error) {
 
 func (c *MwpClient) IsServerConnected(id uint) bool {
 	client, err := c.ClientForServer(id)
+
 	if err != nil {
 		return false
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
+
 	return client.Get(ctx, DeviceIdentityPath, nil) == nil
 }
 
@@ -169,13 +207,16 @@ func (c *MwpClient) IsServerConnected(id uint) bool {
 // and verifies every affected resource's actual server independently.
 func (c *MwpClient) AnyConnected() bool {
 	var servers []model.Server
+
 	if err := c.db.Where("is_active = ?", true).Order("id ASC").Find(&servers).Error; err != nil {
 		return false
 	}
+
 	for _, server := range servers {
 		if c.IsServerConnected(server.ID) {
 			return true
 		}
 	}
+
 	return false
 }

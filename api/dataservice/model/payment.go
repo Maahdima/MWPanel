@@ -47,4 +47,5 @@ type ApprovedPayment struct {
 }
 
 func (*ApprovedPayment) BeforeUpdate(*gorm.DB) error { return ErrImmutableAccounting }
+
 func (*ApprovedPayment) BeforeDelete(*gorm.DB) error { return ErrImmutableAccounting }

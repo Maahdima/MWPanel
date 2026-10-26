@@ -29,7 +29,9 @@ type QRCodeGenerator struct {
 
 func init() {
 	appCfg := config.GetAppConfig()
+
 	peerQrCodesPath = filepath.Join(appCfg.PeerFilesDir, "qrcode")
+
 	if err := os.MkdirAll(peerQrCodesPath, os.ModePerm); err != nil {
 		panic(fmt.Sprintf("failed to create QR code directory: %v", err))
 	}
@@ -48,16 +50,21 @@ func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) 
 	if err = q.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.Uint("id", id))
+
 			return
 		}
+
 		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+
 		return
 	}
 
 	if peer.MigrationID != nil {
 		err = ErrRouterSyncPending
+
 		return
 	}
+
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
@@ -69,21 +76,27 @@ func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err err
 	if err = q.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.String("uuid", uuid))
+
 			return
 		}
+
 		q.logger.Error("failed to get peer from database", zap.String("uuid", uuid), zap.Error(err))
+
 		return
 	}
 
 	isSharable := utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
+
 	if !isSharable {
 		return "", common.ErrPeerNotShared
 	}
 
 	if peer.MigrationID != nil {
 		err = ErrRouterSyncPending
+
 		return
 	}
+
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
@@ -95,39 +108,53 @@ func (q *QRCodeGenerator) GetQRCodeByUUID(uuid string) (qrcodePath string, err e
 	if err = q.db.First(&peer, "uuid = ?", uuid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.String("uuid", uuid))
+
 			return
 		}
+
 		q.logger.Error("failed to get peer from database", zap.String("uuid", uuid), zap.Error(err))
+
 		return
 	}
 
 	if peer.MigrationID != nil {
 		err = ErrRouterSyncPending
+
 		return
 	}
+
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
+
 	return qrcodePath, nil
 }
 
 func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 	qrc, err := qrcode.New(config)
+
 	if err != nil {
 		q.logger.Error("could not generate QRCode", zap.Error(err))
+
 		return err
 	}
 
 	filePath := fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, uuid)
 
 	file, err := os.CreateTemp(peerQrCodesPath, ".qr-*")
+
 	if err != nil {
 		return err
 	}
+
 	temporary := file.Name()
+
 	defer os.Remove(temporary)
+
 	writer := standard.NewWithWriter(file)
+
 	if err = qrc.Save(writer); err != nil {
 		return err
 	}
+
 	return os.Rename(temporary, filePath)
 }
 
@@ -137,9 +164,12 @@ func (q *QRCodeGenerator) RemovePeerQRCode(id uint) error {
 	if err := q.db.First(&peer, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			q.logger.Error("peer not found in database", zap.Uint("id", id))
+
 			return err
 		}
+
 		q.logger.Error("failed to get peer from database", zap.Uint("id", id), zap.Error(err))
+
 		return err
 	}
 
@@ -152,8 +182,10 @@ func (q *QRCodeGenerator) RemovePeerQRCodeByUUID(peerUUID string) error {
 	}
 
 	qrcodePath := fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peerUUID)
+
 	if err := utils.RemoveFileIfExists(qrcodePath); err != nil {
 		q.logger.Error("failed to remove QRCode", zap.String("path", qrcodePath), zap.Error(err))
+
 		return err
 	}
 

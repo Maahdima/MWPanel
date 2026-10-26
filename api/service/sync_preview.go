@@ -9,12 +9,15 @@ import (
 
 func (s *SyncService) GetSyncInterfaces() ([]schema.SyncInterfacePreviewResponse, error) {
 	bound, err := s.selectedServer()
+
 	if err != nil {
 		return nil, err
 	}
+
 	s = bound
 
 	ifaces, err := s.fetchMikrotikInterfaces()
+
 	if err != nil {
 		return nil, err
 	}
@@ -24,23 +27,28 @@ func (s *SyncService) GetSyncInterfaces() ([]schema.SyncInterfacePreviewResponse
 
 func (s *SyncService) GetSyncPeers(interfaceName string) ([]schema.SyncPeerPreviewResponse, error) {
 	bound, err := s.selectedServer()
+
 	if err != nil {
 		return nil, err
 	}
+
 	s = bound
 
 	peers, err := s.fetchMikrotikPeers()
+
 	if err != nil {
 		return nil, err
 	}
 
 	if interfaceName != "" {
 		filtered := make([]mikrotik.WireGuardPeer, 0, len(peers))
+
 		for _, peer := range peers {
 			if peer.Interface == interfaceName {
 				filtered = append(filtered, peer)
 			}
 		}
+
 		peers = filtered
 	}
 
@@ -49,9 +57,11 @@ func (s *SyncService) GetSyncPeers(interfaceName string) ([]schema.SyncPeerPrevi
 
 func (s *SyncService) SyncSelectedInterfaces(interfaceIDs []string) error {
 	bound, err := s.selectedServer()
+
 	if err != nil {
 		return err
 	}
+
 	s = bound
 
 	if len(interfaceIDs) == 0 {
@@ -59,17 +69,21 @@ func (s *SyncService) SyncSelectedInterfaces(interfaceIDs []string) error {
 	}
 
 	mikrotikIfaces, err := s.fetchMikrotikInterfaces()
+
 	if err != nil {
 		return err
 	}
 
 	selectedIfaces := filterMikrotikInterfacesByID(mikrotikIfaces, interfaceIDs)
+
 	if len(selectedIfaces) == 0 {
 		s.logger.Info("no matching interfaces selected for sync")
+
 		return nil
 	}
 
 	dbIfaces, err := s.fetchDBInterfaces()
+
 	if err != nil {
 		return err
 	}
@@ -79,9 +93,11 @@ func (s *SyncService) SyncSelectedInterfaces(interfaceIDs []string) error {
 
 func (s *SyncService) SyncSelectedPeers(peerIDs []string) error {
 	bound, err := s.selectedServer()
+
 	if err != nil {
 		return err
 	}
+
 	s = bound
 
 	if len(peerIDs) == 0 {
@@ -89,17 +105,21 @@ func (s *SyncService) SyncSelectedPeers(peerIDs []string) error {
 	}
 
 	mikrotikPeers, err := s.fetchMikrotikPeers()
+
 	if err != nil {
 		return err
 	}
 
 	selectedPeers := filterMikrotikPeersByID(mikrotikPeers, peerIDs)
+
 	if len(selectedPeers) == 0 {
 		s.logger.Info("no matching peers selected for sync")
+
 		return nil
 	}
 
 	dbPeers, err := s.fetchDBPeers()
+
 	if err != nil {
 		return err
 	}
@@ -117,6 +137,7 @@ func parseOptionalBool(value *string) bool {
 
 func mapSyncInterfaces(ifaces []mikrotik.WireGuardInterface) []schema.SyncInterfacePreviewResponse {
 	result := make([]schema.SyncInterfacePreviewResponse, 0, len(ifaces))
+
 	for _, iface := range ifaces {
 		result = append(result, schema.SyncInterfacePreviewResponse{
 			ID:         iface.ID,
@@ -134,6 +155,7 @@ func mapSyncInterfaces(ifaces []mikrotik.WireGuardInterface) []schema.SyncInterf
 
 func mapSyncPeers(peers []mikrotik.WireGuardPeer) []schema.SyncPeerPreviewResponse {
 	result := make([]schema.SyncPeerPreviewResponse, 0, len(peers))
+
 	for _, peer := range peers {
 		result = append(result, schema.SyncPeerPreviewResponse{
 			ID:             peer.ID,
@@ -150,11 +172,13 @@ func mapSyncPeers(peers []mikrotik.WireGuardPeer) []schema.SyncPeerPreviewRespon
 
 func filterMikrotikInterfacesByID(ifaces []mikrotik.WireGuardInterface, ids []string) []mikrotik.WireGuardInterface {
 	selected := make(map[string]struct{}, len(ids))
+
 	for _, id := range ids {
 		selected[id] = struct{}{}
 	}
 
 	result := make([]mikrotik.WireGuardInterface, 0, len(ids))
+
 	for _, iface := range ifaces {
 		if _, ok := selected[iface.ID]; ok {
 			result = append(result, iface)
@@ -166,11 +190,13 @@ func filterMikrotikInterfacesByID(ifaces []mikrotik.WireGuardInterface, ids []st
 
 func filterMikrotikPeersByID(peers []mikrotik.WireGuardPeer, ids []string) []mikrotik.WireGuardPeer {
 	selected := make(map[string]struct{}, len(ids))
+
 	for _, id := range ids {
 		selected[id] = struct{}{}
 	}
 
 	result := make([]mikrotik.WireGuardPeer, 0, len(ids))
+
 	for _, peer := range peers {
 		if _, ok := selected[peer.ID]; ok {
 			result = append(result, peer)

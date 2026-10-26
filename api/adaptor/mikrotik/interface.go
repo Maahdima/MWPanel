@@ -22,6 +22,7 @@ func (a *Adaptor) FetchInterface(c context.Context, interfaceID string) (*Interf
 	var iface Interface
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +32,7 @@ func (a *Adaptor) FetchInterface(c context.Context, interfaceID string) (*Interf
 		common.InterfacePath+"/"+interfaceID,
 		&iface,
 	)
+
 	if err != nil {
 		return nil, err
 	}

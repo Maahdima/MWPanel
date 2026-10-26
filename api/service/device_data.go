@@ -53,8 +53,10 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 	var trafficData []model.Traffic
 
 	days, err := strconv.Atoi(rangeParam)
+
 	if err != nil || days <= 0 {
 		d.logger.Error("invalid range param", zap.String("range", rangeParam), zap.Error(err))
+
 		return nil, fmt.Errorf("invalid range parameter: %s", rangeParam)
 	}
 
@@ -65,6 +67,7 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 		Order("created_at ASC").
 		Find(&trafficData).Error; err != nil {
 		d.logger.Error("failed to fetch daily traffic usage data", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -73,25 +76,36 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 		upload   int64
 		total    int64
 	}
+
 	totalsByDate := make(map[string]*dayTotals)
+
 	dateOrder := make([]string, 0)
 
 	for _, data := range trafficData {
 		date := time.Unix(int64(data.CreatedAt), 0).Format("2006-01-02")
+
 		totals, exists := totalsByDate[date]
+
 		if !exists {
 			totals = &dayTotals{}
+
 			totalsByDate[date] = totals
+
 			dateOrder = append(dateOrder, date)
 		}
+
 		totals.download += data.DownloadUsage
+
 		totals.upload += data.UploadUsage
+
 		totals.total += data.TotalUsage
 	}
 
 	dailyTrafficUsages := make([]schema.DailyTrafficUsageResponse, 0, len(dateOrder))
+
 	for _, date := range dateOrder {
 		totals := totalsByDate[date]
+
 		dailyTrafficUsages = append(dailyTrafficUsages, schema.DailyTrafficUsageResponse{
 			Date:          date,
 			DownloadUsage: utils.BytesToGB(totals.download),
@@ -105,62 +119,83 @@ func (d *DeviceData) GetDailyTrafficUsage(rangeParam string) (*[]schema.DailyTra
 
 func (d *DeviceData) GetDeviceData(serverIDs ...uint) (*schema.DeviceStatsResponse, error) {
 	requested := uint(0)
+
 	if len(serverIDs) > 0 {
 		requested = serverIDs[0]
 	}
+
 	var selected model.Server
+
 	query := d.db.Where("is_active = ?", true)
+
 	if requested != 0 {
 		query = query.Where("id = ?", requested)
 	}
+
 	if err := query.Order("id ASC").First(&selected).Error; err != nil {
 		return nil, err
 	}
+
 	adaptor, err := d.mikrotikAdaptor.ForServer(selected.ID)
+
 	if err != nil {
 		return nil, err
 	}
+
 	bound := *d
+
 	bound.serverID = selected.ID
+
 	bound.mikrotikAdaptor = adaptor
+
 	d = &bound
+
 	serverStats, err := d.serverService.GetServersData()
+
 	if err != nil {
 		d.logger.Error("failed to fetch server stats", zap.Error(err))
+
 		return nil, err
 	}
 
 	interfaceStats, err := d.interfaceService.GetInterfacesData()
+
 	if err != nil {
 		return nil, err
 	}
 
 	peerStats, err := d.peerService.GetPeersData()
+
 	if err != nil {
 		return nil, err
 	}
 
 	trafficInfo, err := d.getTrafficInfo()
+
 	if err != nil {
 		return nil, err
 	}
 
 	info, err := d.getDeviceInfo()
+
 	if err != nil {
 		return nil, err
 	}
 
 	identity, err := d.getDeviceIdentity()
+
 	if err != nil {
 		return nil, err
 	}
 
 	ipv4, err := d.getDeviceIpAddress()
+
 	if err != nil {
 		return nil, err
 	}
 
 	dns, err := d.getDNSConfig()
+
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +214,10 @@ func (d *DeviceData) GetDeviceData(serverIDs ...uint) (*schema.DeviceStatsRespon
 
 func (d *DeviceData) getTrafficInfo() (*schema.TrafficInfo, error) {
 	var totalTraffic model.TotalTrafficUsage
+
 	if err := d.db.FirstOrCreate(&totalTraffic, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error; err != nil {
 		d.logger.Error("failed to fetch total traffic usage", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -191,8 +228,10 @@ func (d *DeviceData) getTrafficInfo() (*schema.TrafficInfo, error) {
 
 func (d *DeviceData) getDeviceInfo() (*schema.DeviceInfo, error) {
 	info, err := d.mikrotikAdaptor.FetchDeviceInfo(context.Background())
+
 	if err != nil {
 		d.logger.Error("failed to fetch device resource", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -211,8 +250,10 @@ func (d *DeviceData) getDeviceInfo() (*schema.DeviceInfo, error) {
 
 func (d *DeviceData) getDeviceIdentity() (*schema.DeviceIdentity, error) {
 	identity, err := d.mikrotikAdaptor.FetchDeviceIdentity(context.Background())
+
 	if err != nil {
 		d.logger.Error("failed to fetch device identity", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -225,8 +266,10 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	deviceIpData := &schema.DeviceIPv4Address{}
 
 	ipv4Addresses, err := d.mikrotikAdaptor.FetchIPv4Addresses(context.Background())
+
 	if err != nil {
 		d.logger.Error("failed to fetch IPv4 address", zap.Error(err))
+
 		return deviceIpData, err
 	}
 
@@ -237,8 +280,10 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	}
 
 	var server model.Server
+
 	if err := d.db.First(&server, d.serverID).Error; err != nil {
 		d.logger.Error("failed to fetch server record from database", zap.Error(err))
+
 		return deviceIpData, err
 	}
 
@@ -247,6 +292,7 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
+
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	httpClient := &http.Client{
@@ -255,33 +301,44 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 	}
 
 	ipApiURL := fmt.Sprintf("http://ip-api.com/json/%s?fields=status,message,country,city,isp", server.IPAddress)
+
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ipApiURL, nil)
+
 	if err != nil {
 		d.logger.Error("failed to create IP API request", zap.Error(err))
+
 		return deviceIpData, err
 	}
 
 	resp, err := httpClient.Do(req)
+
 	if err != nil {
 		d.logger.Error("HTTP request to IP API failed", zap.Error(err))
+
 		return deviceIpData, nil
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		d.logger.Error("unexpected response status from IP API", zap.Int("status", resp.StatusCode))
+
 		return deviceIpData, nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
+
 	if err != nil {
 		d.logger.Error("failed to read response body from IP API", zap.Error(err))
+
 		return deviceIpData, nil
 	}
 
 	var respBody IPApiResponse
+
 	if err := json.Unmarshal(body, &respBody); err != nil {
 		d.logger.Error("failed to parse IP API response", zap.Error(err))
+
 		return deviceIpData, nil
 	}
 
@@ -292,8 +349,10 @@ func (d *DeviceData) getDeviceIpAddress() (*schema.DeviceIPv4Address, error) {
 
 func (d *DeviceData) getDNSConfig() (*schema.DNSConfig, error) {
 	dns, err := d.mikrotikAdaptor.FetchDNSConfig(context.Background())
+
 	if err != nil {
 		d.logger.Error("failed to fetch dns config", zap.Error(err))
+
 		return nil, err
 	}
 

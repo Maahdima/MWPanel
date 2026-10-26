@@ -26,9 +26,11 @@ func NewAdaptor(mwpClients *common.MwpClient) *Adaptor {
 // does not mutate the shared adaptor or client registry, so calls can overlap.
 func (a *Adaptor) ForServer(serverID uint) (*Adaptor, error) {
 	client, err := a.mwpClient.ClientForServer(serverID)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &Adaptor{mwpClient: a.mwpClient, boundClient: client, logger: a.logger}, nil
 }
 
@@ -41,10 +43,12 @@ func (a *Adaptor) client() (*httphelper.Client, error) {
 	if a.boundClient != nil {
 		return a.boundClient, nil
 	}
+
 	if a.mwpClient != nil {
 		if client := a.mwpClient.GetClient(nil); client != nil {
 			return client, nil
 		}
 	}
+
 	return nil, errors.New("no active MikroTik server is configured")
 }

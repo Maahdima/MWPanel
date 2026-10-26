@@ -19,6 +19,7 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 	var createdQueue Queue
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +30,7 @@ func (a *Adaptor) CreateSimpleQueue(c context.Context, queue Queue) (*Queue, err
 		queue,
 		&createdQueue,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +42,7 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 	var updatedQueue Queue
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +53,7 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 		queue,
 		&updatedQueue,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +63,7 @@ func (a *Adaptor) UpdateSimpleQueue(c context.Context, queueID string, queue Que
 
 func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 	httpClient, err := a.client()
+
 	if err != nil {
 		return err
 	}
@@ -68,6 +73,7 @@ func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 		common.QueuePath+"/"+queueID,
 		nil,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -77,22 +83,30 @@ func (a *Adaptor) DeleteSimpleQueue(c context.Context, queueID string) error {
 
 func (a *Adaptor) FetchSimpleQueue(ctx context.Context, id string) (*Queue, error) {
 	client, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
+
 	var queue Queue
+
 	if err := client.Get(ctx, common.QueuePath+"/"+id, &queue); err != nil {
 		return nil, err
 	}
+
 	return &queue, nil
 }
 
 func (a *Adaptor) FetchSimpleQueues(ctx context.Context) ([]Queue, error) {
 	client, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
+
 	var rows []Queue
+
 	err = client.Get(ctx, common.QueuePath, &rows)
+
 	return rows, err
 }

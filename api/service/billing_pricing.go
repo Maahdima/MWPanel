@@ -44,47 +44,65 @@ type BillingPriceSnapshot struct {
 
 func PriceBillingOperation(operation BillingOperation, bytes, days, rateRial int64) (BillingPriceSnapshot, error) {
 	var empty BillingPriceSnapshot
+
 	if bytes < 0 || days < 0 || rateRial < 0 {
 		return empty, ErrInvalidBillingQuantity
 	}
+
 	multiplier, divisor := int64(1), BillingGiB
+
 	switch operation {
 	case BillingCreate:
 		if bytes == 0 || days == 0 {
 			return empty, ErrInvalidBillingQuantity
 		}
+
 		multiplier = max(days, 30)
+
 		divisor *= 30
+
 	case BillingExtendExpiry:
 		if bytes == 0 || days == 0 {
 			return empty, ErrInvalidBillingQuantity
 		}
+
 	case BillingFullReset:
 		if bytes == 0 || days == 0 {
 			return empty, ErrInvalidBillingQuantity
 		}
+
 	case BillingAddTraffic:
 		if bytes == 0 || days != 0 {
 			return empty, ErrInvalidBillingQuantity
 		}
+
 	case BillingResetUsage:
 		if days != 0 {
 			return empty, ErrInvalidBillingQuantity
 		}
+
 	default:
 		return empty, ErrInvalidBillingQuantity
 	}
+
 	numerator := new(big.Int).Mul(big.NewInt(bytes), big.NewInt(rateRial))
+
 	numerator.Mul(numerator, big.NewInt(multiplier))
+
 	denominator := big.NewInt(divisor)
+
 	whole, remainder := new(big.Int), new(big.Int)
+
 	whole.QuoRem(numerator, denominator, remainder)
+
 	if remainder.Lsh(remainder, 1).Cmp(denominator) >= 0 {
 		whole.Add(whole, big.NewInt(1))
 	}
+
 	if !whole.IsInt64() {
 		return empty, ErrBillingOverflow
 	}
+
 	return BillingPriceSnapshot{
 		Version: BillingPricingVersion, Operation: operation, Bytes: bytes,
 		Days: days, RateRial: rateRial, AmountRial: whole.Int64(), Rounding: "half_up_rial",
@@ -95,33 +113,46 @@ func PriceBillingOperation(operation BillingOperation, bytes, days, rateRial int
 // display conversion. Sub-byte quantities, exponents, signs and overflow are rejected.
 func ParseBillingGiB(value string) (int64, error) {
 	value = strings.TrimSpace(value)
+
 	if value == "" {
 		return 0, ErrInvalidBillingQuantity
 	}
+
 	dots, digits := 0, 0
+
 	for _, c := range value {
 		if c == '.' {
 			dots++
+
 			if dots > 1 {
 				return 0, ErrInvalidBillingQuantity
 			}
+
 			continue
 		}
+
 		if c < '0' || c > '9' {
 			return 0, ErrInvalidBillingQuantity
 		}
+
 		digits++
 	}
+
 	if digits == 0 || strings.HasPrefix(value, ".") || strings.HasSuffix(value, ".") || len(value) > 64 {
 		return 0, ErrInvalidBillingQuantity
 	}
+
 	quantity, ok := new(big.Rat).SetString(value)
+
 	if !ok {
 		return 0, ErrInvalidBillingQuantity
 	}
+
 	quantity.Mul(quantity, new(big.Rat).SetInt64(BillingGiB))
+
 	if !quantity.IsInt() || !quantity.Num().IsInt64() {
 		return 0, ErrInvalidBillingQuantity
 	}
+
 	return quantity.Num().Int64(), nil
 }

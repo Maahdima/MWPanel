@@ -22,6 +22,7 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 	var createdScheduler Scheduler
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +33,7 @@ func (a *Adaptor) CreateScheduler(c context.Context, scheduler Scheduler) (*Sche
 		scheduler,
 		&createdScheduler,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +45,7 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 	var updatedScheduler Scheduler
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +56,7 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 		scheduler,
 		&updatedScheduler,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +66,7 @@ func (a *Adaptor) UpdateScheduler(c context.Context, schedulerID string, schedul
 
 func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
 	httpClient, err := a.client()
+
 	if err != nil {
 		return err
 	}
@@ -71,6 +76,7 @@ func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
 		common.SchedulerPath+"/"+schedulerID,
 		nil,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -80,22 +86,30 @@ func (a *Adaptor) DeleteScheduler(c context.Context, schedulerID string) error {
 
 func (a *Adaptor) FetchScheduler(ctx context.Context, id string) (*Scheduler, error) {
 	client, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
+
 	var scheduler Scheduler
+
 	if err := client.Get(ctx, common.SchedulerPath+"/"+id, &scheduler); err != nil {
 		return nil, err
 	}
+
 	return &scheduler, nil
 }
 
 func (a *Adaptor) FetchSchedulers(ctx context.Context) ([]Scheduler, error) {
 	client, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
+
 	var rows []Scheduler
+
 	err = client.Get(ctx, common.SchedulerPath, &rows)
+
 	return rows, err
 }

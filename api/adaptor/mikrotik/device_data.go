@@ -59,6 +59,7 @@ func (a *Adaptor) FetchDeviceInfo(c context.Context) (*SystemInfo, error) {
 	var systemInfo SystemInfo
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +69,7 @@ func (a *Adaptor) FetchDeviceInfo(c context.Context) (*SystemInfo, error) {
 		common.DeviceInfoPath,
 		&systemInfo,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +81,7 @@ func (a *Adaptor) FetchDeviceIdentity(c context.Context) (*SystemIdentity, error
 	var systemIdentity SystemIdentity
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +91,7 @@ func (a *Adaptor) FetchDeviceIdentity(c context.Context) (*SystemIdentity, error
 		common.DeviceIdentityPath,
 		&systemIdentity,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +103,7 @@ func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 	var dnsConfig DNSConfig
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +113,7 @@ func (a *Adaptor) FetchDNSConfig(c context.Context) (*DNSConfig, error) {
 		common.DeviceDnsPath,
 		&dnsConfig,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +125,7 @@ func (a *Adaptor) FetchIPv4Addresses(c context.Context) ([]IPAddress, error) {
 	var ipv4Address []IPAddress
 
 	httpClient, err := a.client()
+
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +135,7 @@ func (a *Adaptor) FetchIPv4Addresses(c context.Context) ([]IPAddress, error) {
 		common.DeviceIPv4Path,
 		&ipv4Address,
 	)
+
 	if err != nil {
 		return nil, err
 	}
