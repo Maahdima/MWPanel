@@ -23,6 +23,9 @@ Cross-router migration can change client addresses and VPN endpoints; clients ma
 
 ## Validation
 
+The final diff does not include automated test sources or the PostgreSQL fixture helper. The test runs listed below were completed before those files were removed. The resulting source has been built and checked with `go vet`; the configurable Mock RouterOS development command remains available for manual verification.
+
+
 - Entire Go suite: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...`.
 - Targeted race checks: concurrent prepaid reservations, atomic receipt approval, concurrent purchase replay and concurrent migration workers.
 - Service/HTTP integration suites also executed against an isolated official PostgreSQL 17.6 container; private fixture schemas and independent pools test the same financial/router paths.

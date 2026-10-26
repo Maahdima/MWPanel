@@ -1,5 +1,8 @@
 # Alignment with the existing MWPanel architecture
 
+> Current source status: the 23 contribution test files and dedicated PostgreSQL fixture helper have been removed. Test results below are historical runs made before removal. The resulting source builds and passes `go vet`; Mock RouterOS remains available for manual development checks.
+
+
 The source of truth is this repository's original `c935efa` architecture, compared with the completed feature at `78b0561`. No separate boilerplate repository was supplied or substituted. Existing examples include `api/http/server.go`, `api/http/schema/server.go`, `api/service/server.go`, `ui/src/api/servers.ts`, server hooks, `features/servers/components`, and the shared form/table/dialog controls.
 
 ## Findings and changes
