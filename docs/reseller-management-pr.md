@@ -23,14 +23,14 @@ Cross-router migration can change client addresses and VPN endpoints; clients ma
 
 ## Validation
 
-The final diff does not include automated test sources or the PostgreSQL fixture helper. The test runs listed below were completed before those files were removed. The resulting source has been built and checked with `go vet`; the configurable Mock RouterOS development command remains available for manual verification.
+The final diff does not include automated test sources or the PostgreSQL fixture helper. The test runs listed below were completed before those files were removed. The resulting source has been built and checked with `go vet`; the development Mock RouterOS and local test harness are also excluded.
 
 
 - Entire Go suite: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...`.
 - Targeted race checks: concurrent prepaid reservations, atomic receipt approval, concurrent purchase replay and concurrent migration workers.
 - Service/HTTP integration suites also executed against an isolated official PostgreSQL 17.6 container; private fixture schemas and independent pools test the same financial/router paths.
 - `go vet`, UI TypeScript/Vite build, UI lint and `git diff --check`.
-- Two independent Mock RouterOS servers cover colliding IDs, direct authorization bypass attempts, exact pricing, partial settlement, grace/recovery, lost-success responses, database failures after router mutation, migration resumption/compensation, source cleanup, preshared keys, queue limits, stable public downloads and consumption enforcement during migration.
+- Before removal, two independent Mock RouterOS servers covered colliding IDs, direct authorization bypass attempts, exact pricing, partial settlement, grace/recovery, lost-success responses, database failures after router mutation, migration resumption/compensation, source cleanup, preshared keys, queue limits, stable public downloads and consumption enforcement during migration.
 - The full race suite previously passed. A later complete run with a deliberately restricted CPU budget exceeded its three-minute package timeout; normal full-suite and targeted race results are recorded separately rather than reporting that timed run as a pass.
 
 Browser verification caught and fixed reseller navigation repeatedly calling admin APIs. The final checked login used only successful auth/billing requests. UI captures are available with the local review artifacts; no real MikroTik or production data was used.

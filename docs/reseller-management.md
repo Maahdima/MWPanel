@@ -60,4 +60,4 @@ Back up before upgrading. AutoMigrate adds ownership, router and billing/workflo
 
 Build `ui/` before Go because production embeds its output, including dynamic-route chunks. The final contribution does not include automated test sources or the PostgreSQL fixture helper. Historical test results in the development notes were obtained before those files were removed; they are not a claim of regression coverage in the final source tree.
 
-The configurable Mock RouterOS development command remains available for manual local checks without physical routers. Build the application and run `go vet ./...` for current-source static verification. See `reseller-management-development.md` for the validation record and `reseller-management-pr.md` for the contribution description.
+The development Mock RouterOS and local test harness have also been removed. Build the application and run `go vet ./...` for current-source static verification. See `reseller-management-development.md` for the validation record and `reseller-management-pr.md` for the contribution description.

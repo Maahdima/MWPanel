@@ -1,6 +1,6 @@
 # Reseller contribution development status
 
-> Current source status: the 23 contribution test files and dedicated PostgreSQL fixture helper have been removed. Test results below are historical runs made before removal. The resulting source builds and passes `go vet`; Mock RouterOS remains available for manual development checks.
+> Current source status: the 23 contribution test files and dedicated PostgreSQL fixture helper have been removed. Test results below are historical runs made before removal. The resulting source builds and passes `go vet`; The development Mock RouterOS and its local harness have also been removed.
 
 
 Local implementation and review are prepared on `feat/reseller-billing-management`, based on `c935efa`. The proposal is published as [#6](https://github.com/Maahdima/MWPanel/issues/6). Existing Git identity is retained.
