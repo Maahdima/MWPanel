@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -113,14 +114,17 @@ export default function ResellerDetail({ id }: { id: number }) {
                   ? 'Reseller settings'
                   : 'Administrative suspension'}
               </DialogTitle>
+              <DialogDescription>
+                Manage assigned resources, billing and account restrictions.
+              </DialogDescription>
             </DialogHeader>
-            <DialogBody>
-              {dialog === 'settings' ? (
-                <ResellerEditor
-                  current={reseller}
-                  onClose={() => setDialog(null)}
-                />
-              ) : dialog === 'suspension' ? (
+            {dialog === 'settings' ? (
+              <ResellerEditor
+                current={reseller}
+                onClose={() => setDialog(null)}
+              />
+            ) : dialog === 'suspension' ? (
+              <DialogBody>
                 <form onSubmit={saveSuspension} className='space-y-3'>
                   <p className='text-muted-foreground text-sm'>
                     Billing, expiration, quota and manual restrictions remain
@@ -137,8 +141,8 @@ export default function ResellerDetail({ id }: { id: number }) {
                     Confirm change
                   </Button>
                 </form>
-              ) : null}
-            </DialogBody>
+              </DialogBody>
+            ) : null}
           </DialogContent>
         </Dialog>
       </PageFrame>

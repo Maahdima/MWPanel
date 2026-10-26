@@ -29,3 +29,9 @@ Before refactoring, the normal Go suite, vet, UI TypeScript/Vite build and lint 
 - A real browser checked admin login on a custom panel prefix, shared form selection and successful unchanged settings submission, light/dark appearance, logout, reseller login, scoped billing and the shared configuration table. All 43 recorded API requests returned 200; no repeated 403 or administrative API request occurred during the reseller flow. The browser used disposable demo data with an empty peer list; populated peer actions remain covered by service/HTTP tests rather than a claim of exhaustive browser automation.
 
 No database was reset, no real router was contacted, and the temporary application/Mock servers were stopped. The existing limitations remain: same-router interface migration is rejected and real RouterOS acceptance is still required before deployment.
+
+## UI spacing follow-up
+
+Reseller pages now use the same heading/action spacing as the existing server page. Dialog fields group labels and controls consistently; responsive creation fields stack at small widths. Shared `DialogFooter` keeps Cancel and submit actions visible while long bodies scroll, using explicit form association without changing request payloads. Dialog descriptions match the original accessibility pattern and histories use one scrolling body.
+
+Prettier checked all 65 non-generated UI source files changed by the contribution; Go formatting required no correction. UI build, lint and embedded-asset tests passed. A browser verified scrolling the long settings form while its footer stayed visible, and submitting unchanged demo settings through that footer succeeded. The prior backend/financial suites were not repeated for this presentation-only pass. Temporary application and Mock servers were stopped afterward.

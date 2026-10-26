@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useId, useState } from 'react'
 import { Peer } from '@/schema/peers'
 import { useTransferPeerMutation } from '@/hooks/resellers/useResellerMutations'
 import { useResellersQuery } from '@/hooks/resellers/useResellerQueries'
@@ -7,6 +7,8 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -22,6 +24,7 @@ import {
 import { PurchaseButton } from './purchase-button'
 
 export function OwnerCell({ peer }: { peer: Peer }) {
+  const formID = useId()
   const { data } = useResellersQuery(),
     [open, setOpen] = useState(false)
   const action = useTransferPeerMutation(peer.id)
@@ -53,56 +56,77 @@ export function OwnerCell({ peer }: { peer: Peer }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Transfer ownership</DialogTitle>
+            <DialogDescription>
+              Choose the account responsible for this configuration.
+            </DialogDescription>
           </DialogHeader>
-          <DialogBody className='space-y-4 pb-5'>
-            <form onSubmit={submit} className='space-y-3'>
+          <DialogBody className='space-y-4'>
+            <form id={formID} onSubmit={submit} className='space-y-4'>
               <p>{peer.name}</p>
-              <Label htmlFor={`owner-${peer.id}`}>Owner</Label>
-              <Select
-                name='owner'
-                defaultValue={peer.reseller_id?.toString() ?? 'none'}
-              >
-                <SelectTrigger id={`owner-${peer.id}`} className='w-full'>
-                  <SelectValue placeholder='Select' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='none'>Superadmin</SelectItem>
-                  {data?.map((x) => (
-                    <SelectItem value={String(x.id)} key={x.id}>
-                      {x.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Label htmlFor={`duration-${peer.id}`}>
-                Original plan duration (days)
-              </Label>
-              <Input
-                id={`duration-${peer.id}`}
-                name='duration'
-                type='number'
-                min='1'
-                max='36500'
-                defaultValue={
-                  peer.configured_duration_days === '0'
-                    ? ''
-                    : peer.configured_duration_days
-                }
-              />
+              <div className='space-y-2'>
+                <Label htmlFor={`owner-${peer.id}`}>Owner</Label>
+                <Select
+                  name='owner'
+                  defaultValue={peer.reseller_id?.toString() ?? 'none'}
+                >
+                  <SelectTrigger id={`owner-${peer.id}`} className='w-full'>
+                    <SelectValue placeholder='Select' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='none'>Superadmin</SelectItem>
+                    {data?.map((x) => (
+                      <SelectItem value={String(x.id)} key={x.id}>
+                        {x.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor={`duration-${peer.id}`}>
+                  Original plan duration (days)
+                </Label>
+                <Input
+                  id={`duration-${peer.id}`}
+                  name='duration'
+                  type='number'
+                  min='1'
+                  max='36500'
+                  defaultValue={
+                    peer.configured_duration_days === '0'
+                      ? ''
+                      : peer.configured_duration_days
+                  }
+                />
+              </div>
               <p className='text-muted-foreground text-xs'>
                 Record the original duration to permit full resets of legacy
                 peers.
               </p>
-              <Label htmlFor={`reason-${peer.id}`}>Reason</Label>
-              <Input
-                id={`reason-${peer.id}`}
-                name='reason'
-                required
-                maxLength={1000}
-              />
-              <Button disabled={action.isPending}>Transfer</Button>
+              <div className='space-y-2'>
+                <Label htmlFor={`reason-${peer.id}`}>Reason</Label>
+                <Input
+                  id={`reason-${peer.id}`}
+                  name='reason'
+                  required
+                  maxLength={1000}
+                />
+              </div>
             </form>
           </DialogBody>
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              disabled={action.isPending}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type='submit' form={formID} disabled={action.isPending}>
+              Transfer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

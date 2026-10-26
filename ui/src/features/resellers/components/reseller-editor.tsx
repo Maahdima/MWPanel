@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -11,6 +12,7 @@ import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuer
 import { useSaveResellerMutation } from '@/hooks/resellers/useResellerMutations'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DialogBody, DialogFooter } from '@/components/ui/dialog'
 import {
   Form,
   FormField,
@@ -50,6 +52,7 @@ export function ResellerEditor({
   current?: Reseller
   onClose: () => void
 }) {
+  const formID = useId()
   const interfaces = useInterfacesListQuery()
   const mutation = useSaveResellerMutation(current?.id)
   const form = useForm<ResellerFormValues>({
@@ -108,178 +111,200 @@ export function ResellerEditor({
   }
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} className='space-y-4'>
-        <div className='grid gap-3 sm:grid-cols-2'>
-          {(['name', 'username'] as const).map((name) => (
+      <DialogBody>
+        <form
+          id={formID}
+          onSubmit={form.handleSubmit(submit)}
+          className='space-y-4'
+        >
+          <div className='grid gap-3 sm:grid-cols-2'>
+            {(['name', 'username'] as const).map((name) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {name === 'name' ? 'Name' : 'Username'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        required
+                        maxLength={name === 'name' ? 255 : 64}
+                        disabled={name === 'username' && !!current}
+                        autoComplete={name === 'username' ? 'off' : undefined}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+            {!current && (
+              <FormField
+                control={form.control}
+                name='password'
+                render={({ field }) => (
+                  <FormItem className='sm:col-span-2'>
+                    <FormLabel>Initial password</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        {...field}
+                        required
+                        minLength={12}
+                        maxLength={72}
+                        autoComplete='new-password'
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
-              key={name}
               control={form.control}
-              name={name}
+              name='mode'
               render={({ field }) => (
-                <FormItem className='space-y-1'>
-                  <FormLabel>{name === 'name' ? 'Name' : 'Username'}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      required
-                      maxLength={name === 'name' ? 255 : 64}
-                      disabled={name === 'username' && !!current}
-                      autoComplete={name === 'username' ? 'off' : undefined}
-                    />
-                  </FormControl>
+                <FormItem>
+                  <FormLabel>Billing mode</FormLabel>
+                  <SelectDropdown
+                    className='w-full'
+                    isControlled
+                    defaultValue={field.value}
+                    onValueChange={field.onChange}
+                    items={[
+                      { label: 'Prepaid', value: 'prepaid' },
+                      { label: 'Postpaid', value: 'postpaid' },
+                    ]}
+                  />
                   <FormMessage />
                 </FormItem>
               )}
             />
-          ))}
-          {!current && (
-            <FormField
-              control={form.control}
-              name='password'
-              render={({ field }) => (
-                <FormItem className='space-y-1 sm:col-span-2'>
-                  <FormLabel>Initial password</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      {...field}
-                      required
-                      minLength={12}
-                      maxLength={72}
-                      autoComplete='new-password'
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+            {financialFields.map(([name, label]) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{label}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        inputMode='decimal'
+                        placeholder={
+                          name === 'rate'
+                            ? 'Use global price'
+                            : name.startsWith('max')
+                              ? 'No limit'
+                              : undefined
+                        }
+                        required={['interval', 'grace', 'fee'].includes(name)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
           <FormField
             control={form.control}
-            name='mode'
+            name='interface_ids'
             render={({ field }) => (
-              <FormItem className='space-y-1'>
-                <FormLabel>Billing mode</FormLabel>
+              <FormItem>
+                <fieldset className='space-y-2 rounded-md border p-3'>
+                  <legend className='px-1 text-sm font-medium'>
+                    Assigned interfaces and pools
+                  </legend>
+                  {interfaces.isPending ? (
+                    <p>Loading resources...</p>
+                  ) : interfaces.isError ? (
+                    <p role='alert'>Unable to load interfaces.</p>
+                  ) : !interfaces.data?.length ? (
+                    <p className='text-muted-foreground text-sm'>
+                      Add an interface and pool before assigning resources.
+                    </p>
+                  ) : (
+                    interfaces.data.map((iface) => (
+                      <label
+                        key={iface.id}
+                        className='flex items-center gap-2 text-sm'
+                      >
+                        <Checkbox
+                          checked={field.value.includes(iface.id)}
+                          onCheckedChange={(checked) => {
+                            field.onChange(
+                              checked
+                                ? [...field.value, iface.id]
+                                : field.value.filter((id) => id !== iface.id)
+                            )
+                            if (
+                              !checked &&
+                              form.getValues('default_interface') ===
+                                String(iface.id)
+                            )
+                              form.setValue('default_interface', 'none')
+                          }}
+                        />
+                        <span>
+                          {iface.name} · <ServerName id={iface.server_id} />
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </fieldset>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='default_interface'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Default interface</FormLabel>
                 <SelectDropdown
                   className='w-full'
                   isControlled
                   defaultValue={field.value}
                   onValueChange={field.onChange}
                   items={[
-                    { label: 'Prepaid', value: 'prepaid' },
-                    { label: 'Postpaid', value: 'postpaid' },
+                    { label: 'No default', value: 'none' },
+                    ...(interfaces.data ?? [])
+                      .filter((iface) => selected.includes(iface.id))
+                      .map((iface) => ({
+                        label: `${iface.name} · Server ${iface.server_id}`,
+                        value: String(iface.id),
+                      })),
                   ]}
                 />
                 <FormMessage />
               </FormItem>
             )}
           />
-          {financialFields.map(([name, label]) => (
-            <FormField
-              key={name}
-              control={form.control}
-              name={name}
-              render={({ field }) => (
-                <FormItem className='space-y-1'>
-                  <FormLabel>{label}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      inputMode='decimal'
-                      placeholder={
-                        name === 'rate'
-                          ? 'Use global price'
-                          : name.startsWith('max')
-                            ? 'No limit'
-                            : undefined
-                      }
-                      required={['interval', 'grace', 'fee'].includes(name)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ))}
-        </div>
-        <FormField
-          control={form.control}
-          name='interface_ids'
-          render={({ field }) => (
-            <FormItem>
-              <fieldset className='space-y-2 rounded-md border p-3'>
-                <legend className='px-1 text-sm font-medium'>
-                  Assigned interfaces and pools
-                </legend>
-                {interfaces.isPending ? (
-                  <p>Loading resources...</p>
-                ) : interfaces.isError ? (
-                  <p role='alert'>Unable to load interfaces.</p>
-                ) : !interfaces.data?.length ? (
-                  <p className='text-muted-foreground text-sm'>
-                    Add an interface and pool before assigning resources.
-                  </p>
-                ) : (
-                  interfaces.data.map((iface) => (
-                    <label
-                      key={iface.id}
-                      className='flex items-center gap-2 text-sm'
-                    >
-                      <Checkbox
-                        checked={field.value.includes(iface.id)}
-                        onCheckedChange={(checked) => {
-                          field.onChange(
-                            checked
-                              ? [...field.value, iface.id]
-                              : field.value.filter((id) => id !== iface.id)
-                          )
-                          if (
-                            !checked &&
-                            form.getValues('default_interface') ===
-                              String(iface.id)
-                          )
-                            form.setValue('default_interface', 'none')
-                        }}
-                      />
-                      <span>
-                        {iface.name} · <ServerName id={iface.server_id} />
-                      </span>
-                    </label>
-                  ))
-                )}
-              </fieldset>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='default_interface'
-          render={({ field }) => (
-            <FormItem className='space-y-1'>
-              <FormLabel>Default interface</FormLabel>
-              <SelectDropdown
-                className='w-full'
-                isControlled
-                defaultValue={field.value}
-                onValueChange={field.onChange}
-                items={[
-                  { label: 'No default', value: 'none' },
-                  ...(interfaces.data ?? [])
-                    .filter((iface) => selected.includes(iface.id))
-                    .map((iface) => ({
-                      label: `${iface.name} · Server ${iface.server_id}`,
-                      value: String(iface.id),
-                    })),
-                ]}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button disabled={mutation.isPending || interfaces.isError}>
+        </form>
+      </DialogBody>
+      <DialogFooter>
+        <Button
+          type='button'
+          variant='outline'
+          onClick={onClose}
+          disabled={mutation.isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          type='submit'
+          form={formID}
+          disabled={mutation.isPending || interfaces.isError}
+        >
           {mutation.isPending ? 'Saving...' : 'Save reseller'}
         </Button>
-      </form>
+      </DialogFooter>
     </Form>
   )
 }

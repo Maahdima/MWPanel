@@ -19,17 +19,17 @@ export function PageFrame({
     <>
       <Header fixed>
         <h1 className='truncate text-lg font-semibold'>{title}</h1>
-        <div className='ml-auto flex items-center gap-3'>
+        <div className='ml-auto flex shrink-0 items-center gap-2 sm:gap-4'>
           <ThemeSwitch />
           <ProfileDropdown />
         </div>
       </Header>
       <Main>
-        <div className='mb-5 flex flex-wrap items-start justify-between gap-3'>
-          <div>
+        <div className='mb-2 flex flex-wrap items-center justify-between gap-2 space-y-2'>
+          <div className='min-w-0'>
             <h2 className='text-xl font-semibold tracking-tight'>{title}</h2>
             {description && (
-              <p className='text-muted-foreground mt-1'>{description}</p>
+              <p className='text-muted-foreground'>{description}</p>
             )}
           </div>
           {actions}

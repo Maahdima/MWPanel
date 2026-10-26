@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from 'react'
+import { FormEvent, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useCreateResellerPeerMutation } from '@/hooks/resellers/useResellerMutations'
 import {
@@ -11,6 +11,8 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -26,6 +28,7 @@ import {
 import { formatToman, gibToBytes } from '../money'
 
 export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
+  const formID = useId()
   const [open, setOpen] = useState(false),
     [quota, setQuota] = useState('10'),
     [days, setDays] = useState('30')
@@ -82,43 +85,53 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create configuration</DialogTitle>
+            <DialogDescription>
+              Choose an assigned interface, quota and validity.
+            </DialogDescription>
           </DialogHeader>
-          <DialogBody className='space-y-4 pb-5'>
-            <form onSubmit={submit} className='space-y-3'>
-              <Label htmlFor='reseller-peer-name'>Name</Label>
-              <Input
-                id='reseller-peer-name'
-                name='name'
-                required
-                maxLength={128}
-              />
-              <Label htmlFor='reseller-peer-interface'>
-                Assigned interface
-              </Label>
-              <Select
-                name='interface'
-                required
-                defaultValue={
-                  reseller.data?.default_interface_id?.toString() ?? ''
-                }
-              >
-                <SelectTrigger id='reseller-peer-interface' className='w-full'>
-                  <SelectValue placeholder='Select assigned interface' />
-                </SelectTrigger>
-                <SelectContent>
-                  {resources?.map((resource) => (
-                    <SelectItem
-                      key={resource.interface_id}
-                      value={String(resource.interface_id)}
-                      disabled={!resource.pool_id}
-                    >
-                      {resource.name} · Server #{resource.server_id}
-                      {!resource.pool_id ? ' (no IP pool)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className='grid grid-cols-2 gap-3'>
+          <DialogBody className='space-y-4'>
+            <form id={formID} onSubmit={submit} className='space-y-4'>
+              <div className='space-y-2'>
+                <Label htmlFor='reseller-peer-name'>Name</Label>
+                <Input
+                  id='reseller-peer-name'
+                  name='name'
+                  required
+                  maxLength={128}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='reseller-peer-interface'>
+                  Assigned interface
+                </Label>
+                <Select
+                  name='interface'
+                  required
+                  defaultValue={
+                    reseller.data?.default_interface_id?.toString() ?? ''
+                  }
+                >
+                  <SelectTrigger
+                    id='reseller-peer-interface'
+                    className='w-full'
+                  >
+                    <SelectValue placeholder='Select assigned interface' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resources?.map((resource) => (
+                      <SelectItem
+                        key={resource.interface_id}
+                        value={String(resource.interface_id)}
+                        disabled={!resource.pool_id}
+                      >
+                        {resource.name} · Server #{resource.server_id}
+                        {!resource.pool_id ? ' (no IP pool)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='grid gap-4 sm:grid-cols-2'>
                 <div className='space-y-2'>
                   <Label htmlFor='reseller-peer-quota'>Quota (GiB)</Label>
                   <Input
@@ -163,18 +176,31 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
                   No resources assigned. Contact the administrator.
                 </p>
               )}
-              <Button
-                disabled={
-                  create.isPending ||
-                  !account.data ||
-                  account.data.state.billable_blocked ||
-                  !resources?.some((resource) => resource.pool_id)
-                }
-              >
-                Confirm purchase and create
-              </Button>
             </form>
           </DialogBody>
+
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              disabled={create.isPending}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type='submit'
+              form={formID}
+              disabled={
+                create.isPending ||
+                !account.data ||
+                account.data.state.billable_blocked ||
+                !resources?.some((resource) => resource.pool_id)
+              }
+            >
+              Confirm purchase and create
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

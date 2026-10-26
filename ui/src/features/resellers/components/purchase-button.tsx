@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from 'react'
+import { FormEvent, useId, useRef, useState } from 'react'
 import { Peer } from '@/schema/peers'
 import { toast } from 'sonner'
 import { usePeerPurchaseMutation } from '@/hooks/resellers/useResellerMutations'
@@ -11,6 +11,8 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -32,6 +34,7 @@ export function PurchaseButton({
   peer: Peer
   resellerID?: number
 }) {
+  const formID = useId()
   const [open, setOpen] = useState(false),
     [operation, setOperation] = useState('add_traffic'),
     [quantity, setQuantity] = useState('1')
@@ -85,48 +88,57 @@ export function PurchaseButton({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Purchase for {peer.name}</DialogTitle>
+            <DialogDescription>
+              Review the operation and charge before confirming.
+            </DialogDescription>
           </DialogHeader>
-          <DialogBody className='space-y-4 pb-5'>
-            <form onSubmit={submit} className='space-y-3'>
-              <Label htmlFor={`purchase-${peer.id}`}>Operation</Label>
-              <Select
-                value={operation}
-                onValueChange={(selected) => {
-                  setOperation(selected)
-                  setQuantity('1')
-                }}
-              >
-                <SelectTrigger id={`purchase-${peer.id}`} className='w-full'>
-                  <SelectValue placeholder='Select' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='add_traffic'>Add traffic</SelectItem>
-                  <SelectItem value='extend_expiry'>Extend validity</SelectItem>
-                  <SelectItem value='reset_usage'>
-                    Reset consumed usage
-                  </SelectItem>
-                  <SelectItem
-                    value='full_reset'
-                    disabled={peer.configured_duration_days === '0'}
-                  >
-                    Full reset
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+          <DialogBody className='space-y-4'>
+            <form id={formID} onSubmit={submit} className='space-y-4'>
+              <div className='space-y-2'>
+                <Label htmlFor={`purchase-${peer.id}`}>Operation</Label>
+                <Select
+                  value={operation}
+                  onValueChange={(selected) => {
+                    setOperation(selected)
+                    setQuantity('1')
+                  }}
+                >
+                  <SelectTrigger id={`purchase-${peer.id}`} className='w-full'>
+                    <SelectValue placeholder='Select' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='add_traffic'>Add traffic</SelectItem>
+                    <SelectItem value='extend_expiry'>
+                      Extend validity
+                    </SelectItem>
+                    <SelectItem value='reset_usage'>
+                      Reset consumed usage
+                    </SelectItem>
+                    <SelectItem
+                      value='full_reset'
+                      disabled={peer.configured_duration_days === '0'}
+                    >
+                      Full reset
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               {['add_traffic', 'extend_expiry'].includes(operation) && (
                 <>
-                  <Label htmlFor={`quantity-${peer.id}`}>
-                    {operation === 'add_traffic'
-                      ? 'Additional GiB'
-                      : 'Additional days'}
-                  </Label>
-                  <Input
-                    id={`quantity-${peer.id}`}
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    inputMode='decimal'
-                    required
-                  />
+                  <div className='space-y-2'>
+                    <Label htmlFor={`quantity-${peer.id}`}>
+                      {operation === 'add_traffic'
+                        ? 'Additional GiB'
+                        : 'Additional days'}
+                    </Label>
+                    <Input
+                      id={`quantity-${peer.id}`}
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      inputMode='decimal'
+                      required
+                    />
+                  </div>
                 </>
               )}
               <p className='text-muted-foreground text-sm'>
@@ -156,20 +168,8 @@ export function PurchaseButton({
                   New purchases are restricted. Review billing first.
                 </p>
               )}
-              <Button
-                disabled={
-                  purchase.isPending ||
-                  !book.data ||
-                  book.data.state.billable_blocked ||
-                  peer.purchase_pending ||
-                  peer.migration_pending ||
-                  history.data?.some((x) => x.state === 'pending')
-                }
-              >
-                Confirm purchase
-              </Button>
             </form>
-            <div className='max-h-48 overflow-auto border-t pt-3'>
+            <div className='border-t pt-3'>
               <p className='mb-2 font-medium'>Recent purchases</p>
               {history.isError ? (
                 <p>Unable to load purchases.</p>
@@ -194,6 +194,31 @@ export function PurchaseButton({
               )}
             </div>
           </DialogBody>
+
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              disabled={purchase.isPending}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type='submit'
+              form={formID}
+              disabled={
+                purchase.isPending ||
+                !book.data ||
+                book.data.state.billable_blocked ||
+                peer.purchase_pending ||
+                peer.migration_pending ||
+                history.data?.some((x) => x.state === 'pending')
+              }
+            >
+              Confirm purchase
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

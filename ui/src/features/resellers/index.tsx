@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -57,14 +58,17 @@ export default function ResellersPage() {
             <DialogTitle>
               {dialog === 'create' ? 'Create reseller' : 'Payment settings'}
             </DialogTitle>
+            <DialogDescription>
+              Manage reseller accounts and payment settings.
+            </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-            {dialog === 'create' ? (
-              <ResellerEditor onClose={() => setDialog(null)} />
-            ) : dialog === 'payment' ? (
+          {dialog === 'create' ? (
+            <ResellerEditor onClose={() => setDialog(null)} />
+          ) : dialog === 'payment' ? (
+            <DialogBody>
               <PaymentSettings onClose={() => setDialog(null)} />
-            ) : null}
-          </DialogBody>
+            </DialogBody>
+          ) : null}
         </DialogContent>
       </Dialog>
     </PageFrame>
