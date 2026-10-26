@@ -57,7 +57,7 @@ func (c *ResellerController) List(ctx echo.Context) error {
 	if err != nil {
 		return resellerError(ctx, err)
 	}
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]service.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: rows})
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]schema.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: rows})
 }
 func (c *ResellerController) Get(ctx echo.Context) error {
 	id, err := resellerID(ctx, "id")
@@ -68,10 +68,10 @@ func (c *ResellerController) Get(ctx echo.Context) error {
 	if err != nil {
 		return resellerError(ctx, err)
 	}
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[service.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
 }
 func (c *ResellerController) Create(ctx echo.Context) error {
-	var input service.CreateReseller
+	var input schema.CreateReseller
 	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
@@ -79,14 +79,14 @@ func (c *ResellerController) Create(ctx echo.Context) error {
 	if err != nil {
 		return resellerError(ctx, err)
 	}
-	return ctx.JSON(http.StatusCreated, schema.BasicResponseData[service.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
+	return ctx.JSON(http.StatusCreated, schema.BasicResponseData[schema.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
 }
 func (c *ResellerController) Update(ctx echo.Context) error {
 	id, err := resellerID(ctx, "id")
 	if err != nil {
 		return err
 	}
-	var input service.ResellerSettings
+	var input schema.ResellerSettings
 	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
 	}
@@ -94,7 +94,7 @@ func (c *ResellerController) Update(ctx echo.Context) error {
 	if err != nil {
 		return resellerError(ctx, err)
 	}
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[service.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.ResellerView]{BasicResponse: schema.OkBasicResponse, Data: row})
 }
 func (c *ResellerController) Peers(ctx echo.Context) error {
 	id, err := resellerID(ctx, "id")
@@ -283,7 +283,7 @@ func (c *ResellerController) MyResources(ctx echo.Context) error {
 	if err != nil {
 		return resellerError(ctx, err)
 	}
-	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]service.ResellerResourceView]{BasicResponse: schema.OkBasicResponse, Data: rows})
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]schema.ResellerResourceView]{BasicResponse: schema.OkBasicResponse, Data: rows})
 }
 
 func (c *ResellerController) Mutate(ctx echo.Context) error {

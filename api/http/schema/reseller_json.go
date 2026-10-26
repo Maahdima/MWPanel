@@ -1,4 +1,4 @@
-package service
+package schema
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func optionalInteger(data json.RawMessage) (*int64, error) {
 	}
 	value, err := strconv.ParseInt(text, 10, 64)
 	if err != nil {
-		return nil, ErrResellerSettings
+		return nil, err
 	}
 	return &value, nil
 }

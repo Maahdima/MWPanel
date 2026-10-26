@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/service"
 	"strings"
 	"testing"
 )
 
-func resellerSettings(name string, ifaceID uint) service.ResellerSettings {
-	return service.ResellerSettings{Name: name, Mode: model.BillingPrepaid, InterfaceIDs: []uint{ifaceID}, DefaultInterfaceID: &ifaceID}
+func resellerSettings(name string, ifaceID uint) schema.ResellerSettings {
+	return schema.ResellerSettings{Name: name, Mode: model.BillingPrepaid, InterfaceIDs: []uint{ifaceID}, DefaultInterfaceID: &ifaceID}
 }
 
 func TestResellerOwnershipSettingsAndFinancialHistory(t *testing.T) {
@@ -23,11 +24,11 @@ func TestResellerOwnershipSettingsAndFinancialHistory(t *testing.T) {
 	f.db.Where("server_id = ?", f.a.ID).First(&ia)
 	f.db.Where("server_id = ?", f.b.ID).First(&ib)
 	settings := resellerSettings("One", ia.ID)
-	one, err := manager.Create(actor, service.CreateReseller{ResellerSettings: settings, Username: "one", Password: "initial-password-one"})
+	one, err := manager.Create(actor, schema.CreateReseller{ResellerSettings: settings, Username: "one", Password: "initial-password-one"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	two, err := manager.Create(actor, service.CreateReseller{ResellerSettings: resellerSettings("Two", ia.ID), Username: "two", Password: "initial-password-two"})
+	two, err := manager.Create(actor, schema.CreateReseller{ResellerSettings: resellerSettings("Two", ia.ID), Username: "two", Password: "initial-password-two"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +96,7 @@ func TestResellerOwnershipSettingsAndFinancialHistory(t *testing.T) {
 	}
 	var before, after int64
 	f.db.Model(&model.Reseller{}).Count(&before)
-	if _, err := manager.Create(actor, service.CreateReseller{ResellerSettings: resellerSettings("duplicate", ia.ID), Username: "one", Password: "initial-password-duplicate"}); err == nil {
+	if _, err := manager.Create(actor, schema.CreateReseller{ResellerSettings: resellerSettings("duplicate", ia.ID), Username: "one", Password: "initial-password-duplicate"}); err == nil {
 		t.Fatal("duplicate accepted")
 	}
 	f.db.Model(&model.Reseller{}).Count(&after)
@@ -131,7 +132,7 @@ func TestResellerLimitsRejectTransfers(t *testing.T) {
 		case 3:
 			settings.MaxDurationDays = &small
 		}
-		created, err := manager.Create(actor, service.CreateReseller{ResellerSettings: settings, Username: kind, Password: "test-password-long"})
+		created, err := manager.Create(actor, schema.CreateReseller{ResellerSettings: settings, Username: kind, Password: "test-password-long"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -147,7 +148,7 @@ func TestResellerLimitsRejectTransfers(t *testing.T) {
 }
 
 func TestResellerJSONKeepsExactIntegerSettingsAndCredentials(t *testing.T) {
-	var input service.CreateReseller
+	var input schema.CreateReseller
 	if err := json.Unmarshal([]byte(`{"name":"exact","username":"member","password":"long-secret-password","billing_mode":"prepaid","rate_rial":"10000000000000001","max_total_traffic_bytes":"9223372036854775807","interface_ids":[],"role":"superadmin"}`), &input); err != nil {
 		t.Fatal(err)
 	}

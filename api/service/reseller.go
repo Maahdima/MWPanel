@@ -24,62 +24,6 @@ var (
 	ErrPendingPeerOperation    = errors.New("peer has an unresolved financial operation")
 )
 
-type ResellerSettings struct {
-	IntervalDays         *int64 `json:"interval_days"`
-	GraceDays            *int64 `json:"grace_days"`
-	RecurringFeeRial     *int64 `json:"recurring_fee_rial"`
-	Name                 string `json:"name"`
-	Mode                 string `json:"billing_mode"`
-	RateRial             *int64 `json:"rate_rial"`
-	InterfaceIDs         []uint `json:"interface_ids"`
-	DefaultInterfaceID   *uint  `json:"default_interface_id"`
-	MaxActivePeers       *int64 `json:"max_active_peers"`
-	MaxPeerTrafficBytes  *int64 `json:"max_peer_traffic_bytes"`
-	MaxTotalTrafficBytes *int64 `json:"max_total_traffic_bytes"`
-	MaxDurationDays      *int64 `json:"max_duration_days"`
-}
-
-type CreateReseller struct {
-	ResellerSettings
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type ResellerResourceView struct {
-	InterfaceID uint   `json:"interface_id"`
-	Name        string `json:"name"`
-	ServerID    uint   `json:"server_id"`
-	PoolID      *uint  `json:"pool_id"`
-}
-
-type ResellerView struct {
-	MigrationID          *string                `json:"migration_id"`
-	IntervalDays         int64                  `json:"interval_days"`
-	GraceDays            int64                  `json:"grace_days"`
-	RecurringFeeRial     string                 `json:"recurring_fee_rial"`
-	AdminSuspended       bool                   `json:"admin_suspended"`
-	BillingSuspended     bool                   `json:"billing_suspended"`
-	NextInvoiceAt        int64                  `json:"next_invoice_at"`
-	ID                   uint                   `json:"id"`
-	Username             string                 `json:"username"`
-	Name                 string                 `json:"name"`
-	IsActive             bool                   `json:"is_active"`
-	Mode                 string                 `json:"billing_mode"`
-	RateRial             *string                `json:"rate_rial"`
-	BalanceRial          string                 `json:"balance_rial"`
-	CreditRial           string                 `json:"credit_rial"`
-	DebtRial             string                 `json:"debt_rial"`
-	ReservedRial         string                 `json:"reserved_rial"`
-	ActivePeers          int64                  `json:"active_peers"`
-	TotalPeers           int64                  `json:"total_peers"`
-	DefaultInterfaceID   *uint                  `json:"default_interface_id"`
-	MaxActivePeers       *string                `json:"max_active_peers"`
-	MaxPeerTrafficBytes  *string                `json:"max_peer_traffic_bytes"`
-	MaxTotalTrafficBytes *string                `json:"max_total_traffic_bytes"`
-	MaxDurationDays      *string                `json:"max_duration_days"`
-	Resources            []ResellerResourceView `json:"resources"`
-}
-
 type Resellers struct {
 	db    *gorm.DB
 	peers *WgPeer
@@ -87,7 +31,7 @@ type Resellers struct {
 
 func NewResellers(db *gorm.DB, peers *WgPeer) *Resellers { return &Resellers{db: db, peers: peers} }
 
-func validateResellerSettings(tx *gorm.DB, settings ResellerSettings) error {
+func validateResellerSettings(tx *gorm.DB, settings schema.ResellerSettings) error {
 	if strings.TrimSpace(settings.Name) == "" || len(settings.Name) > 255 || (settings.Mode != model.BillingPrepaid && settings.Mode != model.BillingPostpaid) {
 		return ErrResellerSettings
 	}
@@ -140,16 +84,16 @@ func writeResellerResources(tx *gorm.DB, id uint, interfaces []uint) error {
 	return nil
 }
 
-func (s *Resellers) Create(actor Principal, input CreateReseller) (ResellerView, error) {
+func (s *Resellers) Create(actor Principal, input schema.CreateReseller) (schema.ResellerView, error) {
 	if !billingAdmin(actor) {
-		return ResellerView{}, ErrRoleForbidden
+		return schema.ResellerView{}, ErrRoleForbidden
 	}
 	if strings.TrimSpace(input.Username) != input.Username || input.Username == "" || len(input.Username) > 64 || len(input.Password) < 12 || len(input.Password) > 72 {
-		return ResellerView{}, ErrResellerSettings
+		return schema.ResellerView{}, ErrResellerSettings
 	}
 	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return ResellerView{}, err
+		return schema.ResellerView{}, err
 	}
 	var id uint
 	err = s.db.Transaction(func(tx *gorm.DB) error {
@@ -181,17 +125,17 @@ func (s *Resellers) Create(actor Principal, input CreateReseller) (ResellerView,
 		return billingAudit(tx, id, actor.AccountID, nil, "reseller_created", string(encoded))
 	})
 	if err != nil {
-		return ResellerView{}, err
+		return schema.ResellerView{}, err
 	}
 	return s.Get(actor, id)
 }
 
-func (s *Resellers) Update(actor Principal, id uint, settings ResellerSettings) (ResellerView, error) {
+func (s *Resellers) Update(actor Principal, id uint, settings schema.ResellerSettings) (schema.ResellerView, error) {
 	if !billingAdmin(actor) {
-		return ResellerView{}, ErrRoleForbidden
+		return schema.ResellerView{}, ErrRoleForbidden
 	}
 	if _, err := NewBilling(s.db).ReconcileAccount(id); err != nil {
-		return ResellerView{}, err
+		return schema.ResellerView{}, err
 	}
 
 	err := NewBilling(s.db).accountTransaction(id, func(tx *gorm.DB, account *model.BillingAccount) error {
@@ -270,7 +214,7 @@ func (s *Resellers) Update(actor Principal, id uint, settings ResellerSettings) 
 		return billingAudit(tx, id, actor.AccountID, nil, "reseller_settings_changed", string(encoded))
 	})
 	if err != nil {
-		return ResellerView{}, err
+		return schema.ResellerView{}, err
 	}
 	return s.Get(actor, id)
 }
@@ -279,8 +223,8 @@ func uintPointersEqual(a, b *uint) bool {
 	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
 
-func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
-	var view ResellerView
+func (s *Resellers) Get(actor Principal, id uint) (schema.ResellerView, error) {
+	var view schema.ResellerView
 	if !billingAdmin(actor) {
 		return view, ErrRoleForbidden
 	}
@@ -296,7 +240,7 @@ func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
 	if err != nil {
 		return view, err
 	}
-	view = ResellerView{MigrationID: reseller.MigrationID, IntervalDays: account.IntervalDays, GraceDays: account.GraceDays, RecurringFeeRial: strconv.FormatInt(account.RecurringFeeRial, 10), AdminSuspended: reseller.AdminSuspended, BillingSuspended: account.BillingSuspended, NextInvoiceAt: account.NextInvoiceAt, ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: int64Text(reseller.MaxActivePeers), MaxPeerTrafficBytes: int64Text(reseller.MaxPeerTrafficBytes), MaxTotalTrafficBytes: int64Text(reseller.MaxTotalTrafficBytes), MaxDurationDays: int64Text(reseller.MaxDurationDays), Resources: []ResellerResourceView{}}
+	view = schema.ResellerView{MigrationID: reseller.MigrationID, IntervalDays: account.IntervalDays, GraceDays: account.GraceDays, RecurringFeeRial: strconv.FormatInt(account.RecurringFeeRial, 10), AdminSuspended: reseller.AdminSuspended, BillingSuspended: account.BillingSuspended, NextInvoiceAt: account.NextInvoiceAt, ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: int64Text(reseller.MaxActivePeers), MaxPeerTrafficBytes: int64Text(reseller.MaxPeerTrafficBytes), MaxTotalTrafficBytes: int64Text(reseller.MaxTotalTrafficBytes), MaxDurationDays: int64Text(reseller.MaxDurationDays), Resources: []schema.ResellerResourceView{}}
 	if account.RateRial != nil {
 		rate := strconv.FormatInt(*account.RateRial, 10)
 		view.RateRial = &rate
@@ -321,7 +265,7 @@ func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
 		return view, err
 	}
 	for _, resource := range resources {
-		item := ResellerResourceView{InterfaceID: resource.InterfaceID, Name: resource.Interface.Name, ServerID: resource.Interface.ServerID}
+		item := schema.ResellerResourceView{InterfaceID: resource.InterfaceID, Name: resource.Interface.Name, ServerID: resource.Interface.ServerID}
 		if resource.Interface.IPPool != nil {
 			poolID := resource.Interface.IPPool.ID
 			item.PoolID = &poolID
@@ -331,7 +275,7 @@ func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
 	return view, nil
 }
 
-func (s *Resellers) List(actor Principal) ([]ResellerView, error) {
+func (s *Resellers) List(actor Principal) ([]schema.ResellerView, error) {
 	if !billingAdmin(actor) {
 		return nil, ErrRoleForbidden
 	}
@@ -339,7 +283,7 @@ func (s *Resellers) List(actor Principal) ([]ResellerView, error) {
 	if err := s.db.Order("id ASC").Find(&resellers).Error; err != nil {
 		return nil, err
 	}
-	result := make([]ResellerView, 0, len(resellers))
+	result := make([]schema.ResellerView, 0, len(resellers))
 	for _, reseller := range resellers {
 		view, err := s.Get(actor, reseller.ID)
 		if err != nil {
@@ -615,7 +559,7 @@ func int64Text(value *int64) *string {
 	return &text
 }
 
-func applyFinancialSettings(tx *gorm.DB, a *model.BillingAccount, settings ResellerSettings) error {
+func applyFinancialSettings(tx *gorm.DB, a *model.BillingAccount, settings schema.ResellerSettings) error {
 	interval, grace, fee := a.IntervalDays, a.GraceDays, a.RecurringFeeRial
 	if settings.IntervalDays != nil {
 		interval = *settings.IntervalDays

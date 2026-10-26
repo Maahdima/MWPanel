@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/maahdima/mwp/api/http/schema"
 	"strings"
 
 	"github.com/google/uuid"
@@ -183,7 +184,7 @@ func (s *Resellers) CreatePeer(actor Principal, resellerID uint, key string, req
 	return NewPeerPurchases(NewBilling(s.db), s.peers).Create(actor, resellerID, key, req)
 }
 
-func (s *Resellers) MyResources(actor Principal) ([]ResellerResourceView, error) {
+func (s *Resellers) MyResources(actor Principal) ([]schema.ResellerResourceView, error) {
 	id, err := myReseller(actor)
 	if err != nil {
 		return nil, err
@@ -192,9 +193,9 @@ func (s *Resellers) MyResources(actor Principal) ([]ResellerResourceView, error)
 	if err = s.db.Preload("Interface.IPPool").Where("reseller_id = ?", id).Order("interface_id ASC").Find(&resources).Error; err != nil {
 		return nil, err
 	}
-	result := make([]ResellerResourceView, 0, len(resources))
+	result := make([]schema.ResellerResourceView, 0, len(resources))
 	for _, resource := range resources {
-		row := ResellerResourceView{InterfaceID: resource.InterfaceID, Name: resource.Interface.Name, ServerID: resource.Interface.ServerID}
+		row := schema.ResellerResourceView{InterfaceID: resource.InterfaceID, Name: resource.Interface.Name, ServerID: resource.Interface.ServerID}
 		if resource.Interface.IPPool != nil {
 			row.PoolID = &resource.Interface.IPPool.ID
 		}
