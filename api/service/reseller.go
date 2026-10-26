@@ -53,6 +53,7 @@ type ResellerResourceView struct {
 }
 
 type ResellerView struct {
+	MigrationID          *string                `json:"migration_id"`
 	IntervalDays         int64                  `json:"interval_days"`
 	GraceDays            int64                  `json:"grace_days"`
 	RecurringFeeRial     string                 `json:"recurring_fee_rial"`
@@ -201,6 +202,27 @@ func (s *Resellers) Update(actor Principal, id uint, settings ResellerSettings) 
 		if err := tx.First(&reseller, id).Error; err != nil {
 			return err
 		}
+		if reseller.MigrationID != nil {
+			if !uintPointersEqual(reseller.DefaultInterfaceID, settings.DefaultInterfaceID) {
+				return ErrPendingPeerOperation
+			}
+			var existing []model.ResellerResource
+			if e := tx.Where("reseller_id = ?", id).Find(&existing).Error; e != nil {
+				return e
+			}
+			assigned := map[uint]bool{}
+			for _, resource := range existing {
+				assigned[resource.InterfaceID] = true
+			}
+			if len(assigned) != len(settings.InterfaceIDs) {
+				return ErrPendingPeerOperation
+			}
+			for _, interfaceID := range settings.InterfaceIDs {
+				if !assigned[interfaceID] {
+					return ErrPendingPeerOperation
+				}
+			}
+		}
 		if !uintPointersEqual(reseller.DefaultInterfaceID, settings.DefaultInterfaceID) && settings.DefaultInterfaceID != nil {
 			var iface model.Interface
 			if err := tx.First(&iface, *settings.DefaultInterfaceID).Error; err != nil {
@@ -274,7 +296,7 @@ func (s *Resellers) Get(actor Principal, id uint) (ResellerView, error) {
 	if err != nil {
 		return view, err
 	}
-	view = ResellerView{IntervalDays: account.IntervalDays, GraceDays: account.GraceDays, RecurringFeeRial: strconv.FormatInt(account.RecurringFeeRial, 10), AdminSuspended: reseller.AdminSuspended, BillingSuspended: account.BillingSuspended, NextInvoiceAt: account.NextInvoiceAt, ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: int64Text(reseller.MaxActivePeers), MaxPeerTrafficBytes: int64Text(reseller.MaxPeerTrafficBytes), MaxTotalTrafficBytes: int64Text(reseller.MaxTotalTrafficBytes), MaxDurationDays: int64Text(reseller.MaxDurationDays), Resources: []ResellerResourceView{}}
+	view = ResellerView{MigrationID: reseller.MigrationID, IntervalDays: account.IntervalDays, GraceDays: account.GraceDays, RecurringFeeRial: strconv.FormatInt(account.RecurringFeeRial, 10), AdminSuspended: reseller.AdminSuspended, BillingSuspended: account.BillingSuspended, NextInvoiceAt: account.NextInvoiceAt, ID: id, Username: login.Username, Name: reseller.Name, IsActive: reseller.IsActive, Mode: account.Mode, BalanceRial: strconv.FormatInt(account.BalanceRial, 10), CreditRial: "0", DebtRial: "0", ReservedRial: strconv.FormatInt(account.ReservedRial, 10), DefaultInterfaceID: reseller.DefaultInterfaceID, MaxActivePeers: int64Text(reseller.MaxActivePeers), MaxPeerTrafficBytes: int64Text(reseller.MaxPeerTrafficBytes), MaxTotalTrafficBytes: int64Text(reseller.MaxTotalTrafficBytes), MaxDurationDays: int64Text(reseller.MaxDurationDays), Resources: []ResellerResourceView{}}
 	if account.RateRial != nil {
 		rate := strconv.FormatInt(*account.RateRial, 10)
 		view.RateRial = &rate
@@ -434,6 +456,9 @@ func (s *Resellers) TransferPeerPlan(actor Principal, peerID uint, target *uint,
 	transfer := func(tx *gorm.DB) error {
 		// Account locks precede peer locks, matching reservation/posting order.
 		for _, id := range accounts {
+			if err := migrationUnlocked(tx, id); err != nil {
+				return err
+			}
 			locked := tx.Model(&model.BillingAccount{}).Where("reseller_id = ?", id).UpdateColumn("revision", gorm.Expr("revision + 1"))
 			if locked.Error != nil {
 				return locked.Error

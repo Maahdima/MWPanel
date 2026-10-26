@@ -18,6 +18,10 @@ import (
 
 func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 	conf := new(gorm.Config)
+	// SQL values can contain router passwords, private keys and financial records.
+	// Parameterize diagnostics in every environment, including failed writes.
+	conf.Logger = logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{SlowThreshold: time.Second, LogLevel: logger.Warn, IgnoreRecordNotFoundError: true, ParameterizedQueries: true, Colorful: false})
+
 	if os.Getenv("MODE") == "development" {
 		newLogger := logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -25,7 +29,7 @@ func ConnectDB(config config.DBConfig) (db *gorm.DB, err error) {
 				SlowThreshold:             time.Second,
 				LogLevel:                  logger.Error,
 				IgnoreRecordNotFoundError: false,
-				ParameterizedQueries:      false,
+				ParameterizedQueries:      true,
 				Colorful:                  true,
 			},
 		)
@@ -77,6 +81,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.InvoiceAllocation{},
 		&model.BillingCharge{},
 		&model.PeerPurchase{},
+		&model.RouterMigration{},
+		&model.RouterMigrationPeer{},
 		&model.LedgerEntry{},
 		&model.BillingAuditEvent{},
 		&model.TelegramChat{},

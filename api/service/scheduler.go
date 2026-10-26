@@ -27,6 +27,9 @@ func NewScheduler(mikrotikAdaptor *mikrotik.Adaptor) *Scheduler {
 }
 
 func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string) (*string, error) {
+	return s.createSchedulerContext(context.Background(), peerID, peerName, expireTime)
+}
+func (s *Scheduler) createSchedulerContext(ctx context.Context, peerID, peerName string, expireTime *string) (*string, error) {
 	if expireTime == nil {
 		return nil, nil
 	}
@@ -47,7 +50,7 @@ func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string)
 		OnEvent:   utils.Ptr(schedulerOnEvent(peerID)),
 	}
 
-	createdScheduler, err := s.mikrotikAdaptor.CreateScheduler(context.Background(), scheduler)
+	createdScheduler, err := s.mikrotikAdaptor.CreateScheduler(ctx, scheduler)
 	if err != nil {
 		s.logger.Error("failed to create scheduler for wireguard peer", zap.Error(err))
 		return nil, err
@@ -57,6 +60,10 @@ func (s *Scheduler) createScheduler(peerID, peerName string, expireTime *string)
 }
 
 func (s *Scheduler) updateScheduler(schedulerID *string, peerID string, expireTime *string) error {
+	return s.updateSchedulerContext(context.Background(), schedulerID, peerID, expireTime)
+}
+func (s *Scheduler) updateSchedulerContext(ctx context.Context, schedulerID *string, peerID string, expireTime *string) error {
+
 	startDate, err := toMikrotikDate(expireTime)
 	if err != nil {
 		s.logger.Error("failed to convert expire date for scheduler", zap.Error(err))
@@ -69,7 +76,7 @@ func (s *Scheduler) updateScheduler(schedulerID *string, peerID string, expireTi
 		OnEvent:   utils.Ptr(schedulerOnEvent(peerID)),
 	}
 
-	_, err = s.mikrotikAdaptor.UpdateScheduler(context.Background(), *schedulerID, scheduler)
+	_, err = s.mikrotikAdaptor.UpdateScheduler(ctx, *schedulerID, scheduler)
 	if err != nil {
 		s.logger.Error("failed to update scheduler for wireguard peer", zap.String("schedulerID", *schedulerID), zap.Error(err))
 		return err

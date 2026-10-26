@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,12 +33,14 @@ type PeerPurchaseView struct {
 }
 
 type PeerPurchases struct {
+	runMu   sync.Mutex
+	cursor  string
 	billing *Billing
 	peers   *WgPeer
 }
 
 func NewPeerPurchases(billing *Billing, peers *WgPeer) *PeerPurchases {
-	return &PeerPurchases{billing, peers}
+	return &PeerPurchases{billing: billing, peers: peers}
 }
 
 func (s *PeerPurchases) view(op model.PeerPurchase) (PeerPurchaseView, error) {
@@ -99,7 +102,7 @@ func (s *PeerPurchases) Begin(actor Principal, resellerID, peerID uint, key stri
 	if err = s.billing.db.Where("reseller_id = ?", resellerID).First(&peer, peerID).Error; err != nil {
 		return empty, err
 	}
-	if peer.PurchaseID != nil {
+	if peer.PurchaseID != nil || peer.MigrationID != nil {
 		return empty, ErrPendingPeerOperation
 	}
 	if peer.TrafficLimit == nil || *peer.TrafficLimit <= 0 || peer.ExpireTime == nil {
@@ -201,6 +204,9 @@ func (s *PeerPurchases) Begin(actor Principal, resellerID, peerID uint, key stri
 	desired.Disabled = desired.ManualDisabled || utils.IsPeerExpired(&expiry, s.billing.now()) || desired.DownloadUsage+desired.UploadUsage >= quota || desired.BillingBlocked || desired.AdminBlocked
 	op := model.PeerPurchase{ID: uuid.NewString(), ResellerID: resellerID, IdempotencyKey: key, RequestHash: hash, PeerID: peerID, ActorID: actor.AccountID, Kind: string(req.Operation), State: "pending", QuotaBytes: quota, ExpireTime: expiry, ResetUsage: reset, CapturedTx: capturedTx, CapturedRx: capturedRx}
 	_, err = s.billing.reserveCharge(actor, resellerID, key, &peerID, req.Operation, pricingBytes, pricingDays, func(tx *gorm.DB, charge model.BillingCharge) error {
+		if e := migrationUnlocked(tx, resellerID); e != nil {
+			return e
+		}
 		// CAS rejects a concurrent sample or mutation: retry with a new snapshot;
 		// the transaction rolls back the hold as well.
 		lock := tx.Model(&model.Peer{}).Where("id = ? AND reseller_id = ? AND purchase_id IS NULL AND restriction_revision = ? AND updated_at = ? AND last_tx = ? AND last_rx = ? AND download_usage = ? AND upload_usage = ? AND sync_lease_until <= ?", peer.ID, resellerID, peer.RestrictionRevision, peer.UpdatedAt, peer.LastTx, peer.LastRx, peer.DownloadUsage, peer.UploadUsage, s.billing.now().Unix()).UpdateColumn("purchase_id", op.ID)
@@ -234,12 +240,20 @@ func (s *PeerPurchases) Begin(actor Principal, resellerID, peerID uint, key stri
 // failure the hold remains pending; a restart verifies and finishes the same
 // operation, never a second charge or an unverified refund.
 func (s *PeerPurchases) Run() {
-	var ops []model.PeerPurchase
-	now := s.billing.now().UTC().Unix()
-	if s.billing.db.Where("state = ? AND next_attempt_at <= ? AND lease_until <= ?", "pending", now, now).Order("created_at ASC").Limit(50).Find(&ops).Error != nil {
+	if !s.runMu.TryLock() {
 		return
 	}
+	defer s.runMu.Unlock()
+	var ops []model.PeerPurchase
+	now := s.billing.now().UTC().Unix()
+	if s.billing.db.Where("state = ? AND next_attempt_at <= ? AND lease_until <= ? AND id > ?", "pending", now, now, s.cursor).Order("id ASC").Limit(50).Find(&ops).Error != nil {
+		return
+	}
+	if len(ops) == 0 {
+		s.cursor = ""
+	}
 	for _, op := range ops {
+		s.cursor = op.ID
 		_ = s.Reconcile(op.ID)
 	}
 }
@@ -257,7 +271,10 @@ func (s *PeerPurchases) Reconcile(id string) error {
 	if err := s.billing.db.First(&op, "id = ?", id).Error; err != nil {
 		return err
 	}
-	err := s.apply(op)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	worker := &PeerPurchases{billing: s.billing.withContext(ctx), peers: s.peers}
+	err := worker.apply(ctx, op)
 	if err != nil {
 		delay := min(int64(300), int64(1)<<min(op.Attempts+1, int64(8)))
 		_ = s.billing.db.Model(&model.PeerPurchase{}).Where("id = ? AND state = ?", id, "pending").Updates(map[string]any{"lease_until": 0, "attempts": gorm.Expr("attempts + 1"), "next_attempt_at": now + delay, "last_error": "router or storage verification pending"}).Error
@@ -265,22 +282,22 @@ func (s *PeerPurchases) Reconcile(id string) error {
 	return err
 }
 
-func (s *PeerPurchases) apply(op model.PeerPurchase) error {
+func (s *PeerPurchases) apply(ctx context.Context, op model.PeerPurchase) error {
 	var peer model.Peer
 	if err := s.billing.db.Where("reseller_id = ? AND purchase_id = ?", op.ResellerID, op.ID).First(&peer, op.PeerID).Error; err != nil {
 		return err
 	}
 	if op.ChargeID == nil {
-		return s.applyFree(op, peer)
+		return s.applyFree(ctx, op, peer)
 	}
 	if op.Kind == string(BillingCreate) {
-		return s.applyCreate(op, peer)
+		return s.applyCreate(ctx, op, peer)
 	}
 	router, err := s.peers.mikrotikAdaptor.ForServer(peer.ServerID)
 	if err != nil {
 		return err
 	}
-	observed, err := router.FetchWgPeer(context.Background(), peer.PeerID)
+	observed, err := router.FetchWgPeer(ctx, peer.PeerID)
 	if err != nil {
 		return err
 	}
@@ -291,7 +308,7 @@ func (s *PeerPurchases) apply(op model.PeerPurchase) error {
 		if peer.SchedulerID == nil {
 			return ErrRouterPeerIdentity
 		}
-		scheduler, err := router.FetchScheduler(context.Background(), *peer.SchedulerID)
+		scheduler, err := router.FetchScheduler(ctx, *peer.SchedulerID)
 		if err != nil {
 			return err
 		}
@@ -302,10 +319,10 @@ func (s *PeerPurchases) apply(op model.PeerPurchase) error {
 		if err != nil {
 			return err
 		}
-		if err = bound.scheduler.updateScheduler(peer.SchedulerID, peer.PeerID, &op.ExpireTime); err != nil {
+		if err = bound.scheduler.updateSchedulerContext(ctx, peer.SchedulerID, peer.PeerID, &op.ExpireTime); err != nil {
 			return err
 		}
-		verify, err := router.FetchScheduler(context.Background(), *peer.SchedulerID)
+		verify, err := router.FetchScheduler(ctx, *peer.SchedulerID)
 		if err != nil {
 			return err
 		}

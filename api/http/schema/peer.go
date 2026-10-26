@@ -82,6 +82,7 @@ type PeerShareStatusResponse struct {
 }
 
 type PeerResponse struct {
+	MigrationPending       bool         `json:"migration_pending"`
 	TrafficLimitBytes      *string      `json:"traffic_limit_bytes"`
 	TotalUsageBytes        string       `json:"total_usage_bytes"`
 	ConfiguredDurationDays string       `json:"configured_duration_days"`

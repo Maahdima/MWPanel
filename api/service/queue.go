@@ -24,6 +24,9 @@ func NewQueue(mikrotikAdaptor *mikrotik.Adaptor) *Queue {
 }
 
 func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwidth, uploadBandwidth *string) (*string, error) {
+	return q.createQueueContext(context.Background(), peerName, peerAllowedAddress, downloadBandwidth, uploadBandwidth)
+}
+func (q *Queue) createQueueContext(ctx context.Context, peerName, peerAllowedAddress string, downloadBandwidth, uploadBandwidth *string) (*string, error) {
 	normalizedDownload := downloadBandwidth
 	if normalizedDownload == nil {
 		normalizedDownload = utils.Ptr("0")
@@ -41,7 +44,7 @@ func (q *Queue) createQueue(peerName, peerAllowedAddress string, downloadBandwid
 		MaxLimit: &maxLimit,
 	}
 
-	createdQueue, err := q.mikrotikAdaptor.CreateSimpleQueue(context.Background(), wgQueue)
+	createdQueue, err := q.mikrotikAdaptor.CreateSimpleQueue(ctx, wgQueue)
 	if err != nil {
 		q.logger.Error("failed to create simple queue for wireguard peer", zap.Error(err))
 		return nil, err

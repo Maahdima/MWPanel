@@ -13,6 +13,7 @@ import (
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 func SetupMwpAPI(
@@ -105,7 +106,7 @@ func SetupMwpAPI(
 	billingGroup.POST("/receipts/:id/approve", billingController.Approve)
 	billingGroup.POST("/receipts/:id/reject", billingController.Reject)
 	resellerController := NewResellerController(resellers)
-	resellerGroup := router.Group("/reseller", echojwt.WithConfig(jwtConfig))
+	resellerGroup := router.Group("/reseller", echojwt.WithConfig(jwtConfig), echomiddleware.BodyLimit("64K"))
 	resellerGroup.POST("/me/peers/:id/purchases", resellerController.Purchase)
 	resellerGroup.GET("/me/peers/:id/purchases", resellerController.Purchase)
 	resellerGroup.POST("/:id/peers/:peer_id/purchases", resellerController.Purchase)
@@ -120,6 +121,9 @@ func SetupMwpAPI(
 	resellerGroup.GET("/me/peers/:id/qrcode", resellerController.MyQRCode)
 	resellerGroup.GET("/me/peers/:id/sessions", resellerController.MySessions)
 	resellerGroup.GET("/me/peers/export", resellerController.MyExport)
+	resellerGroup.POST("/:id/migrations/:migration_id/cancel", resellerController.CancelMigration)
+	resellerGroup.GET("/:id/migrations", resellerController.Migration)
+	resellerGroup.POST("/:id/migrations", resellerController.Migration)
 	resellerGroup.POST("/:id/suspension", resellerController.Suspension)
 	resellerGroup.GET("", resellerController.List)
 	resellerGroup.POST("", resellerController.Create)

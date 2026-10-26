@@ -81,19 +81,24 @@ func (r *PeerReconciler) Run() {
 		r.cursor = 0
 		return
 	}
+	failedServers := map[uint]bool{}
 	for _, peer := range peers {
 		r.cursor = peer.ID
+		if failedServers[peer.ServerID] {
+			continue
+		}
 		if err := r.ReconcilePeer(peer.ID); err != nil {
+			failedServers[peer.ServerID] = true
 			zap.L().Warn("peer reconciliation pending", zap.Uint("peer_id", peer.ID), zap.Error(err))
 		}
 	}
 }
 
-func (r *PeerReconciler) prepare(id uint) (model.Peer, bool, error) {
+func (r *PeerReconciler) prepare(ctx context.Context, id uint) (model.Peer, bool, error) {
 	var peer model.Peer
 	claimed := false
 	now := r.now().UTC().Unix()
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		lock := tx.Model(&model.Peer{}).Where("id = ?", id).UpdateColumn("restriction_revision", gorm.Expr("restriction_revision"))
 		if lock.Error != nil {
 			return lock.Error
@@ -128,7 +133,7 @@ func (r *PeerReconciler) prepare(id uint) (model.Peer, bool, error) {
 		}
 		desired := peer.ProvisioningBlocked || manual || expiry || quota || billing || admin
 		// Pending purchases may never prevent an urgent suspension. Defer only reactivation.
-		if peer.PurchaseID != nil && !desired {
+		if (peer.PurchaseID != nil || peer.MigrationID != nil) && !desired {
 			return nil
 		}
 		changed := !peer.RestrictionsInitialized || peer.ManualDisabled != manual || peer.ExpiryBlocked != expiry || peer.QuotaBlocked != quota || peer.BillingBlocked != billing || peer.AdminBlocked != admin || peer.Disabled != desired
@@ -163,11 +168,17 @@ func (r *PeerReconciler) prepare(id uint) (model.Peer, bool, error) {
 }
 
 func (r *PeerReconciler) ReconcilePeer(id uint) error {
-	peer, claimed, err := r.prepare(id)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	return r.reconcilePeerContext(ctx, id)
+}
+func (r *PeerReconciler) reconcilePeerContext(ctx context.Context, id uint) error {
+
+	peer, claimed, err := r.prepare(ctx, id)
 	if err != nil || !claimed {
 		return err
 	}
-	err = r.apply(peer)
+	err = r.apply(ctx, peer)
 	now := r.now().UTC().Unix()
 	if err != nil {
 		attempts := peer.SyncAttempts + 1
@@ -192,12 +203,11 @@ func (r *PeerReconciler) ReconcilePeer(id uint) error {
 	return nil
 }
 
-func (r *PeerReconciler) apply(peer model.Peer) error {
+func (r *PeerReconciler) apply(ctx context.Context, peer model.Peer) error {
 	adaptor, err := r.adaptor.ForServer(peer.ServerID)
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
 	observed, err := adaptor.FetchWgPeer(ctx, peer.PeerID)
 	if err != nil {
 		return err
@@ -239,17 +249,17 @@ func (r *PeerReconciler) apply(peer model.Peer) error {
 	}
 	if !peer.Disabled {
 		var current model.Peer
-		if err := r.db.First(&current, peer.ID).Error; err != nil {
+		if err := r.db.WithContext(ctx).First(&current, peer.ID).Error; err != nil {
 			return err
 		}
 		if current.RestrictionRevision != peer.RestrictionRevision || current.ServerID != peer.ServerID || current.PeerID != peer.PeerID {
 			return errors.New("peer changed during reconciliation")
 		}
-		restricted, err := peerOtherRestriction(r.db, current, r.now())
+		restricted, err := peerOtherRestriction(r.db.WithContext(ctx), current, r.now())
 		if err != nil {
 			return err
 		}
-		if restricted || current.ManualDisabled || current.ProvisioningBlocked {
+		if restricted || current.ManualDisabled || current.ProvisioningBlocked || current.MigrationID != nil {
 			return ErrPeerRestricted
 		}
 		if _, err := adaptor.UpdateWgPeer(ctx, peer.PeerID, mikrotik.WireGuardPeer{Disabled: disabled}); err != nil {

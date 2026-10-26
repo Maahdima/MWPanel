@@ -13,7 +13,6 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
-	"github.com/maahdima/mwp/api/utils/wireguard"
 )
 
 type SyncService struct {
@@ -143,6 +142,14 @@ func (s *SyncService) mapDBPeers(peers []model.Peer) map[string]model.Peer {
 
 func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuardPeer, dbMap map[string]model.Peer) error {
 	for id, peer := range peers {
+		var reserved int64
+		if err := s.db.Model(&model.RouterMigrationPeer{}).Where("phase IN ? AND public_key = ? AND (source_server_id = ? OR destination_server_id = ?)", []string{"pending", "switched"}, peer.PublicKey, s.serverID, s.serverID).Count(&reserved).Error; err != nil {
+			return err
+		}
+		if reserved > 0 {
+			continue
+		}
+
 		pendingKey := false
 		for _, stored := range dbMap {
 			if stored.ResellerID != nil && stored.PublicKey == peer.PublicKey {
@@ -188,6 +195,7 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		dbPeer.Name = peer.Name
 		dbPeer.PrivateKey = *peer.PrivateKey
 		dbPeer.PublicKey = peer.PublicKey
+		dbPeer.PresharedKey = peer.PresharedKey
 		dbPeer.Interface = dbIface.Name
 		dbPeer.AllowedAddress = peer.AllowedAddress
 		if dbPeer.Endpoint == "" {
@@ -195,7 +203,10 @@ func (s *SyncService) syncNewAndUpdatedPeers(peers map[string]mikrotik.WireGuard
 		}
 		dbPeer.EndpointPort = dbIface.ListenPort
 
-		config := s.buildConfig(peer, dbPeer, dbIface)
+		config, err := peerConfigText(dbPeer, dbIface.PublicKey)
+		if err != nil {
+			return err
+		}
 
 		if err := s.configService.BuildPeerConfig(config, dbPeer.UUID); err != nil {
 			s.logger.Error("failed to build peer config", zap.String("id", id), zap.Error(err))
@@ -265,19 +276,6 @@ func (s *SyncService) fetchInterface(name, peerID string) (model.Interface, erro
 		s.logger.Error("failed to get interface", zap.String("peerId", peerID), zap.Error(err))
 	}
 	return iface, err
-}
-
-func (s *SyncService) buildConfig(peer mikrotik.WireGuardPeer, dbPeer model.Peer, iface model.Interface) string {
-	return fmt.Sprintf(wireguard.Template,
-		*peer.PrivateKey,
-		dbPeer.AllowedAddress,
-		common.DefaultDns,
-		iface.PublicKey,
-		dbPeer.Endpoint,
-		dbPeer.EndpointPort,
-		common.AllowedIpsIncludeLocal,
-		dbPeer.PersistentKeepalive,
-	)
 }
 
 func (s *SyncService) fetchMikrotikInterfaces() ([]mikrotik.WireGuardInterface, error) {

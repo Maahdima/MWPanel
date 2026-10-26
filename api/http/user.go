@@ -38,6 +38,9 @@ func (u *UserController) GetUserDetails(ctx echo.Context) error {
 
 	stats, err := u.peerService.GetPeerDetails(uuid)
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -68,6 +71,9 @@ func (u *UserController) GetUserTelegram(ctx echo.Context) error {
 
 	status, err := u.peerService.GetPeerTelegramStatus(uuid)
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -98,6 +104,9 @@ func (u *UserController) GetUserConfig(ctx echo.Context) error {
 
 	config, downloadName, err := u.peerConfigService.GetUserConfig(uuid)
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,
@@ -125,6 +134,9 @@ func (u *UserController) GetUserQRCode(ctx echo.Context) error {
 
 	qrCode, err := u.peerQrCodeService.GetUserQRCode(uuid)
 	if err != nil {
+		if errors.Is(err, service.ErrRouterSyncPending) {
+			return ctx.JSON(http.StatusServiceUnavailable, schema.ErrorResponse{StatusCode: http.StatusServiceUnavailable, Status: "error", Message: "Configuration migration is pending; retry shortly"})
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, common.ErrPeerNotShared) {
 			return ctx.JSON(http.StatusNotFound, schema.ErrorResponse{
 				StatusCode: http.StatusNotFound,

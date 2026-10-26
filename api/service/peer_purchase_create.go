@@ -12,6 +12,7 @@ import (
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
 	"github.com/maahdima/mwp/api/dataservice/model"
+	"github.com/maahdima/mwp/api/utils"
 	"gorm.io/gorm"
 )
 
@@ -56,6 +57,9 @@ func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req
 	if err = s.billing.db.Where("is_active = ?", true).First(&reseller, resellerID).Error; err != nil {
 		return empty, err
 	}
+	if reseller.MigrationID != nil {
+		return empty, ErrPendingPeerOperation
+	}
 	interfaceID := req.InterfaceID
 	if interfaceID == 0 && reseller.DefaultInterfaceID != nil {
 		interfaceID = *reseller.DefaultInterfaceID
@@ -92,6 +96,9 @@ func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req
 	op = model.PeerPurchase{ID: uuid.NewString(), ResellerID: resellerID, IdempotencyKey: key, RequestHash: hash, ActorID: actor.AccountID, Kind: string(BillingCreate), State: "pending", QuotaBytes: bytes, ExpireTime: expiry}
 	peer := model.Peer{ResellerID: &resellerID, ServerID: iface.ServerID, PurchaseID: &op.ID, ConfiguredDurationDays: days, ProvisioningBlocked: true, RestrictionsInitialized: true, Disabled: true, UUID: uuid.NewString(), PeerID: "pending:" + op.ID, Name: strings.TrimSpace(req.Name), PrivateKey: credentials.PrivateKey, PublicKey: credentials.PublicKey, Interface: iface.Name, AllowedAddress: address.AllowedAddress, Endpoint: server.IPAddress, EndpointPort: iface.ListenPort, PersistentKeepalive: common.DefaultKeepalive, TrafficLimit: &bytes, ExpireTime: &expiry}
 	_, err = s.billing.reserveCharge(actor, resellerID, key, nil, BillingCreate, bytes, days, func(tx *gorm.DB, charge model.BillingCharge) error {
+		if e := migrationUnlocked(tx, resellerID); e != nil {
+			return e
+		}
 		// Re-read assignments under the account lock; a simultaneous default change
 		// cannot silently reroute this accepted operation.
 		var current model.Interface
@@ -140,135 +147,25 @@ func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req
 // names before each create. Ambiguous timeouts are resolved by inventory on the
 // next attempt. Destination peers stay disabled until the database and ledger
 // commit together and the restriction reconciler authorizes activation.
-func (s *PeerPurchases) applyCreate(op model.PeerPurchase, peer model.Peer) error {
-	router, err := s.peers.mikrotikAdaptor.ForServer(peer.ServerID)
+func (s *PeerPurchases) applyCreate(ctx context.Context, op model.PeerPurchase, peer model.Peer) error {
+	final, err := s.provision(ctx, peer)
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
 	iface, err := s.peers.getInterfaceByName(peer.ServerID, peer.Interface)
 	if err != nil {
 		return err
-	}
-	observedInterface, err := router.FetchWgInterface(ctx, iface.InterfaceID)
-	if err != nil {
-		return err
-	}
-	if observedInterface.Name != iface.Name || observedInterface.PublicKey != iface.PublicKey {
-		return ErrRouterPeerIdentity
-	}
-	inventory, err := router.FetchWgPeers(ctx)
-	if err != nil {
-		return err
-	}
-	var remote *mikrotik.WireGuardPeer
-	for _, candidate := range inventory {
-		if candidate.PublicKey == peer.PublicKey {
-			if remote != nil {
-				return ErrRouterPeerIdentity
-			}
-			copyPeer := candidate
-			remote = &copyPeer
-		}
-	}
-	if remote == nil {
-		// Reject an addressing conflict rather than touching an unrelated peer.
-		for _, candidate := range inventory {
-			if candidate.AllowedAddress == peer.AllowedAddress {
-				return ErrRouterPeerIdentity
-			}
-		}
-		remote, err = router.CreateWgPeer(ctx, mikrotik.WireGuardPeer{Name: peer.Name, PublicKey: peer.PublicKey, PrivateKey: &peer.PrivateKey, Interface: peer.Interface, AllowedAddress: peer.AllowedAddress, PersistentKeepAlive: &peer.PersistentKeepalive, Disabled: "true"})
-		if err != nil {
-			return err
-		}
-	}
-	verified, err := router.FetchWgPeer(ctx, remote.ID)
-	if err != nil {
-		return err
-	}
-	if verified.PublicKey != peer.PublicKey || verified.Interface != peer.Interface || verified.AllowedAddress != peer.AllowedAddress {
-		return ErrRouterPeerIdentity
-	}
-	if verified.Disabled != "true" {
-		if _, err = router.UpdateWgPeer(ctx, remote.ID, mikrotik.WireGuardPeer{Disabled: "true"}); err != nil {
-			return err
-		}
-	}
-	queues, err := router.FetchSimpleQueues(ctx)
-	if err != nil {
-		return err
-	}
-	queueName := common.QueueName + peer.UUID
-	var queueID *string
-	for _, q := range queues {
-		if q.Name == queueName {
-			if queueID != nil || q.Target == nil || *q.Target != peer.AllowedAddress {
-				return ErrRouterPeerIdentity
-			}
-			id := q.ID
-			queueID = &id
-		}
 	}
 	bound, err := s.peers.ForServer(peer.ServerID)
 	if err != nil {
 		return err
 	}
-	if queueID == nil {
-		queueID, err = bound.queue.createQueue(peer.UUID, peer.AllowedAddress, peer.DownloadBandwidth, peer.UploadBandwidth)
-		if err != nil {
-			return err
-		}
-	}
-	queue, err := router.FetchSimpleQueue(ctx, *queueID)
-	if err != nil {
-		return err
-	}
-	if queue.Name != queueName || queue.Target == nil || *queue.Target != peer.AllowedAddress {
-		return ErrRouterPeerIdentity
-	}
-	schedules, err := router.FetchSchedulers(ctx)
-	if err != nil {
-		return err
-	}
-	scheduleName := common.SchedulerName + peer.UUID
-	var schedulerID *string
-	for _, schedule := range schedules {
-		if schedule.Name == scheduleName {
-			if schedulerID != nil || schedule.OnEvent == nil || *schedule.OnEvent != schedulerOnEvent(remote.ID) {
-				return ErrRouterPeerIdentity
-			}
-			id := schedule.ID
-			schedulerID = &id
-		}
-	}
-	if schedulerID == nil {
-		schedulerID, err = bound.scheduler.createScheduler(remote.ID, peer.UUID, &op.ExpireTime)
-		if err != nil {
-			return err
-		}
-	}
-	scheduler, err := router.FetchScheduler(ctx, *schedulerID)
-	if err != nil {
-		return err
-	}
-	date, err := toMikrotikDate(&op.ExpireTime)
-	if err != nil {
-		return err
-	}
-	if scheduler.OnEvent == nil || *scheduler.OnEvent != schedulerOnEvent(remote.ID) || scheduler.StartDate == nil || *scheduler.StartDate != *date {
-		return ErrRouterPeerIdentity
-	}
-	final := peer
-	final.PeerID = remote.ID
-	final.QueueID = queueID
-	final.SchedulerID = schedulerID
 	if err = bound.generatePeerAssets(peer.PrivateKey, final, iface.PublicKey); err != nil {
 		return err
 	}
 	actor := Principal{AccountID: op.ActorID, Role: model.RoleReseller, ResellerID: &op.ResellerID}
 	return s.billing.CommitCharge(actor, op.ResellerID, op.IdempotencyKey, func(tx *gorm.DB) error {
-		result := tx.Model(&model.Peer{}).Where("id = ? AND reseller_id = ? AND purchase_id = ?", peer.ID, op.ResellerID, op.ID).Updates(map[string]any{"peer_id": remote.ID, "queue_id": queueID, "scheduler_id": schedulerID, "provisioning_blocked": false, "purchase_id": nil, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0})
+		result := tx.Model(&model.Peer{}).Where("id = ? AND reseller_id = ? AND purchase_id = ?", peer.ID, op.ResellerID, op.ID).Updates(map[string]any{"peer_id": final.PeerID, "queue_id": final.QueueID, "scheduler_id": final.SchedulerID, "provisioning_blocked": false, "purchase_id": nil, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0})
 		if result.Error != nil {
 			return result.Error
 		}
@@ -304,4 +201,149 @@ func (s *Resellers) MyResources(actor Principal) ([]ResellerResourceView, error)
 		result = append(result, row)
 	}
 	return result, nil
+}
+
+func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.Peer, error) {
+	router, err := s.peers.mikrotikAdaptor.ForServer(peer.ServerID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	iface, err := s.peers.getInterfaceByName(peer.ServerID, peer.Interface)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	observedInterface, err := router.FetchWgInterface(ctx, iface.InterfaceID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	if observedInterface.Name != iface.Name || observedInterface.PublicKey != iface.PublicKey {
+		return model.Peer{}, ErrRouterPeerIdentity
+	}
+	inventory, err := router.FetchWgPeers(ctx)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	var remote *mikrotik.WireGuardPeer
+	for _, candidate := range inventory {
+		if candidate.PublicKey == peer.PublicKey {
+			if remote != nil {
+				return model.Peer{}, ErrRouterPeerIdentity
+			}
+			copyPeer := candidate
+			remote = &copyPeer
+		}
+	}
+	if remote == nil {
+		// Reject an addressing conflict rather than touching an unrelated peer.
+		for _, candidate := range inventory {
+			if candidate.AllowedAddress == peer.AllowedAddress {
+				return model.Peer{}, ErrRouterPeerIdentity
+			}
+		}
+		remote, err = router.CreateWgPeer(ctx, mikrotik.WireGuardPeer{Name: peer.Name, PublicKey: peer.PublicKey, PrivateKey: &peer.PrivateKey, PresharedKey: peer.PresharedKey, Interface: peer.Interface, AllowedAddress: peer.AllowedAddress, PersistentKeepAlive: &peer.PersistentKeepalive, Disabled: "true"})
+		if err != nil {
+			return model.Peer{}, err
+		}
+	}
+	verified, err := router.FetchWgPeer(ctx, remote.ID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	if verified.PublicKey != peer.PublicKey || verified.Interface != peer.Interface || verified.AllowedAddress != peer.AllowedAddress || normalizedPresharedKey(verified.PresharedKey) != normalizedPresharedKey(peer.PresharedKey) {
+		return model.Peer{}, ErrRouterPeerIdentity
+	}
+	if verified.Disabled != "true" {
+		if _, err = router.UpdateWgPeer(ctx, remote.ID, mikrotik.WireGuardPeer{Disabled: "true"}); err != nil {
+			return model.Peer{}, err
+		}
+	}
+	queues, err := router.FetchSimpleQueues(ctx)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	queueName := common.QueueName + peer.UUID
+	var queueID *string
+	for _, q := range queues {
+		if q.Name == queueName {
+			if queueID != nil || q.Target == nil || *q.Target != peer.AllowedAddress {
+				return model.Peer{}, ErrRouterPeerIdentity
+			}
+			id := q.ID
+			queueID = &id
+		}
+	}
+	bound, err := s.peers.ForServer(peer.ServerID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	if queueID == nil {
+		queueID, err = bound.queue.createQueueContext(ctx, peer.UUID, peer.AllowedAddress, peer.DownloadBandwidth, peer.UploadBandwidth)
+		if err != nil {
+			return model.Peer{}, err
+		}
+	}
+	queue, err := router.FetchSimpleQueue(ctx, *queueID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	if queue.Name != queueName || queue.Target == nil || *queue.Target != peer.AllowedAddress {
+		return model.Peer{}, ErrRouterPeerIdentity
+	}
+	expectedLimit := utils.DerefString(peer.DownloadBandwidth) + "/" + utils.DerefString(peer.UploadBandwidth)
+	if peer.DownloadBandwidth == nil {
+		expectedLimit = "0/" + utils.DerefString(peer.UploadBandwidth)
+	}
+	if peer.UploadBandwidth == nil {
+		expectedLimit = strings.Split(expectedLimit, "/")[0] + "/0"
+	}
+	if queue.MaxLimit == nil || *queue.MaxLimit != expectedLimit {
+		if _, err = router.UpdateSimpleQueue(ctx, *queueID, mikrotik.Queue{MaxLimit: &expectedLimit}); err != nil {
+			return model.Peer{}, err
+		}
+		check, e := router.FetchSimpleQueue(ctx, *queueID)
+		if e != nil {
+			return model.Peer{}, e
+		}
+		if check.MaxLimit == nil || *check.MaxLimit != expectedLimit {
+			return model.Peer{}, ErrRouterPeerIdentity
+		}
+	}
+	schedules, err := router.FetchSchedulers(ctx)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	scheduleName := common.SchedulerName + peer.UUID
+	var schedulerID *string
+	for _, schedule := range schedules {
+		if schedule.Name == scheduleName {
+			if schedulerID != nil || schedule.OnEvent == nil || *schedule.OnEvent != schedulerOnEvent(remote.ID) {
+				return model.Peer{}, ErrRouterPeerIdentity
+			}
+			id := schedule.ID
+			schedulerID = &id
+		}
+	}
+	if schedulerID == nil {
+		schedulerID, err = bound.scheduler.createSchedulerContext(ctx, remote.ID, peer.UUID, peer.ExpireTime)
+		if err != nil {
+			return model.Peer{}, err
+		}
+	}
+	scheduler, err := router.FetchScheduler(ctx, *schedulerID)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	date, err := toMikrotikDate(peer.ExpireTime)
+	if err != nil {
+		return model.Peer{}, err
+	}
+	if scheduler.OnEvent == nil || *scheduler.OnEvent != schedulerOnEvent(remote.ID) || scheduler.StartDate == nil || *scheduler.StartDate != *date {
+		return model.Peer{}, ErrRouterPeerIdentity
+	}
+	final := peer
+	final.PeerID = remote.ID
+	final.QueueID = queueID
+	final.SchedulerID = schedulerID
+
+	return final, nil
 }

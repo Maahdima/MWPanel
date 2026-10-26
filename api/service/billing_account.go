@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -26,6 +27,9 @@ type Billing struct {
 }
 
 func NewBilling(db *gorm.DB) *Billing { return &Billing{db: db, now: time.Now} }
+func (b *Billing) withContext(ctx context.Context) *Billing {
+	return &Billing{db: b.db.WithContext(ctx), now: b.now}
+}
 
 func billingAdmin(actor Principal) bool {
 	return actor.AccountID != 0 && actor.Role == model.RoleSuperadmin && actor.ResellerID == nil

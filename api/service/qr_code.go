@@ -54,6 +54,10 @@ func (q *QRCodeGenerator) GetPeerQRCode(id uint) (qrcodePath string, err error) 
 		return
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
@@ -76,6 +80,10 @@ func (q *QRCodeGenerator) GetUserQRCode(uuid string) (qrcodePath string, err err
 		return "", common.ErrPeerNotShared
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 
 	return qrcodePath, nil
@@ -93,6 +101,10 @@ func (q *QRCodeGenerator) GetQRCodeByUUID(uuid string) (qrcodePath string, err e
 		return
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	qrcodePath = fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, peer.UUID)
 	return qrcodePath, nil
 }
@@ -106,18 +118,17 @@ func (q *QRCodeGenerator) BuildPeerQRCode(config string, uuid string) error {
 
 	filePath := fmt.Sprintf("%s/%s.jpeg", peerQrCodesPath, uuid)
 
-	w, err := standard.New(filePath)
+	file, err := os.CreateTemp(peerQrCodesPath, ".qr-*")
 	if err != nil {
-		q.logger.Error("failed to create QRCode writer", zap.Error(err))
 		return err
 	}
-
-	if err = qrc.Save(w); err != nil {
-		q.logger.Error("could not save QRCode image", zap.Error(err))
+	temporary := file.Name()
+	defer os.Remove(temporary)
+	writer := standard.NewWithWriter(file)
+	if err = qrc.Save(writer); err != nil {
 		return err
 	}
-
-	return nil
+	return os.Rename(temporary, filePath)
 }
 
 func (q *QRCodeGenerator) RemovePeerQRCode(id uint) error {

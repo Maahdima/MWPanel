@@ -52,6 +52,10 @@ func (c *ConfigGenerator) GetPeerConfig(id uint) (configPath string, downloadNam
 		return
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
 	downloadName = confDownloadName(peer.Name)
 	return configPath, downloadName, nil
@@ -69,11 +73,14 @@ func (c *ConfigGenerator) GetUserConfig(uuid string) (configPath string, downloa
 		return
 	}
 
-	utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime)
-	if !peer.IsShared {
+	if !utils.IsPeerSharable(peer.IsShared, peer.ShareExpireTime) {
 		return "", "", common.ErrPeerNotShared
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
 	downloadName = confDownloadName(peer.Name)
 	return configPath, downloadName, nil
@@ -91,6 +98,10 @@ func (c *ConfigGenerator) GetConfigByUUID(uuid string) (configPath string, err e
 		return
 	}
 
+	if peer.MigrationID != nil {
+		err = ErrRouterSyncPending
+		return
+	}
 	configPath = fmt.Sprintf("%s/%s.conf", peerConfigsPath, peer.UUID)
 	return configPath, nil
 }
@@ -114,17 +125,24 @@ func confDownloadName(peerName string) string {
 func (c *ConfigGenerator) BuildPeerConfig(config string, uuid string) error {
 	filePath := fmt.Sprintf("%s/%s.conf", peerConfigsPath, uuid)
 
-	file, err := os.Create(filePath)
+	file, err := os.CreateTemp(peerConfigsPath, ".config-*")
 	if err != nil {
-		return fmt.Errorf("failed to create config file: %w", err)
+		return err
 	}
-	defer file.Close()
-
-	if _, err := file.WriteString(config); err != nil {
-		return fmt.Errorf("failed to write config to file: %w", err)
+	temporary := file.Name()
+	defer os.Remove(temporary)
+	if _, err = file.WriteString(config); err != nil {
+		file.Close()
+		return err
 	}
-
-	return nil
+	if err = file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err = file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporary, filePath)
 }
 
 func (c *ConfigGenerator) RemovePeerConfig(id uint) error {

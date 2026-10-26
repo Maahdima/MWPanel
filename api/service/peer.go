@@ -54,12 +54,20 @@ func (w *WgPeer) TogglePeerStatus(id uint) error {
 	if err := w.db.First(&initial, id).Error; err != nil {
 		return err
 	}
+	if initial.MigrationID != nil {
+		return ErrPendingPeerOperation
+	}
 	if initial.ResellerID != nil {
 		if _, err := NewBilling(w.db).ReconcileAccount(*initial.ResellerID); err != nil {
 			return err
 		}
 	}
 	update := func(tx *gorm.DB) error {
+		if initial.ResellerID != nil {
+			if err := migrationUnlocked(tx, *initial.ResellerID); err != nil {
+				return err
+			}
+		}
 		lock := tx.Model(&model.Peer{}).Where("id = ?", id).UpdateColumn("restriction_revision", gorm.Expr("restriction_revision"))
 		if lock.Error != nil {
 			return lock.Error
@@ -843,6 +851,7 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 		Name:                    mtPeer.Name,
 		PrivateKey:              *mtPeer.PrivateKey,
 		PublicKey:               mtPeer.PublicKey,
+		PresharedKey:            req.PresharedKey,
 		Interface:               mtPeer.Interface,
 		AllowedAddress:          mtPeer.AllowedAddress,
 		Endpoint:                req.Endpoint,
@@ -865,8 +874,11 @@ func (w *WgPeer) buildAndStoreDbPeer(req *schema.CreatePeerRequest, iface model.
 }
 
 func (w *WgPeer) generatePeerAssets(privateKey string, peer model.Peer, ifacePubKey string) error {
-	peerConfig := fmt.Sprintf(wireguard.Template, privateKey, peer.AllowedAddress, common.DefaultDns, ifacePubKey, peer.Endpoint, peer.EndpointPort, common.AllowedIpsIncludeLocal, peer.PersistentKeepalive)
-
+	peer.PrivateKey = privateKey
+	peerConfig, err := peerConfigText(peer, ifacePubKey)
+	if err != nil {
+		return err
+	}
 	if err := w.configGenerator.BuildPeerConfig(peerConfig, peer.UUID); err != nil {
 		return err
 	}
@@ -995,6 +1007,9 @@ func (w *WgPeer) preparePeerUpdate(peer *model.Peer, req *schema.UpdatePeerReque
 	updateData["expire_time"] = req.ExpireTime
 	updateData["download_bandwidth"] = req.DownloadBandwidth
 	updateData["upload_bandwidth"] = req.UploadBandwidth
+	if req.PresharedKey != nil {
+		updateData["preshared_key"] = req.PresharedKey
+	}
 	updateData["scheduler_id"] = schedulerID
 	updateData["queue_id"] = queueID
 
@@ -1039,7 +1054,7 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		syncStatus = "error"
 	}
 	return schema.PeerResponse{
-		TrafficLimitBytes: int64Text(peer.TrafficLimit), TotalUsageBytes: strconv.FormatInt(peer.DownloadUsage+peer.UploadUsage, 10), ConfiguredDurationDays: strconv.FormatInt(peer.ConfiguredDurationDays, 10), PurchasePending: peer.PurchaseID != nil,
+		TrafficLimitBytes: int64Text(peer.TrafficLimit), TotalUsageBytes: strconv.FormatInt(peer.DownloadUsage+peer.UploadUsage, 10), ConfiguredDurationDays: strconv.FormatInt(peer.ConfiguredDurationDays, 10), PurchasePending: peer.PurchaseID != nil, MigrationPending: peer.MigrationID != nil,
 		ManualDisabled: peer.ManualDisabled, RestrictionReasons: reasons, SyncStatus: syncStatus,
 		Id:                peer.ID,
 		ServerID:          peer.ServerID,

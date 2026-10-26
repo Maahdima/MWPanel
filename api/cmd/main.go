@@ -116,6 +116,11 @@ func main() {
 	if err != nil {
 		logger.Panic("Failed to create purchase reconciliation job", zap.Error(err))
 	}
+	migrations := service.NewRouterMigrations(service.NewBilling(db), purchasePeers)
+	_, err = scheduler.NewJob(gocron.DurationJob(10*time.Second), gocron.NewTask(migrations.Run), gocron.WithStartAt(gocron.WithStartImmediately()))
+	if err != nil {
+		logger.Panic("Failed to create router migration reconciliation job", zap.Error(err))
+	}
 	scheduler.Start()
 
 	// Start the HTTP server

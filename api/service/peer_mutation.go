@@ -66,7 +66,7 @@ func (s *PeerPurchases) Mutate(actor Principal, resellerID, peerID uint, key str
 	if err = s.billing.db.Where("reseller_id = ?", resellerID).First(&peer, peerID).Error; err != nil {
 		return empty, err
 	}
-	if peer.PurchaseID != nil || peer.ProvisioningBlocked {
+	if peer.PurchaseID != nil || peer.MigrationID != nil || peer.ProvisioningBlocked {
 		return empty, ErrPendingPeerOperation
 	}
 	if peer.TrafficLimit == nil || peer.ExpireTime == nil {
@@ -112,6 +112,9 @@ func (s *PeerPurchases) Mutate(actor Principal, resellerID, peerID uint, key str
 	body, _ := json.Marshal(payload)
 	op = model.PeerPurchase{ID: uuid.NewString(), ResellerID: resellerID, IdempotencyKey: key, RequestHash: hash, PeerID: peerID, ActorID: actor.AccountID, Kind: req.Action, Payload: string(body), QuotaBytes: quota, ExpireTime: *peer.ExpireTime, State: "pending"}
 	err = s.billing.accountTransaction(resellerID, func(tx *gorm.DB, account *model.BillingAccount) error {
+		if e := migrationUnlocked(tx, resellerID); e != nil {
+			return e
+		}
 		if actor.Role == model.RoleReseller {
 			state, err := s.billing.accountState(tx, account, s.billing.now().Unix())
 			if err != nil {
@@ -219,10 +222,23 @@ func (s *PeerPurchases) validateAddress(tx *gorm.DB, peer model.Peer, address st
 			return ErrResellerLimit
 		}
 	}
+	var migrations []model.RouterMigrationPeer
+	if err = tx.Where("destination_server_id = ? AND phase IN ? AND peer_id <> ?", peer.ServerID, []string{"pending", "switched"}, peer.ID).Find(&migrations).Error; err != nil {
+		return err
+	}
+	for _, row := range migrations {
+		var target model.Peer
+		if json.Unmarshal([]byte(row.DestinationSnapshot), &target) != nil {
+			return ErrPendingPeerOperation
+		}
+		if target.AllowedAddress == address {
+			return ErrResellerLimit
+		}
+	}
 	return nil
 }
 
-func (s *PeerPurchases) applyFree(op model.PeerPurchase, peer model.Peer) error {
+func (s *PeerPurchases) applyFree(ctx context.Context, op model.PeerPurchase, peer model.Peer) error {
 	var payload peerMutationPayload
 	if err := json.Unmarshal([]byte(op.Payload), &payload); err != nil {
 		return err
@@ -235,7 +251,6 @@ func (s *PeerPurchases) applyFree(op model.PeerPurchase, peer model.Peer) error 
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
 	remote, err := router.FetchWgPeer(ctx, peer.PeerID)
 	missing := httphelper.IsNotFound(err)
 	if err != nil && !(op.Kind == "delete" && missing) {
@@ -265,14 +280,17 @@ func (s *PeerPurchases) applyFree(op model.PeerPurchase, peer model.Peer) error 
 		if err = s.validateAddress(s.billing.db, peer, req.Value); err != nil {
 			return err
 		}
-		bound, e := s.peers.ForServer(peer.ServerID)
+		addressIP := net.ParseIP(strings.Split(req.Value, "/")[0])
+		addresses, e := router.FetchIPv4Addresses(ctx)
 		if e != nil {
 			return e
 		}
-		addressIP := net.ParseIP(strings.Split(req.Value, "/")[0])
-		for _, reserved := range bound.interfaceReservedIPs(peer.Interface) {
-			if reserved.Equal(addressIP) {
-				return ErrResourceForbidden
+		for _, address := range addresses {
+			if address.Interface == peer.Interface {
+				reserved := net.ParseIP(strings.Split(address.Address, "/")[0])
+				if reserved != nil && reserved.Equal(addressIP) {
+					return ErrResourceForbidden
+				}
 			}
 		}
 		inventory, e := router.FetchWgPeers(ctx)

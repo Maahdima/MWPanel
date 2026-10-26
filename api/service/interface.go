@@ -236,6 +236,13 @@ func (i *WgInterface) deleteInterfaceRecord(iface *model.Interface) error {
 		return fmt.Errorf("interface is required")
 	}
 
+	var assigned int64
+	if err := i.db.Model(&model.ResellerResource{}).Where("interface_id = ?", iface.ID).Count(&assigned).Error; err != nil {
+		return err
+	}
+	if assigned > 0 {
+		return ErrResourceForbidden
+	}
 	bound, err := i.ForServer(iface.ServerID)
 	if err != nil {
 		return err

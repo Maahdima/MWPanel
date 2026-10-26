@@ -43,7 +43,9 @@ func resellerError(ctx echo.Context, err error) error {
 		status, message = http.StatusForbidden, err.Error()
 	case errors.Is(err, service.ErrInsufficientCredit):
 		status, message = http.StatusPaymentRequired, err.Error()
-	case errors.Is(err, service.ErrPeerRestricted), errors.Is(err, service.ErrBilledOperationRequired), errors.Is(err, service.ErrBillingOverdue), errors.Is(err, service.ErrIdempotencyConflict), errors.Is(err, service.ErrReceiptState), errors.Is(err, service.ErrResellerLimit), errors.Is(err, service.ErrRouterMigrationRequired), errors.Is(err, service.ErrPendingPeerOperation):
+	case errors.Is(err, service.ErrRouterSyncPending):
+		status, message = http.StatusServiceUnavailable, "Router synchronization is pending"
+	case errors.Is(err, service.ErrMigrationConflict), errors.Is(err, service.ErrPeerRestricted), errors.Is(err, service.ErrBilledOperationRequired), errors.Is(err, service.ErrBillingOverdue), errors.Is(err, service.ErrIdempotencyConflict), errors.Is(err, service.ErrReceiptState), errors.Is(err, service.ErrResellerLimit), errors.Is(err, service.ErrRouterMigrationRequired), errors.Is(err, service.ErrPendingPeerOperation):
 		status, message = http.StatusConflict, err.Error()
 	case strings.Contains(strings.ToLower(err.Error()), "unique constraint"), strings.Contains(strings.ToLower(err.Error()), "duplicate key"):
 		status, message = http.StatusConflict, "Username or resource assignment already exists"
@@ -305,4 +307,53 @@ func (c *ResellerController) Mutate(ctx echo.Context) error {
 	response := schema.OkBasicResponse
 	response.StatusCode = status
 	return ctx.JSON(status, schema.BasicResponseData[service.PeerPurchaseView]{BasicResponse: response, Data: view})
+}
+
+func (c *ResellerController) Migration(ctx echo.Context) error {
+	id, err := resellerID(ctx, "id")
+	if err != nil {
+		return err
+	}
+	actor := resellerActor(ctx)
+	if ctx.Request().Method == http.MethodGet {
+		rows, err := c.service.MigrationHistory(actor, id)
+		if err != nil {
+			return resellerError(ctx, err)
+		}
+		return ctx.JSON(http.StatusOK, schema.BasicResponseData[[]service.RouterMigrationView]{BasicResponse: schema.OkBasicResponse, Data: rows})
+	}
+	var req service.RouterMigrationRequest
+	if err = ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	view, err := c.service.BeginMigration(actor, id, ctx.Request().Header.Get("Idempotency-Key"), req)
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	status := http.StatusAccepted
+	if view.State == "complete" {
+		status = http.StatusOK
+	}
+	response := schema.OkBasicResponse
+	response.StatusCode = status
+	return ctx.JSON(status, schema.BasicResponseData[service.RouterMigrationView]{BasicResponse: response, Data: view})
+}
+
+func (c *ResellerController) CancelMigration(ctx echo.Context) error {
+	id, err := resellerID(ctx, "id")
+	if err != nil {
+		return err
+	}
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err = ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	if err = c.service.CancelMigration(resellerActor(ctx), id, ctx.Param("migration_id"), req.Reason); err != nil {
+		return resellerError(ctx, err)
+	}
+	response := schema.OkBasicResponse
+	response.StatusCode = http.StatusAccepted
+	return ctx.JSON(http.StatusAccepted, schema.BasicResponseData[string]{BasicResponse: response, Data: "cancellation queued"})
 }

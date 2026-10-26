@@ -2,6 +2,7 @@ package model
 
 type Peer struct {
 	Model
+	MigrationID             *string `gorm:"type:varchar(36);index"`
 	PurchaseID              *string `gorm:"type:varchar(36);index"`
 	ConfiguredDurationDays  int64   `gorm:"not null;default:0"`
 	ProvisioningBlocked     bool    `gorm:"not null;default:false"`
@@ -29,6 +30,7 @@ type Peer struct {
 	Name                string  `gorm:"type:varchar(255);not null"`
 	PrivateKey          string  `gorm:"type:varchar(255);not null"`
 	PublicKey           string  `gorm:"type:varchar(255);not null"`
+	PresharedKey        *string `gorm:"type:varchar(255)"`
 	Interface           string  `gorm:"type:varchar(255);not null"`
 	AllowedAddress      string  `gorm:"type:varchar(255);uniqueIndex:uidx_peer_router_address;not null"`
 	Endpoint            string  `gorm:"type:varchar(255);not null"`

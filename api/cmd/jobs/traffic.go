@@ -273,9 +273,6 @@ func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
 	currentRx := utils.ParseStringToInt(wgPeer.TransferRx)
 
 	deltaTx, deltaRx, resetDetected := c.calculatePeerDeltas(peer, currentTx, currentRx, maxCounter)
-	if delta := deltaTx + deltaRx; delta > 0 {
-		c.accumulateTotalTraffic(delta)
-	}
 	if resetDetected {
 		c.logger.Debug("Detected peer counter reset",
 			zap.String("peerID", peer.PeerID),
@@ -300,7 +297,7 @@ func (c *Calculator) processPeerTraffic(peer model.Peer, maxCounter int64) {
 
 	c.applyPeerTrafficNotifications(&peer, updates)
 	c.applyPeerTrafficLimit(&peer, updates)
-	c.persistPeerTraffic(peer, updates)
+	c.persistPeerTraffic(peer, updates, deltaTx+deltaRx)
 }
 
 func (c *Calculator) calculatePeerDeltas(peer model.Peer, currentTx, currentRx, maxCounter int64) (int64, int64, bool) {
@@ -360,24 +357,28 @@ func (c *Calculator) notifyThreshold(peer *model.Peer, updates map[string]interf
 	updates[updateKey] = true
 }
 
-func (c *Calculator) persistPeerTraffic(peer model.Peer, updates map[string]interface{}) {
-	if err := c.db.Model(&model.Peer{}).Where("id = ?", peer.ID).Updates(updates).Error; err != nil {
-		c.logger.Error("Failed to update peer usage in database", zap.String("peerID", peer.PeerID), zap.Error(err))
-	}
-}
-
-func (c *Calculator) accumulateTotalTraffic(delta int64) {
-	var totalTraffic model.TotalTrafficUsage
-	err := c.db.FirstOrCreate(&totalTraffic, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error
+// Commit the sample and global counter together, only while this worker still
+// owns the peer lease and the router identity has not changed underneath it.
+func (c *Calculator) persistPeerTraffic(peer model.Peer, updates map[string]interface{}, delta int64) {
+	err := c.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&model.Peer{}).Where("id = ? AND server_id = ? AND peer_id = ? AND sync_lease_until = ?", peer.ID, peer.ServerID, peer.PeerID, peer.SyncLeaseUntil).Updates(updates)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return fmt.Errorf("peer changed during traffic sample")
+		}
+		if delta > 0 {
+			var total model.TotalTrafficUsage
+			if err := tx.FirstOrCreate(&total, model.TotalTrafficUsage{Model: model.Model{ID: model.TotalTrafficUsageSingletonID}}).Error; err != nil {
+				return err
+			}
+			return tx.Model(&model.TotalTrafficUsage{}).Where("id = ?", model.TotalTrafficUsageSingletonID).UpdateColumn("total_usage", gorm.Expr("total_usage + ?", delta)).Error
+		}
+		return nil
+	})
 	if err != nil {
-		c.logger.Error("Failed to fetch total traffic usage record", zap.Error(err))
-		return
-	}
-
-	if err := c.db.Model(&model.TotalTrafficUsage{}).
-		Where("id = ?", model.TotalTrafficUsageSingletonID).
-		UpdateColumn("total_usage", gorm.Expr("total_usage + ?", delta)).Error; err != nil {
-		c.logger.Error("Failed to accumulate total traffic usage", zap.Error(err))
+		c.logger.Error("Failed to commit peer traffic sample", zap.Uint("peer_id", peer.ID), zap.Error(err))
 	}
 }
 
