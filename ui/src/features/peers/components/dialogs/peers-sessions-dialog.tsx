@@ -27,6 +27,7 @@ import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 type SessionFilter = 'all' | 'ongoing' | 'ended'
 
 type Props = {
+  scope?: 'admin' | 'reseller'
   open: boolean
   onOpenChange: (state: boolean) => void
   currentRow: Peer
@@ -60,13 +61,18 @@ function sessionSeconds(session: PeerSession, now: number) {
   return Math.max(0, Math.floor((end - start) / 1000))
 }
 
-export function PeersSessionsDialog({ open, onOpenChange, currentRow }: Props) {
+export function PeersSessionsDialog({
+  open,
+  onOpenChange,
+  currentRow,
+  scope = 'admin',
+}: Props) {
   const [filter, setFilter] = useState<SessionFilter>('all')
   const [now, setNow] = useState(() => Date.now())
 
   const { data, isLoading, isFetching, isError } = usePeerSessionsQuery(
     currentRow.id,
-    { enabled: open }
+    { enabled: open, scope }
   )
 
   useEffect(() => {

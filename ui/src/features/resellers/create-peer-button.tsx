@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -106,92 +107,96 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
           <DialogHeader>
             <DialogTitle>Create configuration</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit} className='space-y-3'>
-            <Label htmlFor='reseller-peer-name'>Name</Label>
-            <Input
-              id='reseller-peer-name'
-              name='name'
-              required
-              maxLength={128}
-            />
-            <Label htmlFor='reseller-peer-interface'>Assigned interface</Label>
-            <select
-              id='reseller-peer-interface'
-              name='interface'
-              required
-              className='border-input bg-background h-9 w-full rounded-md border px-3'
-              defaultValue={reseller.data?.default_interface_id ?? ''}
-            >
-              <option value='' disabled>
-                Select assigned interface
-              </option>
-              {resources?.map((resource) => (
-                <option
-                  key={resource.interface_id}
-                  value={resource.interface_id}
-                  disabled={!resource.pool_id}
-                >
-                  {resource.name} · Server #{resource.server_id}
-                  {!resource.pool_id ? ' (no IP pool)' : ''}
+          <DialogBody className='space-y-4 pb-5'>
+            <form onSubmit={submit} className='space-y-3'>
+              <Label htmlFor='reseller-peer-name'>Name</Label>
+              <Input
+                id='reseller-peer-name'
+                name='name'
+                required
+                maxLength={128}
+              />
+              <Label htmlFor='reseller-peer-interface'>
+                Assigned interface
+              </Label>
+              <select
+                id='reseller-peer-interface'
+                name='interface'
+                required
+                className='border-input bg-background h-9 w-full rounded-md border px-3'
+                defaultValue={reseller.data?.default_interface_id ?? ''}
+              >
+                <option value='' disabled>
+                  Select assigned interface
                 </option>
-              ))}
-            </select>
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-2'>
-                <Label htmlFor='reseller-peer-quota'>Quota (GiB)</Label>
-                <Input
-                  id='reseller-peer-quota'
-                  required
-                  value={quota}
-                  onChange={(e) => setQuota(e.target.value)}
-                  inputMode='decimal'
-                />
+                {resources?.map((resource) => (
+                  <option
+                    key={resource.interface_id}
+                    value={resource.interface_id}
+                    disabled={!resource.pool_id}
+                  >
+                    {resource.name} · Server #{resource.server_id}
+                    {!resource.pool_id ? ' (no IP pool)' : ''}
+                  </option>
+                ))}
+              </select>
+              <div className='grid grid-cols-2 gap-3'>
+                <div className='space-y-2'>
+                  <Label htmlFor='reseller-peer-quota'>Quota (GiB)</Label>
+                  <Input
+                    id='reseller-peer-quota'
+                    required
+                    value={quota}
+                    onChange={(e) => setQuota(e.target.value)}
+                    inputMode='decimal'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='reseller-peer-days'>Validity (days)</Label>
+                  <Input
+                    id='reseller-peer-days'
+                    type='number'
+                    min='1'
+                    max='36500'
+                    required
+                    value={days}
+                    onChange={(e) => setDays(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className='space-y-2'>
-                <Label htmlFor='reseller-peer-days'>Validity (days)</Label>
-                <Input
-                  id='reseller-peer-days'
-                  type='number'
-                  min='1'
-                  max='36500'
-                  required
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                />
-              </div>
-            </div>
-            <p className='text-muted-foreground text-sm'>
-              Creation has a 30-day minimum price. Longer plans scale by their
-              duration. Credentials and addressing are generated securely on the
-              assigned router.
-            </p>
-            {estimated !== null && (
-              <p>
-                Charge at current rate:{' '}
-                <strong>{formatToman(estimated)} toman</strong>
+              <p className='text-muted-foreground text-sm'>
+                Creation has a 30-day minimum price. Longer plans scale by their
+                duration. Credentials and addressing are generated securely on
+                the assigned router.
               </p>
-            )}
-            {account.data?.state.billable_blocked && (
-              <p className='text-destructive'>
-                Review billing before creating configurations.
-              </p>
-            )}
-            {resources?.length === 0 && (
-              <p className='text-muted-foreground'>
-                No resources assigned. Contact the administrator.
-              </p>
-            )}
-            <Button
-              disabled={
-                create.isPending ||
-                !account.data ||
-                account.data.state.billable_blocked ||
-                !resources?.some((resource) => resource.pool_id)
-              }
-            >
-              Confirm purchase and create
-            </Button>
-          </form>
+              {estimated !== null && (
+                <p>
+                  Charge at current rate:{' '}
+                  <strong>{formatToman(estimated)} toman</strong>
+                </p>
+              )}
+              {account.data?.state.billable_blocked && (
+                <p className='text-destructive'>
+                  Review billing before creating configurations.
+                </p>
+              )}
+              {resources?.length === 0 && (
+                <p className='text-muted-foreground'>
+                  No resources assigned. Contact the administrator.
+                </p>
+              )}
+              <Button
+                disabled={
+                  create.isPending ||
+                  !account.data ||
+                  account.data.state.billable_blocked ||
+                  !resources?.some((resource) => resource.pool_id)
+                }
+              >
+                Confirm purchase and create
+              </Button>
+            </form>
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </>

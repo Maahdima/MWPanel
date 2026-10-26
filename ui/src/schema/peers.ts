@@ -9,6 +9,7 @@ export const PeerStatusEnum = z.enum([
 ])
 
 export const PeerSchema = z.object({
+  migration_pending: z.boolean(),
   traffic_limit_bytes: z.string().nullable(),
   total_usage_bytes: z.string(),
   configured_duration_days: z.string(),

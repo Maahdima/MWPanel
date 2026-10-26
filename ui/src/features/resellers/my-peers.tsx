@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { PeersResponseSchema } from '@/schema/peers'
+import { Peer, PeersResponseSchema } from '@/schema/peers'
 import { toast } from 'sonner'
 import axiosInstance from '@/api/axios-instance'
 import {
@@ -18,6 +18,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
+import { PeersSessionsDialog } from '@/features/peers/components/dialogs/peers-sessions-dialog'
 import { CreatePeerButton } from './create-peer-button'
 import { MaintenanceButton } from './maintenance-button'
 import { PageFrame } from './page-frame'
@@ -25,6 +26,7 @@ import { PurchaseButton } from './purchase-button'
 
 export function MyPeers() {
   const [search, setSearch] = useState('')
+  const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null)
   const { data: book } = useBillingBook()
   const readOnly =
     book?.state.billing_suspended || book?.state.administrative_suspended
@@ -99,7 +101,11 @@ export function MyPeers() {
                     <TableRow key={p.id}>
                       <TableCell>{p.name}</TableCell>
                       <TableCell>
-                        {p.disabled ? 'Disabled' : 'Enabled'}
+                        {p.migration_pending
+                          ? 'Migrating'
+                          : p.disabled
+                            ? 'Disabled'
+                            : 'Enabled'}
                         <div className='text-muted-foreground text-xs'>
                           {p.restriction_reasons?.join(', ')}
                           {p.sync_status ? ` · ${p.sync_status}` : ''}
@@ -110,6 +116,24 @@ export function MyPeers() {
                       <TableCell>{p.expire_time ?? 'Unlimited'}</TableCell>
                       <TableCell>
                         <div className='flex flex-wrap gap-2'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => setSelectedPeer(p)}
+                          >
+                            Sessions
+                          </Button>
+                          {p.is_shared && (
+                            <Button variant='ghost' size='sm' asChild>
+                              <a
+                                href={`${window.location.origin}/share?shareId=${encodeURIComponent(p.uuid)}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                              >
+                                Public page
+                              </a>
+                            </Button>
+                          )}
                           {!readOnly && (
                             <>
                               <PurchaseButton peer={p} />
@@ -134,7 +158,7 @@ export function MyPeers() {
                             onClick={() =>
                               download(
                                 `/reseller/me/peers/${p.id}/qrcode`,
-                                `${p.name}.png`
+                                `${p.name}.jpeg`
                               )
                             }
                           >
@@ -155,6 +179,16 @@ export function MyPeers() {
             </Table>
           </CardContent>
         </Card>
+      )}
+      {selectedPeer && (
+        <PeersSessionsDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setSelectedPeer(null)
+          }}
+          currentRow={selectedPeer}
+          scope='reseller'
+        />
       )}
     </PageFrame>
   )

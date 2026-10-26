@@ -78,6 +78,7 @@ export function useResellerAction<T>(
         'receipts',
         'payment_instructions',
         'peer_purchases',
+        'router_migrations',
         'my_peers',
         'peers_list',
       ])

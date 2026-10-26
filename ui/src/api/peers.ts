@@ -91,8 +91,15 @@ export const fetchPeerShareStatus = async (id: number): Promise<PeerShare> => {
   return parsed.data
 }
 
-export const fetchPeerSessions = async (id: number): Promise<PeerSessions> => {
-  const { data } = await axiosInstance.get(`/peer/${id}/sessions`)
+export const fetchPeerSessions = async (
+  id: number,
+  scope: 'admin' | 'reseller' = 'admin'
+): Promise<PeerSessions> => {
+  const { data } = await axiosInstance.get(
+    scope === 'reseller'
+      ? `/reseller/me/peers/${id}/sessions`
+      : `/peer/${id}/sessions`
+  )
   const parsed = PeerSessionsResponseSchema.parse(data)
   return parsed.data
 }

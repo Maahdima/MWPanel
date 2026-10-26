@@ -4,6 +4,7 @@ import { Receipt } from '@/schema/billing'
 import { toast } from 'sonner'
 import axiosInstance from '@/api/axios-instance'
 import {
+  downloadPrivate,
   useBillingBook,
   usePaymentInstructions,
   useReceiptHistory,
@@ -125,6 +126,25 @@ export function BillingPanel({ resellerID }: { resellerID?: number }) {
     state = book.state
   return (
     <div className='space-y-5'>
+      <div className='flex flex-wrap gap-2'>
+        {['ledger', 'invoices'].map((kind) => (
+          <Button
+            key={kind}
+            variant='outline'
+            size='sm'
+            onClick={() =>
+              downloadPrivate(
+                resellerID
+                  ? `/billing/account/${resellerID}/${kind}/export`
+                  : `/billing/me/${kind}/export`,
+                `billing-${kind}.csv`
+              ).catch(() => toast.error('Export failed'))
+            }
+          >
+            Download full {kind} (CSV)
+          </Button>
+        ))}
+      </div>
       {(state.billable_blocked ||
         state.billing_suspended ||
         state.administrative_suspended) && (

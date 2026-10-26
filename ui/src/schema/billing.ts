@@ -8,6 +8,7 @@ export const PrincipalSchema = z.object({
   reseller_id: z.number().optional(),
 })
 export const ResellerSchema = z.object({
+  migration_id: z.string().nullable(),
   active_peers: z.number(),
   total_peers: z.number(),
   id: z.number(),

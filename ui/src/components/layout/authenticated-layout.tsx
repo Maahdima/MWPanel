@@ -1,5 +1,10 @@
 import Cookies from 'js-cookie'
-import { Navigate, Outlet, useLocation } from '@tanstack/react-router'
+import {
+  Navigate,
+  Outlet,
+  useLocation,
+  useRouter,
+} from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
@@ -21,6 +26,11 @@ export function AuthenticatedLayout({ children }: Props) {
   const token = useAuthStore((state) => state.auth.accessToken)
   const principal = usePrincipal()
   const location = useLocation()
+  const basepath = useRouter().options.basepath?.replace(/\/$/, '') ?? ''
+  const routePath =
+    basepath && location.pathname.startsWith(basepath + '/')
+      ? location.pathname.slice(basepath.length)
+      : location.pathname
   const reseller = principal.data?.role === 'reseller'
   const book = useBillingBook(undefined, reseller)
   if (!token) return <Navigate to='/sign-in' replace />
@@ -42,7 +52,7 @@ export function AuthenticatedLayout({ children }: Props) {
     )
   if (
     reseller &&
-    !['/billing', '/peers'].includes(location.pathname.replace(/\/$/, ''))
+    !['/billing', '/peers'].includes(routePath.replace(/\/$/, ''))
   )
     return <Navigate to='/billing' replace />
   return (

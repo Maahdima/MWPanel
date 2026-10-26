@@ -6,6 +6,7 @@ import { useResellerAction } from '@/hooks/resellers/useResellerQueries'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -78,79 +79,85 @@ export function MaintenanceButton({
           <DialogHeader>
             <DialogTitle>Manage {peer.name}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit} className='space-y-3'>
-            <Label htmlFor={`maintenance-${peer.id}`}>Free operation</Label>
-            <select
-              id={`maintenance-${peer.id}`}
-              value={action}
-              onChange={(e) => {
-                setAction(e.target.value)
-                setValue(
-                  e.target.value === 'rename'
-                    ? peer.name
-                    : e.target.value === 'set_address'
-                      ? peer.allowed_address
-                      : e.target.value === 'reduce_quota'
-                        ? bytesToGiB(peer.traffic_limit_bytes)
-                        : ''
-                )
-              }}
-              className='border-input bg-background h-9 w-full rounded-md border px-3'
-            >
-              <option value='rename'>Rename</option>
-              <option value='set_address'>Change client address</option>
-              <option value='regenerate_keys'>Regenerate keys</option>
-              <option value='enable'>Enable manually</option>
-              <option value='disable'>Disable manually</option>
-              <option value='share'>Enable public share</option>
-              <option value='unshare'>Disable public share</option>
-              <option value='reduce_quota'>Reduce quota</option>
-              <option value='delete'>Delete configuration</option>
-            </select>
-            {['rename', 'set_address', 'reduce_quota'].includes(action) && (
-              <>
-                <Label htmlFor={`maintenance-value-${peer.id}`}>
-                  {action === 'rename'
-                    ? 'Name'
-                    : action === 'set_address'
-                      ? 'Client IPv4 address (/32)'
-                      : 'New quota (GiB)'}
-                </Label>
-                <Input
-                  id={`maintenance-value-${peer.id}`}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  required
-                />
-              </>
-            )}
-            <p className='text-muted-foreground text-sm'>
-              This operation has no charge. Existing billing, expiration and
-              quota restrictions still apply.
-            </p>
-            {action === 'delete' && (
-              <p className='text-destructive'>
-                The configuration and its router objects will be removed.
-                Previous charges are retained.
+          <DialogBody className='space-y-4 pb-5'>
+            <form onSubmit={submit} className='space-y-3'>
+              <Label htmlFor={`maintenance-${peer.id}`}>Free operation</Label>
+              <select
+                id={`maintenance-${peer.id}`}
+                value={action}
+                onChange={(e) => {
+                  setAction(e.target.value)
+                  setValue(
+                    e.target.value === 'rename'
+                      ? peer.name
+                      : e.target.value === 'set_address'
+                        ? peer.allowed_address
+                        : e.target.value === 'reduce_quota'
+                          ? bytesToGiB(peer.traffic_limit_bytes)
+                          : ''
+                  )
+                }}
+                className='border-input bg-background h-9 w-full rounded-md border px-3'
+              >
+                <option value='rename'>Rename</option>
+                <option value='set_address'>Change client address</option>
+                <option value='regenerate_keys'>Regenerate keys</option>
+                <option value='enable'>Enable manually</option>
+                <option value='disable'>Disable manually</option>
+                <option value='share'>Enable public share</option>
+                <option value='unshare'>Disable public share</option>
+                <option value='reduce_quota'>Reduce quota</option>
+                <option value='delete'>Delete configuration</option>
+              </select>
+              {['rename', 'set_address', 'reduce_quota'].includes(action) && (
+                <>
+                  <Label htmlFor={`maintenance-value-${peer.id}`}>
+                    {action === 'rename'
+                      ? 'Name'
+                      : action === 'set_address'
+                        ? 'Client IPv4 address (/32)'
+                        : 'New quota (GiB)'}
+                  </Label>
+                  <Input
+                    id={`maintenance-value-${peer.id}`}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    required
+                  />
+                </>
+              )}
+              <p className='text-muted-foreground text-sm'>
+                This operation has no charge. Existing billing, expiration and
+                quota restrictions still apply.
               </p>
-            )}
-            {action === 'regenerate_keys' && (
-              <p className='text-muted-foreground'>
-                Clients will need to download an updated configuration.
-              </p>
-            )}
-            {action === 'reduce_quota' && (
-              <p className='text-muted-foreground'>
-                Reducing quota does not refund previous charges.
-              </p>
-            )}
-            <Button
-              variant={action === 'delete' ? 'destructive' : 'default'}
-              disabled={mutation.isPending || peer.purchase_pending}
-            >
-              Confirm change
-            </Button>
-          </form>
+              {action === 'delete' && (
+                <p className='text-destructive'>
+                  The configuration and its router objects will be removed.
+                  Previous charges are retained.
+                </p>
+              )}
+              {action === 'regenerate_keys' && (
+                <p className='text-muted-foreground'>
+                  Clients will need to download an updated configuration.
+                </p>
+              )}
+              {action === 'reduce_quota' && (
+                <p className='text-muted-foreground'>
+                  Reducing quota does not refund previous charges.
+                </p>
+              )}
+              <Button
+                variant={action === 'delete' ? 'destructive' : 'default'}
+                disabled={
+                  mutation.isPending ||
+                  peer.purchase_pending ||
+                  peer.migration_pending
+                }
+              >
+                Confirm change
+              </Button>
+            </form>
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </>
