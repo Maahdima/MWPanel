@@ -1,6 +1,6 @@
 # Reseller billing and multi-router design
 
-Status: implementation in progress. This is not a completed feature announcement. See `reseller-management-development.md` for implemented boundaries, test evidence and outstanding stages.
+Status: local implementation and review prepared. The audit below records the original architecture and design decisions. See `reseller-management-development.md` for current verification, material limitations and publication requirements.
 
 ## Existing architecture
 
@@ -56,7 +56,7 @@ Money is integer rials; 1 toman = 10 rials. Default rate = 100,000 rials/GiB/30 
 10. Existing-style admin/reseller/billing UI with role-aware navigation and payment-first suspension.
 11. Regression/security tests, SQLite/PostgreSQL verification, embedded UI binary build, review and one PR.
 
-## Risks and decisions still requiring implementation
+## Risks and implementation decisions
 
 Never infer ownership from user payloads. Historical records survive deletion. Unique payment references and per-account operation keys prevent replay with changed payloads. Failed or uncertain RouterOS requests require verification before compensation or retry. Offline peers remain readable. Existing unassigned peers are superadmin-owned.
 

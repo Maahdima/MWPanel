@@ -1,6 +1,6 @@
 # Reseller contribution development status
 
-Implementation remains in progress on `feat/reseller-billing-management`, based on `c935efa`. No remote issue, push or PR has been published. The issue proposal is prepared locally. Existing Git identity is retained.
+Local implementation and review are prepared on `feat/reseller-billing-management`, based on `c935efa`. No remote issue, push or PR has been published. The issue proposal is prepared locally. Existing Git identity is retained.
 
 ## Implemented and verified
 
@@ -15,20 +15,25 @@ Implementation remains in progress on `feat/reseller-billing-management`, based 
 - Existing-style admin reseller list/detail, exact toman inputs/display, receipt review, financial settings/actions, ownership filtering/transfers, scoped reseller billing/configuration pages, purchase and management forms. English UI and existing themes retained.
 - Embedded production assets include underscore-prefixed dynamic-route chunks; a regression test checks generated JS/CSS/HTML against embedded files.
 
-## Verification executed
+- Resumable cross-router migration, destination preflight, preserved UUID/ownership/accounting/usage, final source sampling, verified metadata switching, refreshed private configurations/QR codes, safe cleanup and compensation before switching. Source traffic enforcement continues during preparation.
+- Complete scoped ledger/invoice CSV exports with exact rials, formula-safe text and private temporary-file cleanup.
 
-On 2026-10-25, `go test -race ./...` passed after integrating durable purchases and free operations. Focused service tests additionally cover initial 15/30/45/60-day pricing, exact reset charges, expiry extension pricing independent of added days, key-change recovery, lost-success router responses at peer/queue/scheduler creation, posting failure after router success, concurrent replay and wallet protection. HTTP tests cover forged price/owner, IDOR, missing idempotency keys and receipt authorization.
+## Verification executed — 2026-10-26
 
-`go vet ./...`, UI `npm run build`, UI `npm run lint` and `git diff --check` have passed for completed stages. Subsequent changes require focused re-verification. UI build runs TypeScript checking and Vite; Go embeds that output. No dependency change was necessary.
+- Entire current Go suite: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...` passed.
+- Focused race tests for concurrent prepaid reservations, receipt approval, purchase replay and concurrent migration workers passed. Migration quota/counter continuation tests passed under the race detector.
+- Service and HTTP suites passed against an isolated official PostgreSQL 17.6 container, using independent connection pools and private fixture schemas. The disposable container was removed afterward. SQLite tests also passed.
+- `go vet ./...`, UI `npm run build` (TypeScript and Vite), `npm run lint`, embedded production binary build and `git diff --check` passed. No dependency changes were required.
+- An earlier full race suite passed; a later full race run under a two-CPU budget exceeded its 180-second package timeout. That timed run is not a pass; current normal-suite and focused race evidence are distinguished above.
 
-A real local embedded binary has run with a disposable SQLite database and loopback-only Mock RouterOS. The admin reseller/billing detail page was inspected in the browser and captured. Browser review found an unconditional admin shop-status request in the command menu during reseller login. Role-aware navigation, login/2FA destinations, root-route guards and logout cache handling now prevent it. An actual reseller login subsequently made only five successful auth/billing requests, with no 403 or admin API call. The test browser and local servers were stopped afterward to avoid unnecessary load.
+A local embedded binary ran against disposable SQLite data and loopback-only Mock RouterOS. Browser checks verified admin/reseller login and role navigation, scoped billing/configurations, migration history and a custom `ADMIN_PANEL_PATH`. The repeated-403 admin request loop was fixed. New dialogs use the existing scrollable, padded dialog body. No physical router or production data was used.
 
-## Remaining work
+## Material limits and publication
 
-- Resumable default-router migration with destination preflight, preserved accounting/usage/UUIDs, verified metadata switching, updated configurations/QR codes and safe source cleanup. Unsafe default-interface changes currently return a conflict rather than silently moving metadata.
-- Finish browser regression checks of reseller login, suspension/payment-first behavior, purchase/management forms, responsive layout and themes after the latest changes.
-- PostgreSQL execution tests; Docker daemon availability has not yet been established. SQLite success is not a claim of PostgreSQL verification.
-- Complete history pagination, failure/recovery documentation, final security review, final production build and PR description. Do not describe the entire requested feature as finished until these are verified.
+- Same-router moves between different interfaces are rejected by migration preflight. Cross-router migrations are supported and tested; no zero-downtime promise is made.
+- A legacy peer with unknown original duration needs an explicit audited duration before full reset.
+- Physical RouterOS acceptance and real-world interruption behavior remain operator validation tasks; automated checks use configurable REST mocks.
+- The upstream Issue proposal and PR description are prepared locally. Publishing the Issue, pushing the branch and opening the single PR require explicit user approval. Local GitHub CLI authentication currently needs renewal. No remote publication has occurred.
 
 ## Recovery and operational boundaries
 

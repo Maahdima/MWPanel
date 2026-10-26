@@ -458,7 +458,8 @@ Production embeds `ui/dist`. Run `pnpm run build` in `ui/` before `go build`, or
 - [x] Telegram bot (configs, QR, usage, alerts)
 - [x] Peer session history
 - [x] Bandwidth limits via simple queues
-- [ ] Concurrent multi-router operation (server CRUD exists; request routing is still single-router)
+- [x] Concurrent multi-router operation and resumable cross-router reseller migration
+- [x] Reseller ownership, prepaid/postpaid billing and approved payment receipts — see [operations guide](docs/reseller-management.md)
 
 ---
 
