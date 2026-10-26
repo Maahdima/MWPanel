@@ -50,7 +50,7 @@ func SetupMwpAPI(
 			if principal.Role != model.RoleSuperadmin {
 				switch c.Path() {
 				case "/api/reseller/me/peers/:id/mutations", "/api/reseller/me/resources", "/api/reseller/me/peers/:id/purchases", "/api/reseller/me/peers", "/api/reseller/me/peers/:id/config", "/api/reseller/me/peers/:id/qrcode", "/api/reseller/me/peers/:id/sessions", "/api/reseller/me/peers/export":
-				case "/api/billing/me", "/api/billing/me/receipts", "/api/billing/me/receipts/:id/image":
+				case "/api/billing/me/:kind/export", "/api/billing/me", "/api/billing/me/receipts", "/api/billing/me/receipts/:id/image":
 				case "/api/billing/instructions":
 					if c.Request().Method != http.MethodGet {
 						return nil, service.ErrRoleForbidden
@@ -91,6 +91,8 @@ func SetupMwpAPI(
 	setupAuthenticationRoutes(router, jwtConfig, authController)
 	billingController := NewBillingController(billing, payments)
 	billingGroup := router.Group("/billing", echojwt.WithConfig(jwtConfig))
+	billingGroup.GET("/me/:kind/export", billingController.Export)
+	billingGroup.GET("/account/:reseller_id/:kind/export", billingController.Export)
 	billingGroup.GET("/me", billingController.Book)
 	billingGroup.GET("/me/receipts", billingController.Receipts)
 	billingGroup.POST("/me/receipts", billingController.Submit)

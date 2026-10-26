@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -191,4 +192,20 @@ func (c *BillingController) Override(ctx echo.Context) error {
 		return resellerError(ctx, err)
 	}
 	return ctx.JSON(http.StatusOK, schema.OkBasicResponse)
+}
+
+func (c *BillingController) Export(ctx echo.Context) error {
+	id, err := billingTarget(ctx)
+	if err != nil {
+		return err
+	}
+	path, err := c.billing.ExportHistory(ctx.Request().Context(), resellerActor(ctx), id, ctx.Param("kind"))
+	if err != nil {
+		return resellerError(ctx, err)
+	}
+	defer os.Remove(path)
+	ctx.Response().Header().Set("Cache-Control", "no-store")
+	ctx.Response().Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Response().Header().Set("Content-Type", "text/csv; charset=utf-8")
+	return ctx.Attachment(path, "billing-"+ctx.Param("kind")+".csv")
 }
