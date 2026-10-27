@@ -8,14 +8,14 @@ import {
   PeerCredentials,
   PeerCredentialsResponseSchema,
   PeerResponseSchema,
-  PeerShare,
-  PeerShareResponseSchema,
   PeerSessions,
   PeerSessionsResponseSchema,
+  PeerShare,
+  PeerShareResponseSchema,
   PeersResponseSchema,
   UpdatePeerRequest,
   UpdatePeerShareExpireRequest,
-} from '@/schema/peers.ts'
+} from '@/schema/peer'
 import {
   SyncPeerPreview,
   SyncPeersRequest,
@@ -152,4 +152,3 @@ export const syncSelectedPeers = async (
   const validated = SyncPeersRequestSchema.parse(payload)
   await axiosInstance.post('/sync/peers/selected', validated)
 }
-

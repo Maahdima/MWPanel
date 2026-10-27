@@ -9,7 +9,7 @@ import {
   IconShare,
   IconTrash,
 } from '@tabler/icons-react'
-import { Peer } from '@/schema/peers.ts'
+import { Peer } from '@/schema/peer'
 import { Button } from '@/components/ui/button.tsx'
 import {
   DropdownMenu,

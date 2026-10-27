@@ -8,7 +8,7 @@ import {
   CreateServerSchema,
   UpdateServerRequest,
   UpdateServerSchema,
-} from '@/schema/servers.ts'
+} from '@/schema/server'
 import { ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCreateServerMutation } from '@/hooks/servers/useCreateServerMutation.ts'

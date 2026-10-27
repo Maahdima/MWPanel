@@ -1,11 +1,11 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { VpnPlan } from '@/schema/vpn-plan.ts'
+import { Plan } from '@/schema/plan'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge.tsx'
-import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 import { PlanRowActions } from '@/features/plans/components/plan-row-actions.tsx'
+import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 
-export const plansColumns: ColumnDef<VpnPlan>[] = [
+export const plansColumns: ColumnDef<Plan>[] = [
   {
     id: 'name',
     accessorFn: (plan) => `${plan.name} ${plan.fa_name}`,

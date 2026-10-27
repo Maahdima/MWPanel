@@ -1,7 +1,4 @@
-import {
-  ShopSales,
-  ShopSalesResponseSchema,
-} from '@/schema/shop-sales.ts'
+import { ShopSales, ShopSalesResponseSchema } from '@/schema/shop-sale'
 import axiosInstance from '@/api/axios-instance.ts'
 
 export const fetchShopSales = async (): Promise<ShopSales> => {

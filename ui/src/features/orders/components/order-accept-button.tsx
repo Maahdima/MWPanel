@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { VpnOrder } from '@/schema/vpn-order.ts'
+import { Order } from '@/schema/order'
 import { toast } from 'sonner'
 import { handleServerError } from '@/utils/handle-server-error.ts'
-import { useAcceptVpnOrderMutation } from '@/hooks/vpn-orders/useAcceptVpnOrderMutation.ts'
+import { useAcceptOrderMutation } from '@/hooks/orders/useAcceptOrderMutation.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
@@ -20,11 +20,11 @@ function formatCard(card: string) {
   return digits.replace(/(.{4})/g, '$1-').replace(/-$/, '')
 }
 
-export function OrderAcceptButton({ order }: { order: VpnOrder }) {
+export function OrderAcceptButton({ order }: { order: Order }) {
   const [open, setOpen] = useState(false)
-  const mutation = useAcceptVpnOrderMutation()
+  const mutation = useAcceptOrderMutation()
 
-  if (order.status !== 'pending') {
+  if (order.status === 'paid') {
     return <span className='text-muted-foreground'>-</span>
   }
 

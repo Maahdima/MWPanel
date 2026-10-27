@@ -8,7 +8,7 @@ import {
   CreateInterfaceSchema,
   UpdateInterfaceRequest,
   UpdateInterfaceSchema,
-} from '@/schema/interfaces.ts'
+} from '@/schema/interface'
 import { toast } from 'sonner'
 import { useCreateInterfaceMutation } from '@/hooks/interfaces/useCreateInterfaceMutation.ts'
 import { useUpdateInterfaceMutation } from '@/hooks/interfaces/useUpdateInterfaceMutation.ts'

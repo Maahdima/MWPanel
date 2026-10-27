@@ -205,6 +205,7 @@ func setupServiceRoutes(router *echo.Group, controller *ServiceController, shopA
 	serviceGroup.GET("/interface", controller.Interface)
 	serviceGroup.POST("/peers", controller.CreatePeer)
 	serviceGroup.POST("/peers/:id/charge", controller.ChargePeer)
+	serviceGroup.POST("/peers/:id/bonus", controller.BonusPeer)
 	serviceGroup.GET("/peers/name-taken", controller.NameTaken)
 	serviceGroup.GET("/peers/id/:id", controller.PeerByID)
 	serviceGroup.GET("/peers/:uuid", controller.PeerByUUID)

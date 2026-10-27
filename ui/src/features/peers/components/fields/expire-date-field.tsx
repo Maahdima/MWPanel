@@ -1,7 +1,7 @@
 'use client'
 
 import { Control } from 'react-hook-form'
-import { CreatePeerRequest } from '@/schema/peers'
+import { CreatePeerRequest } from '@/schema/peer'
 import {
   FormField,
   FormItem,

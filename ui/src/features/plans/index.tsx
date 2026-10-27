@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { IconPlus, IconRefresh } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
+import { usePlansQuery } from '@/hooks/plans/usePlansQuery.ts'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
+import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { Button } from '@/components/ui/button'
-import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
-import { useVpnPlansQuery } from '@/hooks/vpn-plans/useVpnPlansQuery.ts'
 import { BotSales } from '@/features/plans/components/bot-sales.tsx'
 import { PlanFormDialog } from '@/features/plans/components/plan-form-dialog.tsx'
 import { plansColumns } from '@/features/plans/components/plans-columns.tsx'
@@ -19,7 +19,7 @@ import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 export default function Plans() {
   const navigate = useNavigate()
   const { enabled: shopEnabled, isLoading: shopLoading } = useShopEnabled()
-  const { data, isLoading, refetch, isRefetching } = useVpnPlansQuery(shopEnabled)
+  const { data, isLoading, refetch, isRefetching } = usePlansQuery(shopEnabled)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {

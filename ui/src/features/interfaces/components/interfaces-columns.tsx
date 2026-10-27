@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { Interface } from '@/schema/interfaces.ts'
+import { Interface } from '@/schema/interface'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useUpdateInterfaceStatusMutation } from '@/hooks/interfaces/useUpdateInterfaceStatusMutation.ts'

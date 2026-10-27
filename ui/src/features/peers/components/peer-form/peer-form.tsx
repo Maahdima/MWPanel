@@ -1,6 +1,6 @@
 'use client'
 
-import { CreatePeerRequest } from '@/schema/peers.ts'
+import { CreatePeerRequest } from '@/schema/peer'
 import { Form } from '@/components/ui/form'
 import { PeerFormFields } from '@/features/peers/components/peer-form/peer-form-fields.tsx'
 import { PeerFormSkeleton } from '@/features/peers/components/peer-form/peer-form-skeleton.tsx'

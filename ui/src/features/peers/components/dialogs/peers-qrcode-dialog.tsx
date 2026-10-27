@@ -1,4 +1,4 @@
-import { Peer } from '@/schema/peers.ts'
+import { Peer } from '@/schema/peer'
 import { usePeerQRCodeQuery } from '@/hooks/peers/usePeerQRCodeQuery.ts'
 import { Button } from '@/components/ui/button'
 import {

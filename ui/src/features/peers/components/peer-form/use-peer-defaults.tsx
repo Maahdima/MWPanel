@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { UseFormReturn, useWatch } from 'react-hook-form'
 import { addMonths, format } from 'date-fns'
-import { CreatePeerRequest } from '@/schema/peers'
+import { UseFormReturn, useWatch } from 'react-hook-form'
+import { CreatePeerRequest } from '@/schema/peer'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
 import { usePeerAllowedAddressMutation } from '@/hooks/peers/usePeerAllowedAddressMutation.ts'
 import { useServersListQuery } from '@/hooks/servers/useServersListQuery'

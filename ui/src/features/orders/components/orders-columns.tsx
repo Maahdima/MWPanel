@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { VpnOrder } from '@/schema/vpn-order.ts'
+import { Order } from '@/schema/order'
 import { formatPanelDateTime } from '@/lib/format-date.ts'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge.tsx'
@@ -29,7 +29,7 @@ const statusClass: Record<string, string> = {
   expired: 'border-transparent bg-muted text-muted-foreground',
 }
 
-export const ordersColumns: ColumnDef<VpnOrder>[] = [
+export const ordersColumns: ColumnDef<Order>[] = [
   {
     id: 'name',
     accessorFn: (order) =>

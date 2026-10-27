@@ -1,7 +1,7 @@
 'use client'
 
 import { Control } from 'react-hook-form'
-import { Interface } from '@/schema/interfaces.ts'
+import { Interface } from '@/schema/interface'
 import {
   FormControl,
   FormField,

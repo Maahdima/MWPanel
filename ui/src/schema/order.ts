@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createApiResponseSchema } from '@/schema/api-response.ts'
 
-export const VpnOrderSchema = z.object({
+export const OrderSchema = z.object({
   id: z.number(),
   tracking_code: z.string(),
   chat_id: z.string(),
@@ -25,7 +25,7 @@ export const VpnOrderSchema = z.object({
   peer_expire: z.string().nullable().optional(),
 })
 
-export const VpnOrdersSchema = z.array(VpnOrderSchema).nullable()
-export const VpnOrdersResponseSchema = createApiResponseSchema(VpnOrdersSchema)
+export const OrdersSchema = z.array(OrderSchema).nullable()
+export const OrdersResponseSchema = createApiResponseSchema(OrdersSchema)
 
-export type VpnOrder = z.infer<typeof VpnOrderSchema>
+export type Order = z.infer<typeof OrderSchema>

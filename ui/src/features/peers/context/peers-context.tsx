@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Peer } from '@/schema/peers.ts'
+import { Peer } from '@/schema/peer'
 import useDialogState from '@/hooks/use-dialog-state'
 
 type PeersDialogType =

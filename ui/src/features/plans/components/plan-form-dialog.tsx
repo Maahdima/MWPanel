@@ -1,17 +1,13 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  UpsertVpnPlan,
-  UpsertVpnPlanSchema,
-  VpnPlan,
-} from '@/schema/vpn-plan.ts'
+import { Plan, UpsertPlan, UpsertPlanSchema } from '@/schema/plan'
 import { toast } from 'sonner'
 import { handleServerError } from '@/utils/handle-server-error.ts'
 import {
-  useCreateVpnPlanMutation,
-  useUpdateVpnPlanMutation,
-} from '@/hooks/vpn-plans/useVpnPlanMutations.ts'
+  useCreatePlanMutation,
+  useUpdatePlanMutation,
+} from '@/hooks/plans/usePlanMutations.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
@@ -35,11 +31,11 @@ import { Switch } from '@/components/ui/switch.tsx'
 
 type Props = {
   open: boolean
-  plan?: VpnPlan | null
+  plan?: Plan | null
   onOpenChange: (open: boolean) => void
 }
 
-const emptyValues: UpsertVpnPlan = {
+const emptyValues: UpsertPlan = {
   name: '',
   fa_name: '',
   traffic_gb: 2,
@@ -49,10 +45,10 @@ const emptyValues: UpsertVpnPlan = {
 }
 
 export function PlanFormDialog({ open, plan, onOpenChange }: Props) {
-  const createPlan = useCreateVpnPlanMutation()
-  const updatePlan = useUpdateVpnPlanMutation()
-  const form = useForm<UpsertVpnPlan>({
-    resolver: zodResolver(UpsertVpnPlanSchema) as never,
+  const createPlan = useCreatePlanMutation()
+  const updatePlan = useUpdatePlanMutation()
+  const form = useForm<UpsertPlan>({
+    resolver: zodResolver(UpsertPlanSchema) as never,
     defaultValues: emptyValues,
   })
 
@@ -74,7 +70,7 @@ export function PlanFormDialog({ open, plan, onOpenChange }: Props) {
 
   const pending = createPlan.isPending || updatePlan.isPending
 
-  function onSubmit(values: UpsertVpnPlan) {
+  function onSubmit(values: UpsertPlan) {
     const request = plan
       ? updatePlan.mutateAsync({ id: plan.id, plan: values })
       : createPlan.mutateAsync(values)

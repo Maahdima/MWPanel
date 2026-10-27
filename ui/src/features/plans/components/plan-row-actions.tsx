@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { Plan } from '@/schema/plan'
 import { toast } from 'sonner'
-import { VpnPlan } from '@/schema/vpn-plan.ts'
 import { handleServerError } from '@/utils/handle-server-error.ts'
-import { Button } from '@/components/ui/button.tsx'
+import { useDeletePlanMutation } from '@/hooks/plans/usePlanMutations.ts'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog.tsx'
+import { Button } from '@/components/ui/button.tsx'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,12 +22,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx'
 import { PlanFormDialog } from '@/features/plans/components/plan-form-dialog.tsx'
-import { useDeleteVpnPlanMutation } from '@/hooks/vpn-plans/useVpnPlanMutations.ts'
 
-export function PlanRowActions({ plan }: { plan: VpnPlan }) {
+export function PlanRowActions({ plan }: { plan: Plan }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const remove = useDeleteVpnPlanMutation()
+  const remove = useDeletePlanMutation()
 
   return (
     <>
@@ -54,12 +54,14 @@ export function PlanRowActions({ plan }: { plan: VpnPlan }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {plan.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Plans that already have orders stay in the list. Turn off “Show
-              in the bot” to hide one instead.
+              Plans that already have orders stay in the list. Turn off “Show in
+              the bot” to hide one instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={remove.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <Button
               variant='destructive'
               disabled={remove.isPending}

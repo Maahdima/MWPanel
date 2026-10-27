@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Peer } from '@/schema/peers.ts'
+import { Peer } from '@/schema/peer'
 import {
   CalendarIcon,
   CheckIcon,
@@ -116,7 +116,11 @@ export function PeersShareDialog({ open, onOpenChange, currentRow }: Props) {
                     Share Link
                   </Label>
                   <div className='flex min-w-0 items-center gap-2'>
-                    <Input className='min-w-0' value={shareLink ?? ''} readOnly />
+                    <Input
+                      className='min-w-0'
+                      value={shareLink ?? ''}
+                      readOnly
+                    />
                     <Button
                       variant='outline'
                       size='icon'

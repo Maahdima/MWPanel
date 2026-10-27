@@ -4,7 +4,7 @@ import {
   Server,
   ServerResponseSchema,
   ServersResponseSchema,
-} from '@/schema/servers.ts'
+} from '@/schema/server'
 import axiosInstance from '@/api/axios-instance.ts'
 
 export const fetchServersList = async (): Promise<Server[]> => {

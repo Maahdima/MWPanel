@@ -2,14 +2,14 @@ import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { IconRefresh } from '@tabler/icons-react'
 import { Loader2Icon } from 'lucide-react'
+import { useOrdersQuery } from '@/hooks/orders/useOrdersQuery.ts'
+import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
+import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { Button } from '@/components/ui/button'
-import { useShopEnabled } from '@/hooks/shop/useShopStatus.ts'
-import { useVpnOrdersQuery } from '@/hooks/vpn-orders/useVpnOrdersQuery.ts'
 import { ordersColumns } from '@/features/orders/components/orders-columns.tsx'
 import { DataTableSkeleton } from '@/features/shared-components/table/data-table-skeleton.tsx'
 import { DataTable } from '@/features/shared-components/table/data-table.tsx'
@@ -17,7 +17,7 @@ import { DataTable } from '@/features/shared-components/table/data-table.tsx'
 export default function Orders() {
   const navigate = useNavigate()
   const { enabled: shopEnabled, isLoading: shopLoading } = useShopEnabled()
-  const { data, isLoading, refetch, isRefetching } = useVpnOrdersQuery(shopEnabled)
+  const { data, isLoading, refetch, isRefetching } = useOrdersQuery(shopEnabled)
 
   useEffect(() => {
     if (!shopLoading && !shopEnabled) {

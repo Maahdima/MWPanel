@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { Server } from '@/schema/servers.ts'
+import { Server } from '@/schema/server'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useUpdateServerStatusMutation } from '@/hooks/servers/useUpdateServerStatusMutation.ts'

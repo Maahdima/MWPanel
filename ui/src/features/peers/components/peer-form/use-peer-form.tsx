@@ -9,7 +9,7 @@ import {
   CreatePeerSchema,
   UpdatePeerRequest,
   UpdatePeerSchema,
-} from '@/schema/peers'
+} from '@/schema/peer'
 import { toast } from 'sonner'
 import { fetchPeerCredentials } from '@/api/peers.ts'
 import { useCreatePeerMutation } from '@/hooks/peers/useCreatePeerMutation'

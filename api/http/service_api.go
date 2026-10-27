@@ -125,6 +125,32 @@ func (c *ServiceController) ChargePeer(ctx echo.Context) error {
 	})
 }
 
+func (c *ServiceController) BonusPeer(ctx echo.Context) error {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	var req struct {
+		AddBytes int64 `json:"add_bytes"`
+	}
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, schema.BadParamsErrorResponse)
+	}
+	peer, err := c.peers.ApplyBonus(uint(id), req.AddBytes)
+	if err != nil {
+		c.logger.Error("service peer bonus failed", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, schema.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Status:     "error",
+			Message:    err.Error(),
+		})
+	}
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[servicePeer]{
+		BasicResponse: schema.OkBasicResponse,
+		Data:          c.snapshot(peer),
+	})
+}
+
 func (c *ServiceController) PeerByID(ctx echo.Context) error {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil || id == 0 {

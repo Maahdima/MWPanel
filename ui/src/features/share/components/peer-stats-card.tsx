@@ -1,7 +1,7 @@
 'use client'
 
 import { IconCircleFilled } from '@tabler/icons-react'
-import { PeerStats } from '@/schema/peers.ts'
+import { PeerStats } from '@/schema/peer'
 import clsx from 'clsx'
 import {
   ArrowDownIcon,
@@ -116,7 +116,9 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
                 <ArrowDownIcon className='h-4 w-4' />
                 Download
               </span>
-              <span className='min-w-0 text-right'>{stats?.download_usage ?? 0} GB</span>
+              <span className='min-w-0 text-right'>
+                {stats?.download_usage ?? 0} GB
+              </span>
             </div>
 
             <div className='flex items-center justify-between gap-3'>
@@ -124,7 +126,9 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
                 <ArrowUpIcon className='h-4 w-4' />
                 Upload
               </span>
-              <span className='min-w-0 text-right'>{stats?.upload_usage ?? 0} GB</span>
+              <span className='min-w-0 text-right'>
+                {stats?.upload_usage ?? 0} GB
+              </span>
             </div>
 
             <div className='text-foreground flex items-center justify-between gap-3 font-semibold'>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Server } from '@/schema/servers.ts'
+import { Server } from '@/schema/server'
 import useDialogState from '@/hooks/use-dialog-state'
 
 type ServersDialogType = 'add' | 'edit' | 'delete'

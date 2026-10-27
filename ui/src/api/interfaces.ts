@@ -5,7 +5,7 @@ import {
   InterfaceResponseSchema,
   InterfacesResponseSchema,
   UpdateInterfaceRequest,
-} from '@/schema/interfaces.ts'
+} from '@/schema/interface'
 import {
   SyncInterfacePreview,
   SyncInterfacesRequest,
@@ -66,4 +66,3 @@ export const syncSelectedInterfaces = async (
   const validated = SyncInterfacesRequestSchema.parse(payload)
   await axiosInstance.post('/sync/interfaces/selected', validated)
 }
-

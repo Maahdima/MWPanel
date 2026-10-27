@@ -114,9 +114,9 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 	}
 
 	now := time.Now()
-	expired := utils.IsPeerExpired(peer.ExpireTime, now)
 	used := peer.DownloadUsage + peer.UploadUsage
-	newLimit := renewedTrafficLimit(peer.TrafficLimit, used, addBytes, expired)
+	resetTraffic := renewalResetsTraffic(peer, used, now)
+	newLimit := renewedTrafficLimit(peer.TrafficLimit, used, addBytes, resetTraffic)
 	expire := renewalExpireDate(addDays, now)
 	expirePtr := expire
 
@@ -138,7 +138,7 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 		"expire_second_notify":  false,
 		"expire_third_notify":   false,
 	}
-	if expired {
+	if resetTraffic {
 		updates["download_usage"] = int64(0)
 		updates["upload_usage"] = int64(0)
 		if w.mikrotikAdaptor != nil {
@@ -185,8 +185,74 @@ func (w *WgPeer) ApplyCharge(peerID uint, addBytes int64, addDays int) (model.Pe
 	return peer, nil
 }
 
-func renewedTrafficLimit(current *int64, used, addBytes int64, expired bool) int64 {
-	if expired {
+// ApplyBonus adds traffic to the current cap and does not move the expire date.
+// An expired peer is left disabled. A peer disabled only for traffic is enabled when the new cap covers current usage.
+func (w *WgPeer) ApplyBonus(peerID uint, addBytes int64) (model.Peer, error) {
+	var peer model.Peer
+	if err := w.db.First(&peer, "id = ?", peerID).Error; err != nil {
+		return model.Peer{}, err
+	}
+	if addBytes <= 0 {
+		return model.Peer{}, errors.New("invalid vpn bonus")
+	}
+
+	now := time.Now()
+	used := peer.DownloadUsage + peer.UploadUsage
+	newLimit := chargedTrafficLimit(peer.TrafficLimit, used, addBytes)
+	expired := utils.IsPeerExpired(peer.ExpireTime, now)
+	enable := peer.Disabled && !expired && newLimit > used
+	updates := map[string]interface{}{
+		"traffic_limit":         newLimit,
+		"traffic_first_notify":  false,
+		"traffic_second_notify": false,
+		"traffic_third_notify":  false,
+	}
+	if enable {
+		updates["disabled"] = false
+	}
+	if err := w.db.Model(&peer).Updates(updates).Error; err != nil {
+		w.logger.Error("failed to store vpn bonus", zap.Error(err), zap.Uint("id", peer.ID))
+		return model.Peer{}, err
+	}
+
+	if enable {
+		if _, err := w.mikrotikAdaptor.UpdateWgPeer(context.Background(), peer.PeerID, mikrotik.WireGuardPeer{
+			Disabled: strconv.FormatBool(false),
+		}); err != nil {
+			_ = w.db.Model(&peer).Update("disabled", true).Error
+			w.logger.Error("failed to enable bonus peer", zap.Error(err), zap.String("peerID", peer.PeerID))
+			return model.Peer{}, err
+		}
+		if peer.QueueID != nil {
+			if _, err := w.mikrotikAdaptor.UpdateSimpleQueue(context.Background(), *peer.QueueID, mikrotik.Queue{
+				Disabled: strconv.FormatBool(false),
+			}); err != nil {
+				w.logger.Warn("failed to enable queue for bonus peer", zap.Error(err), zap.String("peerID", peer.PeerID))
+			}
+		}
+	}
+
+	if err := w.db.First(&peer, "id = ?", peerID).Error; err != nil {
+		return model.Peer{}, err
+	}
+	return peer, nil
+}
+
+func renewalResetsTraffic(peer model.Peer, used int64, now time.Time) bool {
+	if utils.IsPeerExpired(peer.ExpireTime, now) {
+		return true
+	}
+	if !peer.Disabled || peer.TrafficLimit == nil || *peer.TrafficLimit <= 0 {
+		return false
+	}
+	if used < 0 {
+		used = 0
+	}
+	return used >= *peer.TrafficLimit
+}
+
+func renewedTrafficLimit(current *int64, used, addBytes int64, reset bool) int64 {
+	if reset {
 		if addBytes < 0 {
 			return 0
 		}

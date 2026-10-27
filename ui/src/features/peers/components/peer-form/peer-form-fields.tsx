@@ -1,7 +1,7 @@
 'use client'
 
 import { Control, UseFormSetValue } from 'react-hook-form'
-import { CreatePeerRequest } from '@/schema/peers'
+import { CreatePeerRequest } from '@/schema/peer'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
 import { BandwidthField } from '@/features/peers/components/fields/bandwidth-field'
 import { ExpireDateField } from '@/features/peers/components/fields/expire-date-field'

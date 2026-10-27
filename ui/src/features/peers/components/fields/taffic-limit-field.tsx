@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Control, useWatch } from 'react-hook-form'
-import { CreatePeerRequest } from '@/schema/peers.ts'
+import { CreatePeerRequest } from '@/schema/peer'
 import { XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button.tsx'
 import {

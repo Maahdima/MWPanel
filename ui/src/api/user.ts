@@ -1,4 +1,4 @@
-import { PeerStats, PeerStatsResponseSchema } from '@/schema/peers.ts'
+import { PeerStats, PeerStatsResponseSchema } from '@/schema/peer'
 import axiosInstance from '@/api/axios-instance.ts'
 
 export const fetchUserQRCode = async (

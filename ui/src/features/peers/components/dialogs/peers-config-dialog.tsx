@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Peer } from '@/schema/peers.ts'
+import { Peer } from '@/schema/peer'
 import { CopyIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { downloadWireGuardConfig } from '@/utils/helper.ts'

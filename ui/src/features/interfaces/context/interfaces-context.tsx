@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Interface } from '@/schema/interfaces.ts'
+import { Interface } from '@/schema/interface'
 import useDialogState from '@/hooks/use-dialog-state'
 
 type InterfacesDialogType = 'add' | 'edit' | 'delete' | 'sync'
