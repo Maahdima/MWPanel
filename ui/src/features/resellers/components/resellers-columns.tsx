@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ColumnDef } from '@tanstack/react-table'
 import { Reseller } from '@/schema/billing'
+import { resellerAccountLabel } from '@/lib/reseller-status'
 import { Badge } from '@/components/ui/badge'
 import { dateLabel, formatToman } from '../money'
 
@@ -54,17 +55,37 @@ export const resellersColumns: ColumnDef<Reseller>[] = [
     cell: ({ row }) => (
       <Badge
         variant={
-          row.original.admin_suspended || row.original.billing_suspended
+          row.original.admin_suspended || !row.original.is_active
             ? 'destructive'
             : 'outline'
         }
       >
-        {row.original.admin_suspended
-          ? 'Admin suspended'
-          : row.original.billing_suspended
-            ? 'Billing suspended'
-            : 'Active'}
+        {resellerAccountLabel(
+          row.original.is_active,
+          row.original.admin_suspended
+        )}
       </Badge>
+    ),
+  },
+  {
+    id: 'billing_status',
+    header: 'Billing suspension',
+    cell: ({ row }) => (
+      <Badge
+        variant={row.original.billing_suspended ? 'destructive' : 'outline'}
+      >
+        {row.original.billing_suspended ? 'Suspended' : 'Not suspended'}
+      </Badge>
+    ),
+  },
+  {
+    id: 'provisioning',
+    header: 'Provisioning',
+    cell: ({ row }) => (
+      <span className='text-sm'>
+        {row.original.provisioning_peers} pending ·{' '}
+        {row.original.failed_operations} failed
+      </span>
     ),
   },
   {

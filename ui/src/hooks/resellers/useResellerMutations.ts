@@ -16,6 +16,7 @@ import {
   updatePaymentInstructions,
 } from '@/api/billing'
 import {
+  retryResellerPeer,
   saveReseller,
   setResellerSuspension,
   transferPeerOwnership,
@@ -122,3 +123,12 @@ export const useBillingActionMutation = (id: number) =>
 
 export const usePaymentInstructionsMutation = () =>
   useResellerMutation(updatePaymentInstructions, 'Payment settings updated')
+
+export const useRetryResellerPeerMutation = (
+  resellerID: number,
+  peerID: number
+) =>
+  useResellerMutation(
+    () => retryResellerPeer(resellerID, peerID),
+    'Retry queued; router verification will run automatically'
+  )

@@ -14,6 +14,7 @@ import {
   usePaymentInstructions,
   useReceiptHistory,
 } from '@/hooks/resellers/useResellerQueries'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -171,6 +172,18 @@ export function BillingPanel({ resellerID }: { resellerID?: number }) {
           </CardContent>
         </Card>
       )}
+      {book.billing_mode === 'prepaid' &&
+        state.available_rial === '0' &&
+        !state.billing_suspended &&
+        !state.administrative_suspended && (
+          <Alert>
+            <AlertTitle>No credit for new purchases</AlertTitle>
+            <AlertDescription>
+              Submit a deposit for approval before a new purchase. An empty
+              wallet does not disable existing paid configurations.
+            </AlertDescription>
+          </Alert>
+        )}
       <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
         {[
           ['Balance', state.balance_rial],

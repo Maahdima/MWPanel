@@ -277,7 +277,7 @@ export function ResellerEditor({
                     ...(interfaces.data ?? [])
                       .filter((iface) => selected.includes(iface.id))
                       .map((iface) => ({
-                        label: `${iface.name} · Server ${iface.server_id}`,
+                        label: `${iface.name}`,
                         value: String(iface.id),
                       })),
                   ]}

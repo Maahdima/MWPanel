@@ -122,3 +122,7 @@ export async function cancelRouterMigration(id: number, migrationID: string) {
     { reason: 'Administrator requested cancellation before routing switch' }
   )
 }
+
+export async function retryResellerPeer(resellerID: number, peerID: number) {
+  await axiosInstance.post(`/reseller/${resellerID}/peers/${peerID}/retry`)
+}

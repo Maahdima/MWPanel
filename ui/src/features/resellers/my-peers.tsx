@@ -13,6 +13,7 @@ import { DataTable } from '@/features/shared-components/table/data-table'
 import { DataTableSkeleton } from '@/features/shared-components/table/data-table-skeleton'
 import { CreatePeerButton } from './components/create-peer-button'
 import { MaintenanceButton } from './components/maintenance-button'
+import { PeerOperationStatus } from './components/peer-operation-status'
 import { PurchaseButton } from './components/purchase-button'
 import { PageFrame } from './page-frame'
 
@@ -39,24 +40,19 @@ export function MyPeers() {
         filterFn: 'arrIncludesSome',
         enableSorting: false,
         header: 'Status',
-        cell: ({ row }) => {
-          const p = row.original
-          return (
-            <>
-              {p.migration_pending
-                ? 'Migrating'
-                : p.disabled
-                  ? 'Disabled'
-                  : 'Enabled'}
-              <div className='text-muted-foreground text-xs'>
-                {p.restriction_reasons?.join(', ')}
-                {p.sync_status ? ` · ${p.sync_status}` : ''}
-              </div>
-            </>
-          )
-        },
+        cell: ({ row }) => <PeerOperationStatus peer={row.original} />,
       },
       { accessorKey: 'total_usage', header: 'Usage' },
+      {
+        id: 'bandwidth',
+        header: 'Speed limits',
+        cell: ({ row }) => (
+          <span className='whitespace-nowrap'>
+            ↓ {row.original.download_bandwidth ?? 'Unlimited'} / ↑{' '}
+            {row.original.upload_bandwidth ?? 'Unlimited'}
+          </span>
+        ),
+      },
       {
         accessorKey: 'traffic_limit',
         header: 'Quota',

@@ -22,6 +22,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { bytesToGiB, gibToBytes } from '../money'
+import { BandwidthFields } from './bandwidth-fields'
 
 export function MaintenanceButton({
   peer,
@@ -39,7 +40,16 @@ export function MaintenanceButton({
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     try {
+      const form = new FormData(e.currentTarget)
       const data = {
+        ...(action === 'set_bandwidth'
+          ? {
+              download_bandwidth:
+                String(form.get('download_bandwidth') ?? '') || null,
+              upload_bandwidth:
+                String(form.get('upload_bandwidth') ?? '') || null,
+            }
+          : {}),
         action:
           action === 'enable' || action === 'disable'
             ? 'set_manual'
@@ -108,6 +118,9 @@ export function MaintenanceButton({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='rename'>Rename</SelectItem>
+                    <SelectItem value='set_bandwidth'>
+                      Change speed limits
+                    </SelectItem>
                     <SelectItem value='set_address'>
                       Change client address
                     </SelectItem>
@@ -143,6 +156,12 @@ export function MaintenanceButton({
                     />
                   </div>
                 </>
+              )}
+              {action === 'set_bandwidth' && (
+                <BandwidthFields
+                  download={peer.download_bandwidth}
+                  upload={peer.upload_bandwidth}
+                />
               )}
               <p className='text-muted-foreground text-sm'>
                 This operation has no charge. Existing billing, expiration and

@@ -34,6 +34,7 @@ export const useResellerQuery = (id: number) =>
     queryKey: ['reseller', id],
     queryFn: () => fetchReseller(id),
     enabled: id > 0,
+    refetchInterval: 10000,
   })
 
 export const useBillingBook = (id?: number, enabled = true) =>
@@ -61,7 +62,7 @@ export const useResellerPeersQuery = (id?: number) =>
   useQuery({
     queryKey: ['peers_list', 'reseller', id ?? 'me'],
     queryFn: () => fetchResellerPeers(id),
-    refetchInterval: id ? false : 15000,
+    refetchInterval: 10000,
   })
 
 export const useMyResourcesQuery = (enabled: boolean) =>

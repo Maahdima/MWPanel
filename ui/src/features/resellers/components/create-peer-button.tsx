@@ -26,6 +26,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { formatToman, gibToBytes } from '../money'
+import { BandwidthFields } from './bandwidth-fields'
 
 export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
   const formID = useId()
@@ -64,6 +65,9 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
           interface_id: Number(form.get('interface')),
           quota_bytes: gibToBytes(quota) ?? '0',
           duration_days: days,
+          download_bandwidth:
+            String(form.get('download_bandwidth') ?? '') || null,
+          upload_bandwidth: String(form.get('upload_bandwidth') ?? '') || null,
         }
       const signature = JSON.stringify(data)
       if (signature !== request.current.signature)
@@ -155,6 +159,7 @@ export function CreatePeerButton({ resellerID }: { resellerID?: number }) {
                   />
                 </div>
               </div>
+              <BandwidthFields />
               <p className='text-muted-foreground text-sm'>
                 Creation has a 30-day minimum price. Longer plans scale by their
                 duration. Credentials and addressing are generated securely on

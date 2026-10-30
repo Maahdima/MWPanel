@@ -24,6 +24,10 @@ import {
 import { PeersTableRowActions } from '@/features/peers/components/peers-table-row-actions.tsx'
 import { MaintenanceButton } from '@/features/resellers/components/maintenance-button'
 import { OwnerCell } from '@/features/resellers/components/owner-cell'
+import {
+  PeerOperationStatus,
+  PeerRetryButton,
+} from '@/features/resellers/components/peer-operation-status'
 import { ColoredBadge } from '@/features/shared-components/status-badge.tsx'
 import { DataTableColumnHeader } from '@/features/shared-components/table/data-table-column-header.tsx'
 import { SimpleDialog } from '@/features/shared-components/table/dialogs/simple-dialog.tsx'
@@ -335,6 +339,16 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='Status' />
     ),
     cell: ({ row }) => {
+      if (row.original.reseller_id)
+        return (
+          <div className='space-y-2'>
+            <PeerOperationStatus peer={row.original} />
+            <PeerRetryButton
+              peer={row.original}
+              resellerID={row.original.reseller_id}
+            />
+          </div>
+        )
       const { status } = row.original
       return (
         <div className='flex space-x-2'>

@@ -10,6 +10,12 @@ export const PrincipalSchema = z.object({
 })
 
 export const ResellerSchema = z.object({
+  disabled_peers: z.number().default(0),
+  expired_peers: z.number().default(0),
+  provisioning_peers: z.number().default(0),
+  failed_operations: z.number().default(0),
+  sync_pending_peers: z.number().default(0),
+  sync_error_peers: z.number().default(0),
   migration_id: z.string().nullable(),
   active_peers: z.number(),
   total_peers: z.number(),
@@ -133,6 +139,8 @@ export type ResellerInput = {
 export const ResellerResourceSchema = ResellerSchema.shape.resources.element
 export const PeerPurchasesSchema = z.array(
   z.object({
+    last_error: z.string().default(''),
+    next_attempt_at: z.number().default(0),
     id: z.string(),
     peer_id: z.number(),
     state: z.string(),
@@ -160,12 +168,16 @@ export type PeerPurchaseInput = {
 }
 
 export type PeerMutationInput = {
+  download_bandwidth?: string | null
+  upload_bandwidth?: string | null
   action: string
   value: string
   enabled: boolean | null
 }
 
 export type ResellerPeerInput = {
+  download_bandwidth?: string | null
+  upload_bandwidth?: string | null
   name: string
   interface_id: number
   quota_bytes: string

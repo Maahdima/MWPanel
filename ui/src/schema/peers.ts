@@ -9,6 +9,11 @@ export const PeerStatusEnum = z.enum([
 ])
 
 export const PeerSchema = z.object({
+  provisioning_status: z
+    .enum(['ready', 'pending', 'running', 'error'])
+    .optional(),
+  operation_error: z.string().optional(),
+  next_attempt_at: z.number().optional(),
   migration_pending: z.boolean(),
   traffic_limit_bytes: z.string().nullable(),
   total_usage_bytes: z.string(),
