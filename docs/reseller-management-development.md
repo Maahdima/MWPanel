@@ -1,7 +1,6 @@
 # Reseller contribution development status
 
-> Current source status: the 23 contribution test files and dedicated PostgreSQL fixture helper have been removed. Test results below are historical runs made before removal. The resulting source builds and passes `go vet`; The development Mock RouterOS and its local harness have also been removed.
-
+> Current source status (2026-10-30): focused regression tests, SQLite/PostgreSQL fixture helpers and test-only Mock RouterOS were restored for the explicitly authorized activation/provisioning follow-up. The standalone Mock CLI remains excluded. See current verification below; older race/PostgreSQL results are historical.
 
 Local implementation and review are prepared on `feat/reseller-billing-management`, based on `c935efa`. The proposal is published as [#6](https://github.com/Maahdima/MWPanel/issues/6). Existing Git identity is retained.
 
@@ -16,12 +15,23 @@ Local implementation and review are prepared on `feat/reseller-billing-managemen
 - Durable peer creation, quota purchases, expiry extensions, usage resets and full resets. Holds and intents commit together; router state is verified before financial posting. Recoverable ambiguous responses and database failures; preserved original pricing on retry. Unsupported unlimited reseller plans are rejected.
 - Durable free rename, address change, key regeneration, explicit manual status, public-share toggle, quota reduction and deletion. No charge or wallet change. Suspended reseller writes are blocked; authorized admin actions remain possible. Legacy alternate billed/reset paths cannot bypass accounting.
 - Existing-style admin reseller list/detail, exact toman inputs/display, receipt review, financial settings/actions, ownership filtering/transfers, scoped reseller billing/configuration pages, purchase and management forms. English UI and existing themes retained.
-- Embedded production assets include underscore-prefixed dynamic-route chunks; a regression test checks generated JS/CSS/HTML against embedded files.
+- Embedded production assets include underscore-prefixed dynamic-route chunks; the production binary build is verified.
 
 - Resumable cross-router migration, destination preflight, preserved UUID/ownership/accounting/usage, final source sampling, verified metadata switching, refreshed private configurations/QR codes, safe cleanup and compensation before switching. Source traffic enforcement continues during preparation.
 - Complete scoped ledger/invoice CSV exports with exact rials, formula-safe text and private temporary-file cleanup.
 
-## Verification executed — 2026-10-26
+## Activation, provisioning and speed follow-up — 2026-10-30
+
+- Equivalent ISO and legacy RouterOS scheduler dates now compare by calendar date. Verified creation posts its charge before invoking the existing restriction reconciler immediately. A prepaid account remains active with zero credit; previously paid eligible peers remain enabled.
+- Provisioning failures persist sanitized stage/error information and retry times. Admin retry only resets backoff; it cannot bypass ownership, live leases, verification, existing restrictions or accounting. Worker ticks have bounded deadlines and skip unavailable routers for the remainder of a batch.
+- Admin detail uses the original cards, tabs, tables and dialogs to separate account, billing, provisioning and actual synchronization. Resource assignments, limits, wallet/debt, invoices and configuration counts are visible. Reseller lists retain read-only/payment access under suspension.
+- Per-configuration download/upload speeds are configurable during creation and through **Manage → Change speed limits**. Units use the existing decimal RouterOS K/M/G convention, blank means unlimited. Positive values up to 1 Tbit/s are accepted with three decimal places. Changes use the existing free durable-operation outbox, preserve accounting and restrictions, target the owned peer's router/queue and verify the resulting limit before saving. Missing queue metadata is recovered by deterministic UUID name; unexpected targets are refused.
+
+Current checks passed: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...` (SQLite service/HTTP suites), `go vet -p 1 ./...`, embedded Go binary build, UI `npm run build`, `npm run lint`, changed-source Prettier check, 12 Node UI-state tests, and `git diff --check`. Regression coverage includes zero-credit activation, unapproved/approved receipts, scheduler normalization, retry/lease/restart recovery, mixed restrictions, speed validation/creation, lost-response retries, zero speed-change charges and two-router isolation.
+
+Earlier in this follow-up, browser checks covered admin/reseller login on the user-run app and disposable-data desktop/mobile dark-mode activation screens. The browser transport became unavailable during the final speed-form review, so the new speed form has build/static verification but no completed final browser check. The user-run port 3000 process and its data were not restarted or changed. No physical router, current PostgreSQL run or current race-detector run is claimed.
+
+## Historical verification — 2026-10-26
 
 - Entire current Go suite: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...` passed.
 - Focused race tests for concurrent prepaid reservations, receipt approval, purchase replay and concurrent migration workers passed. Migration quota/counter continuation tests passed under the race detector.

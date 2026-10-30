@@ -23,17 +23,13 @@ Cross-router migration can change client addresses and VPN endpoints; clients ma
 
 ## Validation
 
-The final diff does not include automated test sources or the PostgreSQL fixture helper. The test runs listed below were completed before those files were removed. The resulting source has been built and checked with `go vet`; the development Mock RouterOS and local test harness are also excluded.
+The activation/provisioning follow-up restores focused test coverage and test-only Mock RouterOS with explicit authorization. Equivalent scheduler date formats no longer block provisioning; verified paid peers activate through independent restriction reconciliation, including prepaid balances of zero. Admin-only retry resets backoff without bypassing verification or leases. The detail UI separates account, financial, provisioning and synchronization states using existing components.
 
+Per-peer download/upload limits are available during creation and through Manage → Change speed limits. Speed changes are free, durable, idempotent, scoped to the owned peer's router and verified before local metadata is finalized. Existing prices and restrictions are preserved.
 
-- Entire Go suite: `GOMAXPROCS=2 go test -p 1 -timeout 180s ./...`.
-- Targeted race checks: concurrent prepaid reservations, atomic receipt approval, concurrent purchase replay and concurrent migration workers.
-- Service/HTTP integration suites also executed against an isolated official PostgreSQL 17.6 container; private fixture schemas and independent pools test the same financial/router paths.
-- `go vet`, UI TypeScript/Vite build, UI lint and `git diff --check`.
-- Before removal, two independent Mock RouterOS servers covered colliding IDs, direct authorization bypass attempts, exact pricing, partial settlement, grace/recovery, lost-success responses, database failures after router mutation, migration resumption/compensation, source cleanup, preshared keys, queue limits, stable public downloads and consumption enforcement during migration.
-- The full race suite previously passed. A later complete run with a deliberately restricted CPU budget exceeded its three-minute package timeout; normal full-suite and targeted race results are recorded separately rather than reporting that timed run as a pass.
+Current checks (2026-10-30): full SQLite Go suite, Go vet, embedded production binary, TypeScript/Vite build, ESLint, changed-source Prettier, 12 Node UI-state tests and diff whitespace check passed. Tests cover activation, payments, restriction preservation, retry/lease recovery, exact financial rules, speed validation, ambiguous queue updates and multi-router isolation. Earlier PostgreSQL/race results are historical; neither was rerun for this follow-up.
 
-Browser verification caught and fixed reseller navigation repeatedly calling admin APIs. The final checked login used only successful auth/billing requests. UI captures are available with the local review artifacts; no real MikroTik or production data was used.
+Browser checks covered both user-provided roles and disposable activation screens at desktop/mobile sizes in dark mode. Final speed-form visual verification could not complete because the browser transport became unavailable. No real router or production-data changes were made. The existing localhost:3000 process must load the new build before these changes appear there.
 
 ## Related issue
 
