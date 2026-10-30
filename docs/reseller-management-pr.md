@@ -23,13 +23,13 @@ Cross-router migration can change client addresses and VPN endpoints; clients ma
 
 ## Validation
 
-The activation/provisioning follow-up restores focused test coverage and test-only Mock RouterOS with explicit authorization. Equivalent scheduler date formats no longer block provisioning; verified paid peers activate through independent restriction reconciliation, including prepaid balances of zero. Admin-only retry resets backoff without bypassing verification or leases. The detail UI separates account, financial, provisioning and synchronization states using existing components.
+The activation/provisioning follow-up was verified with focused tests and test-only Mock RouterOS before those files and helpers were removed at the user’s request. The final source excludes test/mock tooling. Equivalent scheduler date formats no longer block provisioning; verified paid peers activate through independent restriction reconciliation, including prepaid balances of zero. Admin-only retry resets backoff without bypassing verification or leases. The detail UI separates account, financial, provisioning and synchronization states using existing components.
 
 Per-peer download/upload limits are available during creation and through Manage → Change speed limits. Speed changes are free, durable, idempotent, scoped to the owned peer's router and verified before local metadata is finalized. Existing prices and restrictions are preserved.
 
-Current checks (2026-10-30): full SQLite Go suite, Go vet, embedded production binary, TypeScript/Vite build, ESLint, changed-source Prettier, 12 Node UI-state tests and diff whitespace check passed. Tests cover activation, payments, restriction preservation, retry/lease recovery, exact financial rules, speed validation, ambiguous queue updates and multi-router isolation. Earlier PostgreSQL/race results are historical; neither was rerun for this follow-up.
+Pre-removal checks (2026-10-30): full SQLite Go suite, Go vet, embedded production binary, TypeScript/Vite build, ESLint, changed-source Prettier, 12 Node UI-state tests and diff whitespace check passed. The removed tests covered activation, payments, restriction preservation, retry/lease recovery, exact financial rules, speed validation, ambiguous queue updates and multi-router isolation. Earlier PostgreSQL/race results are historical; neither was rerun for this follow-up.
 
-Browser checks covered both user-provided roles and disposable activation screens at desktop/mobile sizes in dark mode. Final speed-form visual verification could not complete because the browser transport became unavailable. No real router or production-data changes were made. The existing localhost:3000 process must load the new build before these changes appear there.
+Browser checks covered both user-provided roles and disposable activation screens at desktop/mobile sizes in dark mode. Final speed-form visual verification could not complete because the browser transport became unavailable. No real router or production-data changes were made. The updated embedded binary is prepared for local startup against the existing database.
 
 ## Related issue
 
