@@ -25,11 +25,13 @@ type PeerPurchaseRequest struct {
 }
 
 type PeerPurchaseView struct {
-	ID         string `json:"id"`
-	PeerID     uint   `json:"peer_id"`
-	State      string `json:"state"`
-	AmountRial string `json:"amount_rial"`
-	Attempts   int64  `json:"attempts"`
+	LastError     string `json:"last_error"`
+	NextAttemptAt int64  `json:"next_attempt_at"`
+	ID            string `json:"id"`
+	PeerID        uint   `json:"peer_id"`
+	State         string `json:"state"`
+	AmountRial    string `json:"amount_rial"`
+	Attempts      int64  `json:"attempts"`
 }
 
 type PeerPurchases struct {
@@ -47,12 +49,12 @@ func (s *PeerPurchases) view(op model.PeerPurchase) (PeerPurchaseView, error) {
 	var charge model.BillingCharge
 
 	if op.ChargeID == nil {
-		return PeerPurchaseView{op.ID, op.PeerID, op.State, "0", op.Attempts}, nil
+		return PeerPurchaseView{ID: op.ID, PeerID: op.PeerID, State: op.State, AmountRial: "0", Attempts: op.Attempts, LastError: safeStoredOperationError(op.LastError), NextAttemptAt: op.NextAttemptAt}, nil
 	}
 
 	err := s.billing.db.First(&charge, *op.ChargeID).Error
 
-	return PeerPurchaseView{op.ID, op.PeerID, op.State, strconv.FormatInt(charge.AmountRial, 10), op.Attempts}, err
+	return PeerPurchaseView{ID: op.ID, PeerID: op.PeerID, State: op.State, AmountRial: strconv.FormatInt(charge.AmountRial, 10), Attempts: op.Attempts, LastError: safeStoredOperationError(op.LastError), NextAttemptAt: op.NextAttemptAt}, err
 }
 
 func parsePurchaseQuantity(value string) (int64, error) {
@@ -343,14 +345,40 @@ func (s *PeerPurchases) Run() {
 		s.cursor = ""
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+
+	defer cancel()
+
+	failedServers := map[uint]bool{}
+
 	for _, op := range ops {
+		if ctx.Err() != nil {
+			break
+		}
+
 		s.cursor = op.ID
 
-		_ = s.Reconcile(op.ID)
+		var peer model.Peer
+
+		if s.billing.db.Select("server_id").First(&peer, op.PeerID).Error != nil {
+			continue
+		}
+
+		if failedServers[peer.ServerID] {
+			continue
+		}
+
+		if s.reconcileContext(ctx, op.ID) != nil {
+			failedServers[peer.ServerID] = true
+		}
 	}
 }
 
 func (s *PeerPurchases) Reconcile(id string) error {
+	return s.reconcileContext(context.Background(), id)
+}
+
+func (s *PeerPurchases) reconcileContext(parent context.Context, id string) error {
 	now := s.billing.now().UTC().Unix()
 
 	claim := s.billing.db.Model(&model.PeerPurchase{}).Where("id = ? AND state = ? AND lease_until <= ? AND next_attempt_at <= ?", id, "pending", now, now).UpdateColumn("lease_until", now+120)
@@ -369,7 +397,7 @@ func (s *PeerPurchases) Reconcile(id string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 90*time.Second)
 
 	defer cancel()
 
@@ -380,7 +408,13 @@ func (s *PeerPurchases) Reconcile(id string) error {
 	if err != nil {
 		delay := min(int64(300), int64(1)<<min(op.Attempts+1, int64(8)))
 
-		_ = s.billing.db.Model(&model.PeerPurchase{}).Where("id = ? AND state = ?", id, "pending").Updates(map[string]any{"lease_until": 0, "attempts": gorm.Expr("attempts + 1"), "next_attempt_at": now + delay, "last_error": "router or storage verification pending"}).Error
+		_ = s.billing.db.Model(&model.PeerPurchase{}).Where("id = ? AND state = ?", id, "pending").Updates(map[string]any{"lease_until": 0, "attempts": gorm.Expr("attempts + 1"), "next_attempt_at": now + delay, "last_error": provisioningMessage(err)}).Error
+	}
+
+	if err == nil && op.Kind == string(BillingCreate) {
+		// Finalized provisioning and the charge are durable before activation.
+		// Other restrictions remain authoritative, including admin/expiry/quota.
+		return NewPeerReconciler(s.billing.db, s.peers.mikrotikAdaptor, s.billing).reconcilePeerContext(ctx, op.PeerID)
 	}
 
 	return err

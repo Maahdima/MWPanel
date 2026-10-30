@@ -18,9 +18,11 @@ import (
 )
 
 type PeerMutationRequest struct {
-	Action  string `json:"action"`
-	Value   string `json:"value"`
-	Enabled *bool  `json:"enabled"`
+	DownloadBandwidth *string `json:"download_bandwidth,omitempty"`
+	UploadBandwidth   *string `json:"upload_bandwidth,omitempty"`
+	Action            string  `json:"action"`
+	Value             string  `json:"value"`
+	Enabled           *bool   `json:"enabled"`
 }
 
 type peerMutationPayload struct {
@@ -96,6 +98,11 @@ func (s *PeerPurchases) Mutate(actor Principal, resellerID, peerID uint, key str
 	quota := *peer.TrafficLimit
 
 	switch req.Action {
+	case "set_bandwidth":
+		if req.Value != "" || req.Enabled != nil || !validPeerBandwidth(req.DownloadBandwidth) || !validPeerBandwidth(req.UploadBandwidth) {
+			return empty, ErrInvalidBillingQuantity
+		}
+
 	case "rename":
 		if strings.TrimSpace(req.Value) == "" || len(req.Value) > 128 {
 			return empty, ErrInvalidBillingQuantity
@@ -355,6 +362,19 @@ func (s *PeerPurchases) applyFree(ctx context.Context, op model.PeerPurchase, pe
 	updates := map[string]any{"purchase_id": nil, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0}
 
 	switch op.Kind {
+	case "set_bandwidth":
+		queueID, e := s.applyBandwidth(ctx, router, peer, req.DownloadBandwidth, req.UploadBandwidth)
+
+		if e != nil {
+			return e
+		}
+
+		updates["queue_id"] = queueID
+
+		updates["download_bandwidth"] = req.DownloadBandwidth
+
+		updates["upload_bandwidth"] = req.UploadBandwidth
+
 	case "rename":
 		final.Name = strings.TrimSpace(req.Value)
 

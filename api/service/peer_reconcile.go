@@ -100,16 +100,24 @@ func (r *PeerReconciler) Run() {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+
+	defer cancel()
+
 	failedServers := map[uint]bool{}
 
 	for _, peer := range peers {
+		if ctx.Err() != nil {
+			break
+		}
+
 		r.cursor = peer.ID
 
 		if failedServers[peer.ServerID] {
 			continue
 		}
 
-		if err := r.ReconcilePeer(peer.ID); err != nil {
+		if err := r.reconcilePeerContext(ctx, peer.ID); err != nil {
 			failedServers[peer.ServerID] = true
 
 			zap.L().Warn("peer reconciliation pending", zap.Uint("peer_id", peer.ID), zap.Error(err))
@@ -255,7 +263,7 @@ func (r *PeerReconciler) reconcilePeerContext(ctx context.Context, id uint) erro
 
 		delay = min(delay, int64(300))
 
-		update := r.db.Model(&model.Peer{}).Where("id = ? AND restriction_revision = ?", id, peer.RestrictionRevision).Updates(map[string]any{"sync_lease_until": 0, "sync_attempts": attempts, "sync_next_attempt_at": now + delay, "sync_error": err.Error()})
+		update := r.db.Model(&model.Peer{}).Where("id = ? AND restriction_revision = ?", id, peer.RestrictionRevision).Updates(map[string]any{"sync_lease_until": 0, "sync_attempts": attempts, "sync_next_attempt_at": now + delay, "sync_error": provisioningMessage(err)})
 
 		if update.Error != nil {
 			return update.Error

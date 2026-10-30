@@ -109,6 +109,8 @@ func SetupMwpAPI(
 
 	resellerGroup.POST("/:id/peers/:peer_id/purchases", resellerController.Purchase)
 
+	resellerGroup.POST("/:id/peers/:peer_id/retry", resellerController.RetryPeer)
+
 	resellerGroup.GET("/:id/peers/:peer_id/purchases", resellerController.Purchase)
 
 	resellerGroup.POST("/me/peers/:id/mutations", resellerController.Mutate)

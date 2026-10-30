@@ -18,10 +18,12 @@ import (
 )
 
 type ResellerPeerCreate struct {
-	Name         string `json:"name"`
-	InterfaceID  uint   `json:"interface_id"`
-	QuotaBytes   string `json:"quota_bytes"`
-	DurationDays string `json:"duration_days"`
+	DownloadBandwidth *string `json:"download_bandwidth,omitempty"`
+	UploadBandwidth   *string `json:"upload_bandwidth,omitempty"`
+	Name              string  `json:"name"`
+	InterfaceID       uint    `json:"interface_id"`
+	QuotaBytes        string  `json:"quota_bytes"`
+	DurationDays      string  `json:"duration_days"`
 }
 
 func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req ResellerPeerCreate) (PeerPurchaseView, error) {
@@ -29,6 +31,10 @@ func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req
 
 	if !billingAccess(actor, resellerID) {
 		return empty, ErrRoleForbidden
+	}
+
+	if !validPeerBandwidth(req.DownloadBandwidth) || !validPeerBandwidth(req.UploadBandwidth) {
+		return empty, ErrInvalidBillingQuantity
 	}
 
 	if !validBillingKey(key) || strings.TrimSpace(req.Name) == "" || len(req.Name) > 128 {
@@ -129,7 +135,7 @@ func (s *PeerPurchases) Create(actor Principal, resellerID uint, key string, req
 
 	op = model.PeerPurchase{ID: uuid.NewString(), ResellerID: resellerID, IdempotencyKey: key, RequestHash: hash, ActorID: actor.AccountID, Kind: string(BillingCreate), State: "pending", QuotaBytes: bytes, ExpireTime: expiry}
 
-	peer := model.Peer{ResellerID: &resellerID, ServerID: iface.ServerID, PurchaseID: &op.ID, ConfiguredDurationDays: days, ProvisioningBlocked: true, RestrictionsInitialized: true, Disabled: true, UUID: uuid.NewString(), PeerID: "pending:" + op.ID, Name: strings.TrimSpace(req.Name), PrivateKey: credentials.PrivateKey, PublicKey: credentials.PublicKey, Interface: iface.Name, AllowedAddress: address.AllowedAddress, Endpoint: server.IPAddress, EndpointPort: iface.ListenPort, PersistentKeepalive: common.DefaultKeepalive, TrafficLimit: &bytes, ExpireTime: &expiry}
+	peer := model.Peer{DownloadBandwidth: req.DownloadBandwidth, UploadBandwidth: req.UploadBandwidth, ResellerID: &resellerID, ServerID: iface.ServerID, PurchaseID: &op.ID, ConfiguredDurationDays: days, ProvisioningBlocked: true, RestrictionsInitialized: true, Disabled: true, UUID: uuid.NewString(), PeerID: "pending:" + op.ID, Name: strings.TrimSpace(req.Name), PrivateKey: credentials.PrivateKey, PublicKey: credentials.PublicKey, Interface: iface.Name, AllowedAddress: address.AllowedAddress, Endpoint: server.IPAddress, EndpointPort: iface.ListenPort, PersistentKeepalive: common.DefaultKeepalive, TrafficLimit: &bytes, ExpireTime: &expiry}
 
 	_, err = s.billing.reserveCharge(actor, resellerID, key, nil, BillingCreate, bytes, days, func(tx *gorm.DB, charge model.BillingCharge) error {
 		if e := migrationUnlocked(tx, resellerID); e != nil {
@@ -222,12 +228,12 @@ func (s *PeerPurchases) applyCreate(ctx context.Context, op model.PeerPurchase, 
 	}
 
 	if err = bound.generatePeerAssets(peer.PrivateKey, final, iface.PublicKey); err != nil {
-		return err
+		return &provisioningFailure{stage: "configuration files", cause: err}
 	}
 
 	actor := Principal{AccountID: op.ActorID, Role: model.RoleReseller, ResellerID: &op.ResellerID}
 
-	return s.billing.CommitCharge(actor, op.ResellerID, op.IdempotencyKey, func(tx *gorm.DB) error {
+	err = s.billing.CommitCharge(actor, op.ResellerID, op.IdempotencyKey, func(tx *gorm.DB) error {
 		result := tx.Model(&model.Peer{}).Where("id = ? AND reseller_id = ? AND purchase_id = ?", peer.ID, op.ResellerID, op.ID).Updates(map[string]any{"peer_id": final.PeerID, "queue_id": final.QueueID, "scheduler_id": final.SchedulerID, "provisioning_blocked": false, "purchase_id": nil, "restriction_revision": gorm.Expr("restriction_revision + 1"), "sync_next_attempt_at": 0})
 
 		if result.Error != nil {
@@ -244,6 +250,12 @@ func (s *PeerPurchases) applyCreate(ctx context.Context, op model.PeerPurchase, 
 
 		return tx.Model(&model.PeerPurchase{}).Where("id = ? AND state = ?", op.ID, "pending").Updates(map[string]any{"state": "applied", "lease_until": 0, "last_error": ""}).Error
 	})
+
+	if err != nil {
+		return &provisioningFailure{stage: "accounting", cause: err}
+	}
+
+	return nil
 }
 
 func (s *Resellers) CreatePeer(actor Principal, resellerID uint, key string, req ResellerPeerCreate) (PeerPurchaseView, error) {
@@ -278,7 +290,15 @@ func (s *Resellers) MyResources(actor Principal) ([]schema.ResellerResourceView,
 	return result, nil
 }
 
-func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.Peer, error) {
+func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (result model.Peer, err error) {
+	stage := "interface"
+
+	defer func() {
+		if err != nil {
+			err = &provisioningFailure{stage: stage, cause: err}
+		}
+	}()
+
 	router, err := s.peers.mikrotikAdaptor.ForServer(peer.ServerID)
 
 	if err != nil {
@@ -300,6 +320,8 @@ func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.P
 	if observedInterface.Name != iface.Name || observedInterface.PublicKey != iface.PublicKey {
 		return model.Peer{}, ErrRouterPeerIdentity
 	}
+
+	stage = "peer"
 
 	inventory, err := router.FetchWgPeers(ctx)
 
@@ -351,6 +373,8 @@ func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.P
 			return model.Peer{}, err
 		}
 	}
+
+	stage = "queue"
 
 	queues, err := router.FetchSimpleQueues(ctx)
 
@@ -424,6 +448,8 @@ func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.P
 		}
 	}
 
+	stage = "scheduler"
+
 	schedules, err := router.FetchSchedulers(ctx)
 
 	if err != nil {
@@ -466,7 +492,7 @@ func (s *PeerPurchases) provision(ctx context.Context, peer model.Peer) (model.P
 		return model.Peer{}, err
 	}
 
-	if scheduler.OnEvent == nil || *scheduler.OnEvent != schedulerOnEvent(remote.ID) || scheduler.StartDate == nil || *scheduler.StartDate != *date {
+	if scheduler.OnEvent == nil || *scheduler.OnEvent != schedulerOnEvent(remote.ID) || !sameSchedulerDate(scheduler.StartDate, date) {
 		return model.Peer{}, ErrRouterPeerIdentity
 	}
 

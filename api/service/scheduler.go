@@ -140,3 +140,32 @@ func toMikrotikDate(isoDate *string) (*string, error) {
 
 	return utils.Ptr(strings.ToLower(parsed.Format("Jan/02/2006"))), nil
 }
+
+// RouterOS versions expose equivalent scheduler dates in legacy or ISO form.
+func sameSchedulerDate(actual, expected *string) bool {
+	if actual == nil || expected == nil {
+		return actual == nil && expected == nil
+	}
+
+	parse := func(raw string) (time.Time, error) {
+		for _, layout := range []string{"2006-01-02", "Jan/02/2006"} {
+			value := strings.TrimSpace(raw)
+
+			if layout != "2006-01-02" && len(value) >= 3 {
+				value = strings.ToUpper(value[:1]) + strings.ToLower(value[1:])
+			}
+
+			if day, err := time.Parse(layout, value); err == nil {
+				return day, nil
+			}
+		}
+
+		return time.Time{}, fmt.Errorf("unrecognized scheduler date")
+	}
+
+	a, errA := parse(*actual)
+
+	b, errB := parse(*expected)
+
+	return errA == nil && errB == nil && a.Equal(b)
+}

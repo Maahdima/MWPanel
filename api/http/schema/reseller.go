@@ -29,6 +29,13 @@ type ResellerResourceView struct {
 }
 
 type ResellerView struct {
+	DisabledPeers     int64 `json:"disabled_peers"`
+	ExpiredPeers      int64 `json:"expired_peers"`
+	ProvisioningPeers int64 `json:"provisioning_peers"`
+	FailedOperations  int64 `json:"failed_operations"`
+	SyncPendingPeers  int64 `json:"sync_pending_peers"`
+	SyncErrorPeers    int64 `json:"sync_error_peers"`
+
 	MigrationID          *string                `json:"migration_id"`
 	IntervalDays         int64                  `json:"interval_days"`
 	GraceDays            int64                  `json:"grace_days"`

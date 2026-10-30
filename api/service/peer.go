@@ -1328,7 +1328,10 @@ func (w *WgPeer) transformPeerToResponse(peer model.Peer) schema.PeerResponse {
 		syncStatus = "error"
 	}
 
+	provisioningStatus, operationError, nextAttempt := w.peerOperationStatus(peer)
+
 	return schema.PeerResponse{
+		ProvisioningStatus: provisioningStatus, OperationError: operationError, NextAttemptAt: nextAttempt,
 		TrafficLimitBytes: int64Text(peer.TrafficLimit), TotalUsageBytes: strconv.FormatInt(peer.DownloadUsage+peer.UploadUsage, 10), ConfiguredDurationDays: strconv.FormatInt(peer.ConfiguredDurationDays, 10), PurchasePending: peer.PurchaseID != nil, MigrationPending: peer.MigrationID != nil,
 		ManualDisabled: peer.ManualDisabled, RestrictionReasons: reasons, SyncStatus: syncStatus,
 		Id:                peer.ID,

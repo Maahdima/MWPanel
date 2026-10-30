@@ -121,7 +121,7 @@ func (s *Resellers) Create(actor Principal, input schema.CreateReseller) (schema
 			return err
 		}
 
-		reseller := model.Reseller{Name: strings.TrimSpace(input.Name), DefaultInterfaceID: input.DefaultInterfaceID, MaxActivePeers: input.MaxActivePeers, MaxPeerTrafficBytes: input.MaxPeerTrafficBytes, MaxTotalTrafficBytes: input.MaxTotalTrafficBytes, MaxDurationDays: input.MaxDurationDays}
+		reseller := model.Reseller{IsActive: true, Name: strings.TrimSpace(input.Name), DefaultInterfaceID: input.DefaultInterfaceID, MaxActivePeers: input.MaxActivePeers, MaxPeerTrafficBytes: input.MaxPeerTrafficBytes, MaxTotalTrafficBytes: input.MaxTotalTrafficBytes, MaxDurationDays: input.MaxDurationDays}
 
 		if err := tx.Create(&reseller).Error; err != nil {
 			return err
@@ -333,7 +333,49 @@ func (s *Resellers) Get(actor Principal, id uint) (schema.ResellerView, error) {
 
 	view.TotalPeers = int64(len(peers))
 
+	var operations []model.PeerPurchase
+
+	if err := s.db.Where("reseller_id = ? AND state = ?", id, "pending").Find(&operations).Error; err != nil {
+		return view, err
+	}
+
+	operationByID := map[string]model.PeerPurchase{}
+
+	for _, operation := range operations {
+		operationByID[operation.ID] = operation
+	}
+
 	for _, peer := range peers {
+		if peer.Disabled {
+			view.DisabledPeers++
+		}
+
+		if utils.IsPeerExpired(peer.ExpireTime, time.Now()) {
+			view.ExpiredPeers++
+		}
+
+		if peer.ProvisioningBlocked {
+			failed := peer.PurchaseID == nil
+
+			if peer.PurchaseID != nil {
+				operation, exists := operationByID[*peer.PurchaseID]
+
+				failed = !exists || operation.PeerID != peer.ID || operation.LastError != ""
+			}
+
+			if failed {
+				view.FailedOperations++
+			} else {
+				view.ProvisioningPeers++
+			}
+		}
+
+		if peer.SyncError != "" {
+			view.SyncErrorPeers++
+		} else if peer.SyncedDisabled == nil || peer.AppliedRevision != peer.RestrictionRevision {
+			view.SyncPendingPeers++
+		}
+
 		if !peer.Disabled && !utils.IsPeerExpired(peer.ExpireTime, time.Now()) && (peer.TrafficLimit == nil || peer.DownloadUsage+peer.UploadUsage < *peer.TrafficLimit) {
 			view.ActivePeers++
 		}

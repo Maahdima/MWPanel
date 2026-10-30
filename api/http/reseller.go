@@ -505,3 +505,23 @@ func (c *ResellerController) CancelMigration(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusAccepted, schema.BasicResponseData[string]{BasicResponse: response, Data: "cancellation queued"})
 }
+
+func (c *ResellerController) RetryPeer(ctx echo.Context) error {
+	id, err := resellerID(ctx, "id")
+
+	if err != nil {
+		return err
+	}
+
+	peerID, err := resellerID(ctx, "peer_id")
+
+	if err != nil {
+		return err
+	}
+
+	if err = c.service.RetryPeer(resellerActor(ctx), id, peerID); err != nil {
+		return resellerError(ctx, err)
+	}
+
+	return ctx.JSON(http.StatusAccepted, schema.OkBasicResponse)
+}

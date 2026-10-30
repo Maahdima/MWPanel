@@ -82,6 +82,10 @@ type PeerShareStatusResponse struct {
 }
 
 type PeerResponse struct {
+	ProvisioningStatus string `json:"provisioning_status"`
+	OperationError     string `json:"operation_error"`
+	NextAttemptAt      int64  `json:"next_attempt_at"`
+
 	MigrationPending       bool         `json:"migration_pending"`
 	TrafficLimitBytes      *string      `json:"traffic_limit_bytes"`
 	TotalUsageBytes        string       `json:"total_usage_bytes"`
