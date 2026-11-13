@@ -10,3 +10,7 @@ export const fetchOrders = async (): Promise<Order[]> => {
 export const acceptOrder = async (id: number): Promise<void> => {
   await axiosInstance.post(`/orders/${id}/accept`)
 }
+
+export const rejectOrder = async (id: number): Promise<void> => {
+  await axiosInstance.post(`/orders/${id}/reject`)
+}

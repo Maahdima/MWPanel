@@ -3,6 +3,7 @@ import { Order } from '@/schema/order'
 import { toast } from 'sonner'
 import { handleServerError } from '@/utils/handle-server-error.ts'
 import { useAcceptOrderMutation } from '@/hooks/orders/useAcceptOrderMutation.ts'
+import { useRejectOrderMutation } from '@/hooks/orders/useRejectOrderMutation.ts'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Dialog,
@@ -20,11 +21,17 @@ function formatCard(card: string) {
   return digits.replace(/(.{4})/g, '$1-').replace(/-$/, '')
 }
 
-export function OrderAcceptButton({ order }: { order: Order }) {
-  const [open, setOpen] = useState(false)
-  const mutation = useAcceptOrderMutation()
+function canReview(order: Order) {
+  return order.status === 'pending' || order.status === 'expired'
+}
 
-  if (order.status === 'paid') {
+export function OrderAcceptButton({ order }: { order: Order }) {
+  const [acceptOpen, setAcceptOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const accept = useAcceptOrderMutation()
+  const reject = useRejectOrderMutation()
+
+  if (!canReview(order)) {
     return <span className='text-muted-foreground'>-</span>
   }
 
@@ -39,10 +46,19 @@ export function OrderAcceptButton({ order }: { order: Order }) {
 
   return (
     <>
-      <Button size='sm' variant='outline' onClick={() => setOpen(true)}>
-        Accept
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Button size='sm' variant='outline' onClick={() => setAcceptOpen(true)}>
+          Accept
+        </Button>
+        <Button
+          size='sm'
+          variant='destructive'
+          onClick={() => setRejectOpen(true)}
+        >
+          Reject
+        </Button>
+      </div>
+      <Dialog open={acceptOpen} onOpenChange={setAcceptOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Accept payment</DialogTitle>
@@ -65,24 +81,70 @@ export function OrderAcceptButton({ order }: { order: Order }) {
             <Button
               variant='outline'
               type='button'
-              disabled={mutation.isPending}
-              onClick={() => setOpen(false)}
+              disabled={accept.isPending}
+              onClick={() => setAcceptOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              disabled={mutation.isPending}
+              disabled={accept.isPending}
               onClick={() => {
-                mutation.mutate(order.id, {
+                accept.mutate(order.id, {
                   onSuccess: () => {
                     toast.success('Payment accepted')
-                    setOpen(false)
+                    setAcceptOpen(false)
                   },
                   onError: (error) => handleServerError(error),
                 })
               }}
             >
               Accept payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject payment</DialogTitle>
+            <DialogDescription>
+              The order is closed and the buyer is told the payment was not
+              accepted. The config is not changed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <dl className='grid grid-cols-1 gap-3 text-sm'>
+              {details.map(([label, value]) => (
+                <div key={label} className='min-w-0'>
+                  <dt className='text-muted-foreground'>{label}</dt>
+                  <dd className='font-medium wrap-break-word'>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              type='button'
+              disabled={reject.isPending}
+              onClick={() => setRejectOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant='destructive'
+              disabled={reject.isPending}
+              onClick={() => {
+                reject.mutate(order.id, {
+                  onSuccess: () => {
+                    toast.success('Payment rejected')
+                    setRejectOpen(false)
+                  },
+                  onError: (error) => handleServerError(error),
+                })
+              }}
+            >
+              Reject payment
             </Button>
           </DialogFooter>
         </DialogContent>

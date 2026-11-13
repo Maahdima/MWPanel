@@ -186,6 +186,7 @@ func setupShopProxyRoutes(router *echo.Group, jwtConfig echojwt.Config, proxy *S
 	protected.Use(echojwt.WithConfig(jwtConfig))
 	protected.GET("/orders", proxy.Forward)
 	protected.POST("/orders/:id/accept", proxy.Forward)
+	protected.POST("/orders/:id/reject", proxy.Forward)
 	protected.GET("/plans", proxy.Forward)
 	protected.POST("/plans", proxy.Forward)
 	protected.PUT("/plans/:id", proxy.Forward)

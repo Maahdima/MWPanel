@@ -14,6 +14,7 @@ export const PeerSchema = z.object({
   disabled: z.boolean(),
   comment: z.string().nullable(),
   telegram_username: z.string().nullable(),
+  telegram_chat_id: z.string().optional().default(''),
   telegram_linked: z.boolean().default(false),
   name: z.string(),
   interface: z.string(),

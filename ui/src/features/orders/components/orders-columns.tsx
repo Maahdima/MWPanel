@@ -27,6 +27,7 @@ const statusClass: Record<string, string> = {
   failed: 'border-transparent bg-destructive text-white',
   cancelled: 'border-transparent bg-muted text-muted-foreground',
   expired: 'border-transparent bg-muted text-muted-foreground',
+  rejected: 'border-transparent bg-destructive text-white',
 }
 
 export const ordersColumns: ColumnDef<Order>[] = [

@@ -224,14 +224,17 @@ export const peersColumns: ColumnDef<Peer>[] = [
       <DataTableColumnHeader column={column} title='Telegram' />
     ),
     cell: ({ row }) => {
-      const { telegram_username, telegram_linked } = row.original
+      const { telegram_username, telegram_chat_id, telegram_linked } =
+        row.original
       if (!telegram_linked) {
         return <span className='text-muted-foreground'>Not linked</span>
       }
 
+      const label = telegram_username || telegram_chat_id
+
       return (
         <div className='flex w-fit items-center gap-2 text-nowrap'>
-          {telegram_username && <span>{telegram_username}</span>}
+          {label ? <span>{label}</span> : null}
           <ColoredBadge color='green' text='linked' />
         </div>
       )

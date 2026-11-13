@@ -18,6 +18,7 @@ type Link struct {
 	UUID          string  `json:"uuid"`
 	Linked        bool    `json:"linked"`
 	Username      *string `json:"username,omitempty"`
+	ChatID        string  `json:"chat_id,omitempty"`
 	NotifyEnabled bool    `json:"notify_enabled"`
 }
 

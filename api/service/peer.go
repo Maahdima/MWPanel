@@ -1000,6 +1000,7 @@ func (w *WgPeer) attachTelegramLinkStatus(peers []schema.PeerResponse) {
 			}
 			peers[i].TelegramLinked = true
 			peers[i].TelegramUsername = link.Username
+			peers[i].TelegramChatID = link.ChatID
 		}
 		return
 	}
@@ -1024,6 +1025,7 @@ func (w *WgPeer) attachTelegramLinkStatus(peers []schema.PeerResponse) {
 			continue
 		}
 		peers[i].TelegramLinked = true
+		peers[i].TelegramChatID = chat.ChatID
 		if chat.Username != nil && *chat.Username != "" {
 			username := "@" + *chat.Username
 			peers[i].TelegramUsername = &username

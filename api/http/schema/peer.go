@@ -86,6 +86,7 @@ type PeerResponse struct {
 	Disabled          bool         `json:"disabled"`
 	Comment           *string      `json:"comment"`
 	TelegramUsername  *string      `json:"telegram_username"`
+	TelegramChatID    string       `json:"telegram_chat_id,omitempty"`
 	TelegramLinked    bool         `json:"telegram_linked"`
 	Name              string       `json:"name"`
 	Interface         string       `json:"interface"`

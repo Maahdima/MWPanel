@@ -27,6 +27,7 @@ const orderStatusOptions = [
   { label: 'Failed', value: 'failed' },
   { label: 'Cancelled', value: 'cancelled' },
   { label: 'Expired', value: 'expired' },
+  { label: 'Rejected', value: 'rejected' },
 ]
 
 const planStatusOptions = [
