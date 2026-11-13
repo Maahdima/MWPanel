@@ -203,12 +203,7 @@ export const ordersColumns: ColumnDef<Order>[] = [
     meta: { className: cn('border-l border-r') },
   },
   {
-    id: 'review',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Review' />
-    ),
+    id: 'actions',
     cell: ({ row }) => <OrderAcceptButton order={row.original} />,
-    enableSorting: false,
-    meta: { className: cn('border-l border-r') },
   },
 ]

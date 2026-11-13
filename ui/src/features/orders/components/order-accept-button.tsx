@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { DotsHorizontalIcon } from '@radix-ui/react-icons'
+import { IconCheck, IconX } from '@tabler/icons-react'
 import { Order } from '@/schema/order'
 import { toast } from 'sonner'
 import { handleServerError } from '@/utils/handle-server-error.ts'
@@ -14,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu.tsx'
 
 function formatCard(card: string) {
   const digits = card.replace(/\D/g, '')
@@ -46,18 +55,34 @@ export function OrderAcceptButton({ order }: { order: Order }) {
 
   return (
     <>
-      <div className='flex flex-wrap items-center gap-2'>
-        <Button size='sm' variant='outline' onClick={() => setAcceptOpen(true)}>
-          Accept
-        </Button>
-        <Button
-          size='sm'
-          variant='destructive'
-          onClick={() => setRejectOpen(true)}
-        >
-          Reject
-        </Button>
-      </div>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant='ghost'
+            className='data-[state=open]:bg-muted flex h-8 w-8 p-0'
+          >
+            <DotsHorizontalIcon className='h-4 w-4' />
+            <span className='sr-only'>Open menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end'>
+          <DropdownMenuItem onClick={() => setAcceptOpen(true)}>
+            Accept
+            <DropdownMenuShortcut>
+              <IconCheck size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setRejectOpen(true)}
+            className='text-red-500!'
+          >
+            Reject
+            <DropdownMenuShortcut>
+              <IconX size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Dialog open={acceptOpen} onOpenChange={setAcceptOpen}>
         <DialogContent>
           <DialogHeader>
