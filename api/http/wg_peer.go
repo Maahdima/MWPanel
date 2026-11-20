@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/maahdima/mwp/api/cmd/jobs"
+	traffic "github.com/maahdima/mwp/api/cmd/jobs"
+	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/service"
 
@@ -32,6 +33,25 @@ func NewWgPeerController(PeerService *service.WgPeer, configGeneratorService *se
 		trafficCalculator:      trafficCalculator,
 		logger:                 zap.L().Named("WgPeerController"),
 	}
+}
+
+func (c *WgPeerController) GetPeerFormDefaults(ctx echo.Context) error {
+	cfg, err := config.GetPeerDefaultsConfig()
+	if err != nil {
+		c.logger.Error("invalid peer defaults configuration", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, schema.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "error",
+			Message:    err.Error(),
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, schema.BasicResponseData[schema.PeerFormDefaults]{
+		BasicResponse: schema.OkBasicResponse,
+		Data: schema.PeerFormDefaults{
+			DefaultExpireDays: cfg.DefaultExpireDays,
+		},
+	})
 }
 
 func (c *WgPeerController) GetPeerCredentials(ctx echo.Context) error {

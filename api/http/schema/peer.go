@@ -17,6 +17,10 @@ type NewPeerAllowedAddressResponse struct {
 	AllowedAddress string `json:"allowed_address"`
 }
 
+type PeerFormDefaults struct {
+	DefaultExpireDays *int `json:"default_expire_days"`
+}
+
 type CreatePeerRequest struct {
 	Comment             *string `json:"comment,omitempty"`
 	Name                string  `json:"name" validate:"required"`

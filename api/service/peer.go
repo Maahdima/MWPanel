@@ -16,6 +16,7 @@ import (
 
 	"github.com/maahdima/mwp/api/adaptor/mikrotik"
 	"github.com/maahdima/mwp/api/common"
+	"github.com/maahdima/mwp/api/config"
 	"github.com/maahdima/mwp/api/dataservice/model"
 	"github.com/maahdima/mwp/api/http/schema"
 	"github.com/maahdima/mwp/api/shopclient"
@@ -407,6 +408,10 @@ func (w *WgPeer) GetPeers() (*[]schema.PeerResponse, error) {
 }
 
 func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse, error) {
+	if err := applyPeerDefaultExpireTime(req); err != nil {
+		return nil, err
+	}
+
 	iface, err := w.getInterface(req.InterfaceId)
 	if err != nil {
 		return nil, err
@@ -1112,4 +1117,18 @@ func int64PtrEqual(a, b *int64) bool {
 		return false
 	}
 	return *a == *b
+}
+
+func applyPeerDefaultExpireTime(req *schema.CreatePeerRequest) error {
+	if req.ExpireTime != nil && strings.TrimSpace(*req.ExpireTime) != "" {
+		return nil
+	}
+
+	cfg, err := config.GetPeerDefaultsConfig()
+	if err != nil {
+		return err
+	}
+
+	req.ExpireTime = cfg.DefaultExpireDate(time.Now())
+	return nil
 }

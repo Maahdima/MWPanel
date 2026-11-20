@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { addMonths, format } from 'date-fns'
 import { UseFormReturn, useWatch } from 'react-hook-form'
 import { CreatePeerRequest } from '@/schema/peer'
 import { useInterfacesListQuery } from '@/hooks/interfaces/useInterfacesListQuery'
 import { usePeerAllowedAddressMutation } from '@/hooks/peers/usePeerAllowedAddressMutation.ts'
+import { useDefaultPeerExpireTime } from '@/hooks/peers/usePeerFormDefaultsQuery'
 import { useServersListQuery } from '@/hooks/servers/useServersListQuery'
 
 interface Props {
@@ -30,6 +30,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
   } = useServersListQuery()
 
   const { mutate: GetPeerAllowedAddress } = usePeerAllowedAddressMutation()
+  const defaultExpireTime = useDefaultPeerExpireTime()
 
   const hasSetDefaults = useRef(false)
 
@@ -50,6 +51,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
     if (
       !isEdit &&
       !hasSetDefaults.current &&
+      defaultExpireTime !== undefined &&
       interfacesList.length > 0 &&
       serversList.length > 0 &&
       !isInterfacesLoading &&
@@ -64,7 +66,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
         interface_id: defaultInterface.id,
         endpoint: defaultServer.ip_address,
         persistent_keepalive: '00:00:25',
-        expire_time: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+        expire_time: defaultExpireTime,
       }))
 
       hasSetDefaults.current = true
@@ -76,6 +78,7 @@ export function usePeerDefaults({ isEdit, form, shouldRefetch }: Props) {
     serversList,
     isInterfacesLoading,
     isServersLoading,
+    defaultExpireTime,
   ])
 
   useEffect(() => {

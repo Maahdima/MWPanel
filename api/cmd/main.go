@@ -29,6 +29,10 @@ func main() {
 
 	appCfg := config.GetAppConfig()
 
+	if _, err := config.GetPeerDefaultsConfig(); err != nil {
+		logger.Panic("Invalid peer defaults configuration", zap.Error(err))
+	}
+
 	db, err := dataservice.ConnectDB(config.GetDBConfig())
 	if err != nil {
 		logger.Panic("Failed to connect to database", zap.Error(err))

@@ -317,6 +317,12 @@ Unset variables fall back to the defaults below. `ADMIN_*` only apply when the d
 | `TRAFFIC_JOB_INTERVAL` | How often to poll peer counters, expire overdue peers, and evaluate traffic alerts (seconds) | `300` |
 | `SESSION_JOB_INTERVAL` | How often to poll handshakes for session history (seconds) | `30` |
 
+### Peers
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `PEER_DEFAULT_EXPIRE_DAYS` | Default expiry for new peers in the admin panel, in days. Use `0`, `none`, `never`, or `indefinite` for no default expiry. Setting the variable to an empty value also means no default expiry. | `30` |
+
 ---
 
 ## Usage
