@@ -34,7 +34,7 @@ function canReview(order: Order) {
   return order.status === 'pending' || order.status === 'expired'
 }
 
-export function OrderAcceptButton({ order }: { order: Order }) {
+export function OrderAcceptButton({ order }: Readonly<{ order: Order }>) {
   const [acceptOpen, setAcceptOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
   const accept = useAcceptOrderMutation()

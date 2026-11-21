@@ -56,6 +56,7 @@ export const PeerStatsSchema = z.object({
   download_usage: z.string(),
   upload_usage: z.string(),
   total_usage: z.string(),
+  remaining_usage: z.string().nullable(),
   usage_percent: z.string().nullable(),
   is_online: z.boolean(),
 })

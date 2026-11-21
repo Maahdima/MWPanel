@@ -279,11 +279,13 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 
 	totalUsage := peer.DownloadUsage + peer.UploadUsage
 
-	var usagePercent, trafficLimit *string
+	var usagePercent, trafficLimit, remainingUsage *string
 	if peer.TrafficLimit != nil {
 		trafficLimit = utils.Ptr(utils.BytesToGB(*peer.TrafficLimit))
 		percent := float64(totalUsage) / float64(*peer.TrafficLimit) * 100
 		usagePercent = utils.Ptr(fmt.Sprintf("%.1f", percent))
+		remaining := max(*peer.TrafficLimit-totalUsage, 0)
+		remainingUsage = utils.Ptr(utils.BytesToGB(remaining))
 	}
 
 	mtPeer, err := w.mikrotikAdaptor.FetchWgPeer(context.Background(), peer.PeerID)
@@ -299,16 +301,17 @@ func (w *WgPeer) GetPeerDetails(uuid string) (*schema.PeerDetailsResponse, error
 	}
 
 	return &schema.PeerDetailsResponse{
-		Name:          peer.Name,
-		UUID:          peer.UUID,
-		Disabled:      peer.Disabled,
-		TrafficLimit:  trafficLimit,
-		ExpireTime:    peer.ExpireTime,
-		DownloadUsage: utils.BytesToGB(peer.DownloadUsage),
-		UploadUsage:   utils.BytesToGB(peer.UploadUsage),
-		TotalUsage:    utils.BytesToGB(totalUsage),
-		UsagePercent:  usagePercent,
-		IsOnline:      isOnline,
+		Name:           peer.Name,
+		UUID:           peer.UUID,
+		Disabled:       peer.Disabled,
+		TrafficLimit:   trafficLimit,
+		ExpireTime:     peer.ExpireTime,
+		DownloadUsage:  utils.BytesToGB(peer.DownloadUsage),
+		UploadUsage:    utils.BytesToGB(peer.UploadUsage),
+		TotalUsage:     utils.BytesToGB(totalUsage),
+		RemainingUsage: remainingUsage,
+		UsagePercent:   usagePercent,
+		IsOnline:       isOnline,
 	}, nil
 }
 
@@ -366,6 +369,7 @@ func (w *WgPeer) GetPeerTelegramStatus(uuid string) (*schema.PeerTelegramStatusR
 		username := "@" + *chat.Username
 		status.Username = &username
 	}
+
 	return &status, nil
 }
 
@@ -467,6 +471,7 @@ func (w *WgPeer) CreatePeer(req *schema.CreatePeerRequest) (*schema.PeerResponse
 
 	cleanup = false
 	resp := w.peerResponse(dbPeer)
+
 	return &resp, nil
 }
 
@@ -509,6 +514,7 @@ func (w *WgPeer) UpdatePeer(id uint, req *schema.UpdatePeerRequest) (*schema.Pee
 	}
 
 	transformed := w.peerResponse(peer)
+
 	return &transformed, nil
 }
 
@@ -722,6 +728,7 @@ func (w *WgPeer) getInterface(id uint) (model.Interface, error) {
 		w.logger.Error("db error while fetching interface", zap.Error(err))
 		return iface, err
 	}
+
 	return iface, nil
 }
 
@@ -751,6 +758,7 @@ func (w *WgPeer) createMikrotikPeer(req *schema.CreatePeerRequest, ifaceName str
 		PrivateKey:     &req.PrivateKey,
 		PublicKey:      req.PublicKey,
 	}
+
 	return w.mikrotikAdaptor.CreateWgPeer(context.Background(), *peer)
 }
 
@@ -1130,5 +1138,6 @@ func applyPeerDefaultExpireTime(req *schema.CreatePeerRequest) error {
 	}
 
 	req.ExpireTime = cfg.DefaultExpireDate(time.Now())
+
 	return nil
 }

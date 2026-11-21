@@ -60,16 +60,17 @@ type PeerCredentialsResponse struct {
 }
 
 type PeerDetailsResponse struct {
-	Name          string  `json:"name"`
-	UUID          string  `json:"uuid"`
-	Disabled      bool    `json:"disabled"`
-	TrafficLimit  *string `json:"traffic_limit"`
-	ExpireTime    *string `json:"expire_time"`
-	DownloadUsage string  `json:"download_usage"`
-	UploadUsage   string  `json:"upload_usage"`
-	TotalUsage    string  `json:"total_usage"`
-	UsagePercent  *string `json:"usage_percent"`
-	IsOnline      bool    `json:"is_online"`
+	Name           string  `json:"name"`
+	UUID           string  `json:"uuid"`
+	Disabled       bool    `json:"disabled"`
+	TrafficLimit   *string `json:"traffic_limit"`
+	ExpireTime     *string `json:"expire_time"`
+	DownloadUsage  string  `json:"download_usage"`
+	UploadUsage    string  `json:"upload_usage"`
+	TotalUsage     string  `json:"total_usage"`
+	RemainingUsage *string `json:"remaining_usage"`
+	UsagePercent   *string `json:"usage_percent"`
+	IsOnline       bool    `json:"is_online"`
 }
 
 type PeerTelegramStatusResponse struct {

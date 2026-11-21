@@ -7,6 +7,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   ClockFadingIcon,
+  DatabaseIcon,
   EthernetPortIcon,
   GaugeIcon,
   PowerIcon,
@@ -139,6 +140,18 @@ export default function PeerStatsCard({ isLoading, stats }: StatsCardProps) {
               <span className='min-w-0 text-right'>
                 {stats?.total_usage ?? 0} GB{' '}
                 {stats?.traffic_limit ? `(${stats.usage_percent}%)` : ''}
+              </span>
+            </div>
+
+            <div className='flex items-center justify-between gap-3'>
+              <span className='flex shrink-0 items-center gap-2'>
+                <DatabaseIcon className='h-4 w-4' />
+                Remaining
+              </span>
+              <span className='min-w-0 text-right'>
+                {stats?.remaining_usage != null
+                  ? `${stats.remaining_usage} GB`
+                  : 'Unlimited'}
               </span>
             </div>
 
